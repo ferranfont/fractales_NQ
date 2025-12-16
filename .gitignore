@@ -1,0 +1,23 @@
+# Archivos de datos grandes
+data/export_GC_2015_formatted.csv
+
+# Python
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+.Python
+
+# Outputs
+outputs/*.html
+
+# IDEs
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# OS
+.DS_Store
+Thumbs.db
