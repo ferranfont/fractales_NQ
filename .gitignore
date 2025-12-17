@@ -1,5 +1,8 @@
 # Archivos de datos grandes
-data/export_GC_2015_formatted.csv
+data/gc_2015_2025.csv
+
+# CSV files in root
+/*.csv
 
 # Python
 __pycache__/
