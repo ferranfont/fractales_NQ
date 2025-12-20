@@ -164,5 +164,5 @@ Incluye:
 ## Dependencias
 
 ```bash
-pip install pandas plotly
+pip install -r requirements.txt
 ```
