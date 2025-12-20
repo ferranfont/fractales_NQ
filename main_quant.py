@@ -5,12 +5,9 @@ Orquesta la ejecución de:
 2. Generación de gráfico (plot_day.py)
 """
 from pathlib import Path
-from config import (
-    START_DATE, END_DATE, DATA_DIR,
-    RSI_PERIOD, RSI_SMOOTH_PERIOD, RSI_RESAMPLE, RSI_RESAMPLE_TO_PERIOD
-)
+from config import START_DATE, END_DATE, DATA_DIR
 from find_fractals import process_fractals_range
-from plot_day import plot_range_chart, calculate_rsi
+from plot_day import plot_range_chart
 
 
 def main_quant_range(start_date: str, end_date: str):
@@ -36,36 +33,12 @@ def main_quant_range(start_date: str, end_date: str):
         print("[ERROR] Fallo en detección de fractales")
         return None
 
-    # 2. Calcular RSI
+    # 2. Generar gráfico
     print("\n" + "-"*70)
-    print("PASO 2: CÁLCULO RSI")
-    print("-"*70)
-    df = fractals_result['df']
-
-    # Determinar regla efectiva de resample
-    if isinstance(RSI_RESAMPLE, bool) and RSI_RESAMPLE:
-        rsi_resample_rule = RSI_RESAMPLE_TO_PERIOD
-    elif isinstance(RSI_RESAMPLE, str) and RSI_RESAMPLE:
-        rsi_resample_rule = RSI_RESAMPLE
-    else:
-        rsi_resample_rule = None
-
-    df['rsi'] = calculate_rsi(df, period=RSI_PERIOD, smooth_period=RSI_SMOOTH_PERIOD,
-                              resample_rule=rsi_resample_rule)
-    df_valid = df.dropna(subset=['rsi'])
-
-    rsi_min = df_valid['rsi'].min()
-    rsi_max = df_valid['rsi'].max()
-    rsi_mean = df_valid['rsi'].mean()
-
-    print(f"RSI calculado - Min: {rsi_min:.2f}, Max: {rsi_max:.2f}, Mean: {rsi_mean:.2f}")
-
-    # 3. Generar gráfico con toda la información
-    print("\n" + "-"*70)
-    print("PASO 3: GENERACIÓN DE GRÁFICO")
+    print("PASO 2: GENERACIÓN DE GRÁFICO")
     print("-"*70)
     plot_result = plot_range_chart(
-        df,
+        fractals_result['df'],
         fractals_result['df_fractals_minor'],
         fractals_result['df_fractals_major'],
         start_date,
@@ -78,7 +51,7 @@ def main_quant_range(start_date: str, end_date: str):
         print("[ERROR] Fallo en generación de gráfico")
         return None
 
-    # 4. Resumen final
+    # 3. Resumen final
     print("\n" + "="*70)
     print("RESUMEN FINAL")
     print("="*70)
@@ -86,7 +59,6 @@ def main_quant_range(start_date: str, end_date: str):
     print(f"Registros procesados: {fractals_result['total_records']}")
     print(f"Fractales MINOR detectados: {fractals_result['minor_count']}")
     print(f"Fractales MAJOR detectados: {fractals_result['major_count']}")
-    print(f"RSI medio: {rsi_mean:.2f}")
     print(f"Gráfico generado: {plot_result['output_path']}")
     print("="*70 + "\n")
 
@@ -94,7 +66,6 @@ def main_quant_range(start_date: str, end_date: str):
         'start_date': start_date,
         'end_date': end_date,
         'fractals': fractals_result,
-        'rsi_mean': rsi_mean,
         'plot': plot_result
     }
 

@@ -1,6 +1,6 @@
 # Gold Perdices - Análisis Cuantitativo
 
-Sistema de análisis técnico para Gold (GC) con detección de fractales ZigZag, RSI y visualización interactiva.
+Sistema de análisis técnico para Gold (GC) con detección de fractales ZigZag y visualización interactiva.
 
 Soporta análisis de rangos de fechas completos (2015-01-02 a 2025-04-25) o días individuales.
 
@@ -18,7 +18,7 @@ gold_perdices/
 ├── config.py                 # Configuración centralizada
 ├── main_quant.py            # Script principal - ejecutar este
 ├── find_fractals.py         # Detección de fractales ZigZag
-├── plot_day.py              # Generación de gráficos con RSI
+├── plot_day.py              # Generación de gráficos
 ├── utils/
 │   └── segregate_by_date.py # Segregar CSV por fechas
 ├── data/                    # Datos OHLC por día
@@ -41,8 +41,7 @@ python main_quant.py
 Esto ejecutará automáticamente para el rango de fechas configurado:
 1. ✅ Carga de datos desde START_DATE hasta END_DATE
 2. ✅ Detección de fractales MINOR y MAJOR en todo el rango
-3. ✅ Cálculo de RSI
-4. ✅ Generación de gráfico interactivo
+3. ✅ Generación de gráfico interactivo
 
 ### Scripts Individuales
 
@@ -68,16 +67,6 @@ END_DATE = "2025-04-25"      # Fecha final
 # Umbrales de fractales ZigZag
 MIN_CHANGE_PCT_MINOR = 0.09  # 0.09% para fractales pequeños
 MIN_CHANGE_PCT_MAJOR = 0.25  # 0.25% para fractales grandes
-
-# Parámetros RSI
-RSI_PERIOD = 14              # Período del RSI
-RSI_OVERBOUGHT = 70          # Nivel de sobrecompra
-RSI_OVERSOLD = 30            # Nivel de sobreventa
-
-# Parámetros de detección de divergencias
-REQUIRE_DOWNTREND = True     # Requiere tendencia bajista MAJOR
-REQUIRE_DIVERGENCE = True    # Requiere divergencia alcista
-FIBO_LEVEL_FILTER = 0.5     # Nivel mínimo de Fibonacci
 ```
 
 ## Preparación de Datos
@@ -138,14 +127,9 @@ Incluye:
 - ✅ Dos niveles: MINOR (0.09%) y MAJOR (0.25%)
 - ✅ Detección continua a través de rangos de fechas
 
-### RSI
-- ✅ Cálculo estándar (período 14)
-- ✅ Visualización en subplot sincronizado
-- ✅ Detección de niveles de sobrecompra/sobreventa
-
 ### Visualización
 - ✅ Gráficos interactivos con Plotly
-- ✅ Zoom sincronizado entre precio y RSI
+- ✅ Línea de precio con fractales superpuestos
 - ✅ Estilo minimalista profesional
 - ✅ Soporte para visualización de rangos largos de datos
 
