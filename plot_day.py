@@ -27,32 +27,46 @@ def plot_range_chart(df, df_fractals_minor, df_fractals_major, start_date, end_d
     # Crear figura simple
     fig = go.Figure()
 
+    # Crear índice numérico para evitar huecos de fines de semana
+    df = df.reset_index(drop=True)
+    df['index'] = df.index
+
     # Línea de precio (close) - gris con transparencia
     fig.add_trace(go.Scatter(
-        x=df['timestamp'],
+        x=df['index'],
         y=df['close'],
         mode='lines',
         name='Price',
         line=dict(color='gray', width=1),
-        opacity=0.5
+        opacity=0.5,
+        text=df['timestamp'],
+        hovertemplate='<b>Price</b><br>Time: %{text}<br>Price: %{y:.2f}<extra></extra>'
     ))
 
     # Añadir líneas ZigZag y marcadores de fractales MINOR
     if PLOT_MINOR_FRACTALS and df_fractals_minor is not None and not df_fractals_minor.empty:
+        # Mapear timestamps de fractales MINOR a índices
+        df_fractals_minor = df_fractals_minor.copy()
+        df_fractals_minor['index'] = df_fractals_minor['timestamp'].apply(
+            lambda ts: df[df['timestamp'] == ts].index[0] if len(df[df['timestamp'] == ts]) > 0 else None
+        )
+        df_fractals_minor = df_fractals_minor.dropna(subset=['index'])
+
         # Línea ZigZag MINOR - dodgerblue
         fig.add_trace(go.Scatter(
-            x=df_fractals_minor['timestamp'],
+            x=df_fractals_minor['index'],
             y=df_fractals_minor['price'],
             mode='lines',
             name='ZigZag Minor',
             line=dict(color='dodgerblue', width=1),
             opacity=0.7,
-            hovertemplate='<b>Minor</b><br>Time: %{x}<br>Price: %{y:.2f}<extra></extra>'
+            text=df_fractals_minor['timestamp'],
+            hovertemplate='<b>Minor</b><br>Time: %{text}<br>Price: %{y:.2f}<extra></extra>'
         ))
 
         # Puntos MINOR - dodgerblue pequeños
         fig.add_trace(go.Scatter(
-            x=df_fractals_minor['timestamp'],
+            x=df_fractals_minor['index'],
             y=df_fractals_minor['price'],
             mode='markers',
             name='Fractales Minor',
@@ -62,19 +76,28 @@ def plot_range_chart(df, df_fractals_minor, df_fractals_major, start_date, end_d
                 symbol='circle'
             ),
             opacity=1,
-            hovertemplate='<b>Minor</b><br>Time: %{x}<br>Price: %{y:.2f}<extra></extra>'
+            text=df_fractals_minor['timestamp'],
+            hovertemplate='<b>Minor</b><br>Time: %{text}<br>Price: %{y:.2f}<extra></extra>'
         ))
 
     # Añadir líneas ZigZag y marcadores de fractales MAJOR
     if PLOT_MAJOR_FRACTALS and df_fractals_major is not None and not df_fractals_major.empty:
+        # Mapear timestamps de fractales MAJOR a índices
+        df_fractals_major = df_fractals_major.copy()
+        df_fractals_major['index'] = df_fractals_major['timestamp'].apply(
+            lambda ts: df[df['timestamp'] == ts].index[0] if len(df[df['timestamp'] == ts]) > 0 else None
+        )
+        df_fractals_major = df_fractals_major.dropna(subset=['index'])
+
         # Línea ZigZag MAJOR - AZUL
         fig.add_trace(go.Scatter(
-            x=df_fractals_major['timestamp'],
+            x=df_fractals_major['index'],
             y=df_fractals_major['price'],
             mode='lines',
             name='ZigZag Major',
             line=dict(color='blue', width=2),
-            hovertemplate='<b>Major</b><br>Time: %{x}<br>Price: %{y:.2f}<extra></extra>'
+            text=df_fractals_major['timestamp'],
+            hovertemplate='<b>Major</b><br>Time: %{text}<br>Price: %{y:.2f}<extra></extra>'
         ))
 
         # Separar picos y valles MAJOR para los marcadores
@@ -84,7 +107,7 @@ def plot_range_chart(df, df_fractals_minor, df_fractals_major, start_date, end_d
         # PICOS - círculos verdes rellenos
         if not df_picos_major.empty:
             fig.add_trace(go.Scatter(
-                x=df_picos_major['timestamp'],
+                x=df_picos_major['index'],
                 y=df_picos_major['price'],
                 mode='markers',
                 name='PICO Major',
@@ -93,13 +116,14 @@ def plot_range_chart(df, df_fractals_minor, df_fractals_major, start_date, end_d
                     size=8,
                     symbol='circle'
                 ),
-                hovertemplate='<b>PICO Major</b><br>Time: %{x}<br>Price: %{y:.2f}<extra></extra>'
+                text=df_picos_major['timestamp'],
+                hovertemplate='<b>PICO Major</b><br>Time: %{text}<br>Price: %{y:.2f}<extra></extra>'
             ))
 
         # VALLES - círculos rojos rellenos
         if not df_valles_major.empty:
             fig.add_trace(go.Scatter(
-                x=df_valles_major['timestamp'],
+                x=df_valles_major['index'],
                 y=df_valles_major['price'],
                 mode='markers',
                 name='VALLE Major',
@@ -108,14 +132,21 @@ def plot_range_chart(df, df_fractals_minor, df_fractals_major, start_date, end_d
                     size=8,
                     symbol='circle'
                 ),
-                hovertemplate='<b>VALLE Major</b><br>Time: %{x}<br>Price: %{y:.2f}<extra></extra>'
+                text=df_valles_major['timestamp'],
+                hovertemplate='<b>VALLE Major</b><br>Time: %{text}<br>Price: %{y:.2f}<extra></extra>'
             ))
+
+    # Configurar eje X con etiquetas de fecha personalizadas
+    # Seleccionar ~20 puntos distribuidos uniformemente para las etiquetas
+    step = max(1, len(df) // 20)
+    tickvals = list(range(0, len(df), step))
+    ticktext = [df.loc[i, 'timestamp'] for i in tickvals]
 
     # Configurar layout
     fig.update_layout(
         title=f'Gold (GC) - {start_date} -> {end_date}',
         template='plotly_white',
-        hovermode='x unified',
+        hovermode='closest',
         plot_bgcolor='white',
         paper_bgcolor='white',
         font=dict(
@@ -129,14 +160,18 @@ def plot_range_chart(df, df_fractals_minor, df_fractals_major, start_date, end_d
         yaxis_title="Precio"
     )
 
-    # Configurar eje X
+    # Configurar eje X con etiquetas de fecha
     fig.update_xaxes(
         showgrid=False,
         showline=True,
         linewidth=1,
         linecolor='gray',
         tickcolor='gray',
-        tickfont=dict(color='gray')
+        tickfont=dict(color='gray'),
+        tickmode='array',
+        tickvals=tickvals,
+        ticktext=ticktext,
+        tickangle=-45
     )
 
     # Configurar eje Y
