@@ -416,7 +416,7 @@ def find_entry_signals(df, df_fractals_major, df_fractals_minor=None, fibo_level
 
 if __name__ == "__main__":
     from find_fractals import load_date_range
-    from analyze_fibonacci import analyze_fibonacci_range
+    from plot_day import calculate_rsi
 
     print("Cargando datos...")
 
@@ -427,7 +427,6 @@ if __name__ == "__main__":
         exit(1)
 
     # Calcular RSI
-    from analyze_rsi import calculate_rsi
     from config import RSI_PERIOD, RSI_SMOOTH_PERIOD, RSI_RESAMPLE, RSI_RESAMPLE_TO_PERIOD
 
     if isinstance(RSI_RESAMPLE, bool) and RSI_RESAMPLE:
@@ -459,15 +458,8 @@ if __name__ == "__main__":
     print(f"[INFO] Fractales MAJOR cargados: {len(df_fractals_major)}")
     print(f"[INFO] Fractales MINOR cargados: {len(df_fractals_minor)}")
 
-    # Cargar niveles Fibonacci (opcional)
+    # Fibonacci functionality removed
     fibo_levels = None
-    try:
-        from analyze_fibonacci import analyze_fibonacci_range
-        fibo_result = analyze_fibonacci_range(df_fractals_major, START_DATE, END_DATE)
-        if fibo_result is not None:
-            fibo_levels = fibo_result
-    except Exception as e:
-        print(f"[WARNING] No se pudieron cargar niveles Fibonacci: {e}")
 
     # Encontrar señales de entrada CON DIVERGENCIAS
     divergences = find_entry_signals(

@@ -976,7 +976,6 @@ def plot_day_chart(dia, rsi_levels=None, fibo_levels=None, divergences=None):
 
 if __name__ == "__main__":
     from find_fractals import load_date_range
-    from analyze_rsi import calculate_rsi
 
     print(f"Generando gráfico para: {START_DATE} -> {END_DATE}")
 
@@ -985,6 +984,14 @@ if __name__ == "__main__":
     if df is None:
         print("Error cargando datos")
         exit(1)
+
+    # Determinar regla de resample
+    if isinstance(RSI_RESAMPLE, bool) and RSI_RESAMPLE:
+        rsi_resample = RSI_RESAMPLE_TO_PERIOD
+    elif isinstance(RSI_RESAMPLE, str) and RSI_RESAMPLE:
+        rsi_resample = RSI_RESAMPLE
+    else:
+        rsi_resample = None
 
     # Calcular RSI con suavizado (posible resample definido en config)
     print(f"[INFO] RSI resample rule: {rsi_resample}")

@@ -11,9 +11,8 @@ gold_perdices/
 ├── config.py                 # Configuración centralizada
 ├── main_quant.py            # Script principal - ejecutar este
 ├── find_fractals.py         # Detección de fractales ZigZag
-├── analyze_rsi.py           # Análisis de niveles RSI
-├── analyze_fibonacci.py     # Análisis Fibonacci Retracements
-├── plot_day.py              # Generación de gráficos
+├── plot_day.py              # Generación de gráficos con RSI
+├── find_entries.py          # Detección de divergencias y señales
 ├── utils/
 │   └── segregate_by_date.py # Segregar CSV por fechas
 ├── data/                    # Datos OHLC por día
@@ -36,8 +35,8 @@ python main_quant.py
 Esto ejecutará automáticamente para el rango de fechas configurado:
 1. ✅ Carga de datos desde START_DATE hasta END_DATE
 2. ✅ Detección de fractales MINOR y MAJOR en todo el rango
-3. ✅ Análisis de niveles RSI
-4. ✅ Análisis Fibonacci Retracements (últimos 2 fractales MAJOR)
+3. ✅ Cálculo de RSI
+4. ✅ Detección de divergencias alcistas
 5. ✅ Generación de gráfico interactivo
 
 ### Scripts Individuales
@@ -48,11 +47,8 @@ También puedes ejecutar cada módulo por separado:
 # Solo detección de fractales
 python find_fractals.py
 
-# Solo análisis RSI
-python analyze_rsi.py
-
-# Solo análisis Fibonacci
-python analyze_fibonacci.py
+# Solo detección de divergencias y señales
+python find_entries.py
 
 # Solo generar gráfico
 python plot_day.py
@@ -76,8 +72,10 @@ RSI_PERIOD = 14              # Período del RSI
 RSI_OVERBOUGHT = 70          # Nivel de sobrecompra
 RSI_OVERSOLD = 30            # Nivel de sobreventa
 
-# Parámetros Fibonacci
-FIBO_LEVELS = [0.0, 0.382, 0.5, 0.618, 1.0]  # Niveles de retroceso
+# Parámetros de detección de divergencias
+REQUIRE_DOWNTREND = True     # Requiere tendencia bajista MAJOR
+REQUIRE_DIVERGENCE = True    # Requiere divergencia alcista
+FIBO_LEVEL_FILTER = 0.5     # Nivel mínimo de Fibonacci
 ```
 
 ## Preparación de Datos
@@ -140,15 +138,15 @@ Incluye:
 
 ### RSI
 - ✅ Cálculo estándar (período 14)
-- ✅ Detección de sobrecompra/sobreventa
+- ✅ Detección de fractales en el RSI
 - ✅ Visualización en subplot sincronizado
-- ✅ Análisis estadístico (min, max, media)
+- ✅ Detección de niveles de sobreventa
 
-### Fibonacci Retracements
-- ✅ Cálculo basado en los últimos 2 fractales MAJOR del rango completo
-- ✅ Niveles configurables (por defecto: 0%, 38.2%, 50%, 61.8%, 100%)
-- ✅ Detección automática de swing high/low del último movimiento
-- ✅ Visualización con niveles clave destacados (38.2%, 50%, 61.8% en naranja)
+### Divergencias Alcistas
+- ✅ Detección de divergencias dobles, triples y múltiples
+- ✅ Comparación de fractales MINOR del precio con VALLES del RSI
+- ✅ Filtrado por tendencia bajista MAJOR (opcional)
+- ✅ Marcadores visuales en el gráfico (triángulos verdes)
 
 ### Visualización
 - ✅ Gráficos interactivos con Plotly
