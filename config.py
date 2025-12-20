@@ -24,6 +24,12 @@ MIN_CHANGE_PCT_MINOR = 0.50    # 0.50% umbral para fractales pequeños
 MIN_CHANGE_PCT_MAJOR = 2.1     # 2.1% umbral para fractales grandes
 
 # ============================================================================
+# PARÁMETROS DE VISUALIZACIÓN
+# ============================================================================
+PLOT_MINOR_FRACTALS = False    # True = dibujar fractales MINOR en el gráfico
+PLOT_MAJOR_FRACTALS = True     # True = dibujar fractales MAJOR en el gráfico
+
+# ============================================================================
 # PARÁMETROS RSI
 # ============================================================================
 RSI_PERIOD = 10                # Período para calcular RSI (estándar: 14)

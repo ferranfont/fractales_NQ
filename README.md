@@ -67,6 +67,10 @@ END_DATE = "2025-04-25"      # Fecha final
 # Umbrales de fractales ZigZag
 MIN_CHANGE_PCT_MINOR = 0.09  # 0.09% para fractales pequeños
 MIN_CHANGE_PCT_MAJOR = 0.25  # 0.25% para fractales grandes
+
+# Visualización de fractales en el gráfico
+PLOT_MINOR_FRACTALS = False  # True = mostrar fractales MINOR
+PLOT_MAJOR_FRACTALS = True   # True = mostrar fractales MAJOR
 ```
 
 ## Preparación de Datos

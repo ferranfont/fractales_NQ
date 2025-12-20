@@ -2,7 +2,7 @@ import pandas as pd
 import plotly.graph_objects as go
 import os
 from pathlib import Path
-from config import START_DATE, END_DATE, FRACTALS_DIR
+from config import START_DATE, END_DATE, FRACTALS_DIR, PLOT_MINOR_FRACTALS, PLOT_MAJOR_FRACTALS
 
 def plot_range_chart(df, df_fractals_minor, df_fractals_major, start_date, end_date, rsi_levels=None, fibo_levels=None, divergences=None):
     """
@@ -38,7 +38,7 @@ def plot_range_chart(df, df_fractals_minor, df_fractals_major, start_date, end_d
     ))
 
     # Añadir líneas ZigZag y marcadores de fractales MINOR
-    if df_fractals_minor is not None and not df_fractals_minor.empty:
+    if PLOT_MINOR_FRACTALS and df_fractals_minor is not None and not df_fractals_minor.empty:
         # Línea ZigZag MINOR - dodgerblue
         fig.add_trace(go.Scatter(
             x=df_fractals_minor['timestamp'],
@@ -66,7 +66,7 @@ def plot_range_chart(df, df_fractals_minor, df_fractals_major, start_date, end_d
         ))
 
     # Añadir líneas ZigZag y marcadores de fractales MAJOR
-    if df_fractals_major is not None and not df_fractals_major.empty:
+    if PLOT_MAJOR_FRACTALS and df_fractals_major is not None and not df_fractals_major.empty:
         # Línea ZigZag MAJOR - AZUL
         fig.add_trace(go.Scatter(
             x=df_fractals_major['timestamp'],
