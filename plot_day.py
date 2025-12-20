@@ -140,12 +140,12 @@ def plot_range_chart(df, df_fractals_minor, df_fractals_major, start_date, end_d
     # Seleccionar ~20 puntos distribuidos uniformemente para las etiquetas
     step = max(1, len(df) // 20)
     tickvals = list(range(0, len(df), step))
-    # Eliminar timezone info (+01:00) de las etiquetas
-    ticktext = [str(df.loc[i, 'timestamp']).replace('+01:00', '').replace('+00:00', '') for i in tickvals]
+    # Eliminar timezone info (+01:00) y añadir separador | entre fecha y hora
+    ticktext = [str(df.loc[i, 'timestamp']).replace('+01:00', '').replace('+00:00', '').replace(' ', ' | ') for i in tickvals]
 
     # Configurar layout
     fig.update_layout(
-        title=f'Gold (GC) - {start_date} -> {end_date}',
+        title=f'{start_date} -> {end_date}',
         template='plotly_white',
         hovermode='closest',
         plot_bgcolor='white',
@@ -157,8 +157,8 @@ def plot_range_chart(df, df_fractals_minor, df_fractals_major, start_date, end_d
         ),
         height=900,
         showlegend=True,
-        xaxis_title="Tiempo",
-        yaxis_title="Precio"
+        xaxis_title="",
+        yaxis_title=""
     )
 
     # Configurar eje X con etiquetas de fecha
