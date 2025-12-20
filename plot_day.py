@@ -4,7 +4,7 @@ import os
 from pathlib import Path
 from config import START_DATE, END_DATE, FRACTALS_DIR, PLOT_MINOR_FRACTALS, PLOT_MAJOR_FRACTALS
 
-def plot_range_chart(df, df_fractals_minor, df_fractals_major, start_date, end_date, rsi_levels=None, fibo_levels=None, divergences=None):
+def plot_range_chart(df, df_fractals_minor, df_fractals_major, start_date, end_date, symbol='GC', rsi_levels=None, fibo_levels=None, divergences=None):
     """
     Crea un gráfico con línea de precio y fractales ZigZag para un rango de fechas.
 
@@ -37,7 +37,7 @@ def plot_range_chart(df, df_fractals_minor, df_fractals_major, start_date, end_d
         y=df['close'],
         mode='lines',
         name='Price',
-        line=dict(color='gray', width=1),
+        line=dict(color='gray', width=0.5),
         opacity=0.5,
         text=df['timestamp'],
         hovertemplate='<b>Price</b><br>Time: %{text}<br>Price: %{y:.2f}<extra></extra>'
@@ -145,7 +145,7 @@ def plot_range_chart(df, df_fractals_minor, df_fractals_major, start_date, end_d
 
     # Configurar layout
     fig.update_layout(
-        title=f'{start_date} -> {end_date}',
+        title=f'{symbol.upper()} - {start_date} -> {end_date}',
         template='plotly_white',
         hovermode='closest',
         plot_bgcolor='white',
@@ -213,6 +213,7 @@ def plot_range_chart(df, df_fractals_minor, df_fractals_major, start_date, end_d
 
 if __name__ == "__main__":
     from find_fractals import load_date_range
+    from config import DATA_DIR
 
     print(f"Generando gráfico para: {START_DATE} -> {END_DATE}")
 
@@ -222,10 +223,16 @@ if __name__ == "__main__":
         print("Error cargando datos")
         exit(1)
 
+    # Extraer símbolo del primer archivo
+    first_file = DATA_DIR / f"gc_{START_DATE}.csv"
+    symbol = 'GC'  # default
+    if first_file.exists():
+        symbol = first_file.stem.split('_')[0]
+
     # Cargar fractales
     date_range_str = f"{START_DATE}_{END_DATE}"
-    fractal_minor_path = FRACTALS_DIR / f"gc_fractals_minor_{date_range_str}.csv"
-    fractal_major_path = FRACTALS_DIR / f"gc_fractals_major_{date_range_str}.csv"
+    fractal_minor_path = FRACTALS_DIR / f"{symbol}_fractals_minor_{date_range_str}.csv"
+    fractal_major_path = FRACTALS_DIR / f"{symbol}_fractals_major_{date_range_str}.csv"
 
     df_fractals_minor = None
     df_fractals_major = None
@@ -235,4 +242,4 @@ if __name__ == "__main__":
     if fractal_major_path.exists():
         df_fractals_major = pd.read_csv(fractal_major_path)
 
-    plot_range_chart(df, df_fractals_minor, df_fractals_major, START_DATE, END_DATE)
+    plot_range_chart(df, df_fractals_minor, df_fractals_major, START_DATE, END_DATE, symbol=symbol)

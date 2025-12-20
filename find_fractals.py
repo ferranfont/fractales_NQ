@@ -368,10 +368,17 @@ def process_fractals_range(start_date: str, end_date: str) -> dict:
     # Crear directorio de salida
     FRACTALS_DIR.mkdir(parents=True, exist_ok=True)
 
+    # Extraer símbolo del primer archivo CSV cargado
+    first_file = DATA_DIR / f"gc_{start_date}.csv"
+    symbol = 'GC'  # default
+    if first_file.exists():
+        # Extraer símbolo del nombre del archivo (formato: symbol_YYYY-MM-DD.csv)
+        symbol = first_file.stem.split('_')[0]
+
     # Guardar fractales con nombre de rango
     date_range_str = f"{start_date}_{end_date}"
-    output_minor = FRACTALS_DIR / f"gc_fractals_minor_{date_range_str}.csv"
-    output_major = FRACTALS_DIR / f"gc_fractals_major_{date_range_str}.csv"
+    output_minor = FRACTALS_DIR / f"{symbol}_fractals_minor_{date_range_str}.csv"
+    output_major = FRACTALS_DIR / f"{symbol}_fractals_major_{date_range_str}.csv"
 
     df_fractals_minor.to_csv(output_minor, index=False)
     df_fractals_major.to_csv(output_major, index=False)
@@ -389,6 +396,7 @@ def process_fractals_range(start_date: str, end_date: str) -> dict:
     return {
         'start_date': start_date,
         'end_date': end_date,
+        'symbol': symbol,
         'total_records': len(df),
         'minor_count': len(df_fractals_minor),
         'major_count': len(df_fractals_major),

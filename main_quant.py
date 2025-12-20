@@ -43,6 +43,7 @@ def main_quant_range(start_date: str, end_date: str):
         fractals_result['df_fractals_major'],
         start_date,
         end_date,
+        symbol=fractals_result.get('symbol', 'GC'),
         rsi_levels=None,
         fibo_levels=None,
         divergences=None
