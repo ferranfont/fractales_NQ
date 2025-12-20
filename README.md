@@ -4,6 +4,13 @@ Sistema de análisis técnico para Gold (GC) con detección de fractales ZigZag,
 
 Soporta análisis de rangos de fechas completos (2015-01-02 a 2025-04-25) o días individuales.
 
+## Dependencias e INSTALACIÓN:
+
+```bash
+pip install -r requirements.txt
+```
+
+
 ## Estructura del Proyecto
 
 ```
@@ -12,7 +19,6 @@ gold_perdices/
 ├── main_quant.py            # Script principal - ejecutar este
 ├── find_fractals.py         # Detección de fractales ZigZag
 ├── plot_day.py              # Generación de gráficos con RSI
-├── find_entries.py          # Detección de divergencias y señales
 ├── utils/
 │   └── segregate_by_date.py # Segregar CSV por fechas
 ├── data/                    # Datos OHLC por día
@@ -36,8 +42,7 @@ Esto ejecutará automáticamente para el rango de fechas configurado:
 1. ✅ Carga de datos desde START_DATE hasta END_DATE
 2. ✅ Detección de fractales MINOR y MAJOR en todo el rango
 3. ✅ Cálculo de RSI
-4. ✅ Detección de divergencias alcistas
-5. ✅ Generación de gráfico interactivo
+4. ✅ Generación de gráfico interactivo
 
 ### Scripts Individuales
 
@@ -47,11 +52,9 @@ También puedes ejecutar cada módulo por separado (siguiendo este orden):
 # 1. Primero: Detección de fractales (genera CSVs necesarios)
 python find_fractals.py
 
-# 2. Luego: Generar gráfico con divergencias
+# 2. Luego: Generar gráfico
 python plot_day.py
 ```
-
-**Nota**: `find_entries.py` se puede ejecutar de forma independiente, pero requiere que existan los fractales generados previamente por `find_fractals.py`.
 
 ## Configuración
 
@@ -137,15 +140,8 @@ Incluye:
 
 ### RSI
 - ✅ Cálculo estándar (período 14)
-- ✅ Detección de fractales en el RSI
 - ✅ Visualización en subplot sincronizado
-- ✅ Detección de niveles de sobreventa
-
-### Divergencias Alcistas
-- ✅ Detección de divergencias dobles, triples y múltiples
-- ✅ Comparación de fractales MINOR del precio con VALLES del RSI
-- ✅ Filtrado por tendencia bajista MAJOR (opcional)
-- ✅ Marcadores visuales en el gráfico (triángulos verdes)
+- ✅ Detección de niveles de sobrecompra/sobreventa
 
 ### Visualización
 - ✅ Gráficos interactivos con Plotly
@@ -161,8 +157,3 @@ Incluye:
 - [ ] Exportar señales de trading a CSV
 - [ ] Dashboard web con múltiples días
 
-## Dependencias
-
-```bash
-pip install -r requirements.txt
-```
