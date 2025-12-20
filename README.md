@@ -41,18 +41,17 @@ Esto ejecutará automáticamente para el rango de fechas configurado:
 
 ### Scripts Individuales
 
-También puedes ejecutar cada módulo por separado:
+También puedes ejecutar cada módulo por separado (siguiendo este orden):
 
 ```bash
-# Solo detección de fractales
+# 1. Primero: Detección de fractales (genera CSVs necesarios)
 python find_fractals.py
 
-# Solo detección de divergencias y señales
-python find_entries.py
-
-# Solo generar gráfico
+# 2. Luego: Generar gráfico con divergencias
 python plot_day.py
 ```
+
+**Nota**: `find_entries.py` se puede ejecutar de forma independiente, pero requiere que existan los fractales generados previamente por `find_fractals.py`.
 
 ## Configuración
 
