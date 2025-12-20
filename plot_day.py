@@ -155,7 +155,7 @@ def plot_range_chart(df, df_fractals_minor, df_fractals_major, start_date, end_d
             size=12,
             color='#333333'
         ),
-        height=1000,
+        height=900,
         showlegend=True,
         xaxis_title="Tiempo",
         yaxis_title="Precio"
