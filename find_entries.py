@@ -32,8 +32,8 @@ def is_downtrend_major(df_fractals_major, current_timestamp):
 
     # Convertir timestamps a datetime si no lo están
     df_major = df_fractals_major.copy()
-    df_major['timestamp'] = pd.to_datetime(df_major['timestamp'])
-    current_ts = pd.to_datetime(current_timestamp)
+    df_major['timestamp'] = pd.to_datetime(df_major['timestamp'], utc=True)
+    current_ts = pd.to_datetime(current_timestamp, utc=True)
 
     # Obtener fractales anteriores al timestamp actual
     fractals_before = df_major[df_major['timestamp'] <= current_ts].sort_values('timestamp')
@@ -63,11 +63,11 @@ def get_current_fibonacci_level(df, df_fractals_major, fibo_levels, current_time
     if fibo_levels is None or 'upward_moves' not in fibo_levels:
         return None, None
 
-    current_ts = pd.to_datetime(current_timestamp)
+    current_ts = pd.to_datetime(current_timestamp, utc=True)
 
     # Obtener precio actual
     df_temp = df.copy()
-    df_temp['timestamp'] = pd.to_datetime(df_temp['timestamp'])
+    df_temp['timestamp'] = pd.to_datetime(df_temp['timestamp'], utc=True)
     current_data = df_temp[df_temp['timestamp'] == current_ts]
 
     if current_data.empty:
@@ -161,11 +161,11 @@ def detect_bullish_divergences(df, df_fractals_minor, df_rsi_valles, require_dow
 
     for i in range(len(df_rsi_valles_sorted)):
         current_rsi_valle = df_rsi_valles_sorted.iloc[i]
-        current_rsi_ts = pd.to_datetime(current_rsi_valle['timestamp'])
+        current_rsi_ts = pd.to_datetime(current_rsi_valle['timestamp'], utc=True)
         current_rsi_value = current_rsi_valle['rsi_value']
 
         # Encontrar el fractal MINOR del precio más cercano a este timestamp del RSI
-        price_valles_before = df_price_valles[pd.to_datetime(df_price_valles['timestamp']) <= current_rsi_ts]
+        price_valles_before = df_price_valles[pd.to_datetime(df_price_valles['timestamp'], utc=True) <= current_rsi_ts]
 
         if price_valles_before.empty:
             continue
@@ -173,7 +173,7 @@ def detect_bullish_divergences(df, df_fractals_minor, df_rsi_valles, require_dow
         # El fractal de precio más reciente antes del RSI actual
         current_price_valle = price_valles_before.iloc[-1]
         current_price = current_price_valle['price']
-        current_price_ts = pd.to_datetime(current_price_valle['timestamp'])
+        current_price_ts = pd.to_datetime(current_price_valle['timestamp'], utc=True)
 
         # Buscar fractales RSI anteriores para comparar
         previous_rsi_valles = df_rsi_valles_sorted.iloc[:i]
@@ -186,11 +186,11 @@ def detect_bullish_divergences(df, df_fractals_minor, df_rsi_valles, require_dow
 
         for j in range(len(previous_rsi_valles)-1, -1, -1):
             prev_rsi_valle = previous_rsi_valles.iloc[j]
-            prev_rsi_ts = pd.to_datetime(prev_rsi_valle['timestamp'])
+            prev_rsi_ts = pd.to_datetime(prev_rsi_valle['timestamp'], utc=True)
             prev_rsi_value = prev_rsi_valle['rsi_value']
 
             # Encontrar fractal MINOR del precio correspondiente
-            prev_price_valles = df_price_valles[pd.to_datetime(df_price_valles['timestamp']) <= prev_rsi_ts]
+            prev_price_valles = df_price_valles[pd.to_datetime(df_price_valles['timestamp'], utc=True) <= prev_rsi_ts]
 
             if prev_price_valles.empty:
                 continue
