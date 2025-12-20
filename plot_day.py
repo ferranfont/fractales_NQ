@@ -143,8 +143,8 @@ def plot_range_chart(df, df_fractals_minor, df_fractals_major, start_date, end_d
     # Seleccionar ~20 puntos distribuidos uniformemente para las etiquetas
     step = max(1, len(df) // 20)
     tickvals = list(range(0, len(df), step))
-    # Eliminar timezone info (+01:00) y añadir separador | entre fecha y hora
-    ticktext = [str(df.loc[i, 'timestamp']).replace('+01:00', '').replace('+00:00', '').replace(' ', ' | ') for i in tickvals]
+    # Eliminar timezone info y añadir separador | entre fecha y hora
+    ticktext = [str(df.loc[i, 'timestamp']).replace('+01:00', '').replace('+00:00', '').replace('+02:00', '').replace(' ', ' | ') for i in tickvals]
 
     # Configurar layout
     fig.update_layout(
