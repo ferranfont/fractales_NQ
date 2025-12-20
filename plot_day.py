@@ -140,7 +140,8 @@ def plot_range_chart(df, df_fractals_minor, df_fractals_major, start_date, end_d
     # Seleccionar ~20 puntos distribuidos uniformemente para las etiquetas
     step = max(1, len(df) // 20)
     tickvals = list(range(0, len(df), step))
-    ticktext = [df.loc[i, 'timestamp'] for i in tickvals]
+    # Eliminar timezone info (+01:00) de las etiquetas
+    ticktext = [str(df.loc[i, 'timestamp']).replace('+01:00', '').replace('+00:00', '') for i in tickvals]
 
     # Configurar layout
     fig.update_layout(
@@ -154,7 +155,7 @@ def plot_range_chart(df, df_fractals_minor, df_fractals_major, start_date, end_d
             size=12,
             color='#333333'
         ),
-        height=800,
+        height=1000,
         showlegend=True,
         xaxis_title="Tiempo",
         yaxis_title="Precio"
