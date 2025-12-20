@@ -2,7 +2,7 @@ import pandas as pd
 import plotly.graph_objects as go
 import os
 from pathlib import Path
-from config import START_DATE, END_DATE, FRACTALS_DIR, PLOT_MINOR_FRACTALS, PLOT_MAJOR_FRACTALS
+from config import START_DATE, END_DATE, FRACTALS_DIR, PLOT_MINOR_FRACTALS, PLOT_MAJOR_FRACTALS, PLOT_MINOR_DOTS, PLOT_MAJOR_DOTS
 
 def plot_range_chart(df, df_fractals_minor, df_fractals_major, start_date, end_date, symbol='GC', rsi_levels=None, fibo_levels=None, divergences=None):
     """
@@ -64,21 +64,22 @@ def plot_range_chart(df, df_fractals_minor, df_fractals_major, start_date, end_d
             hovertemplate='<b>Minor</b><br>Time: %{text}<br>Price: %{y:.2f}<extra></extra>'
         ))
 
-        # Puntos MINOR - dodgerblue pequeños
-        fig.add_trace(go.Scatter(
-            x=df_fractals_minor['index'],
-            y=df_fractals_minor['price'],
-            mode='markers',
-            name='Fractales Minor',
-            marker=dict(
-                color='cornflowerblue',
-                size=3,
-                symbol='circle'
-            ),
-            opacity=1,
-            text=df_fractals_minor['timestamp'],
-            hovertemplate='<b>Minor</b><br>Time: %{text}<br>Price: %{y:.2f}<extra></extra>'
-        ))
+        # Puntos MINOR - dodgerblue pequeños (solo si PLOT_MINOR_DOTS está activado)
+        if PLOT_MINOR_DOTS:
+            fig.add_trace(go.Scatter(
+                x=df_fractals_minor['index'],
+                y=df_fractals_minor['price'],
+                mode='markers',
+                name='Fractales Minor',
+                marker=dict(
+                    color='cornflowerblue',
+                    size=3,
+                    symbol='circle'
+                ),
+                opacity=1,
+                text=df_fractals_minor['timestamp'],
+                hovertemplate='<b>Minor</b><br>Time: %{text}<br>Price: %{y:.2f}<extra></extra>'
+            ))
 
     # Añadir líneas ZigZag y marcadores de fractales MAJOR
     if PLOT_MAJOR_FRACTALS and df_fractals_major is not None and not df_fractals_major.empty:
@@ -100,41 +101,43 @@ def plot_range_chart(df, df_fractals_minor, df_fractals_major, start_date, end_d
             hovertemplate='<b>Major</b><br>Time: %{text}<br>Price: %{y:.2f}<extra></extra>'
         ))
 
-        # Separar picos y valles MAJOR para los marcadores
-        df_picos_major = df_fractals_major[df_fractals_major['type'] == 'PICO'].copy()
-        df_valles_major = df_fractals_major[df_fractals_major['type'] == 'VALLE'].copy()
+        # Puntos MAJOR (solo si PLOT_MAJOR_DOTS está activado)
+        if PLOT_MAJOR_DOTS:
+            # Separar picos y valles MAJOR para los marcadores
+            df_picos_major = df_fractals_major[df_fractals_major['type'] == 'PICO'].copy()
+            df_valles_major = df_fractals_major[df_fractals_major['type'] == 'VALLE'].copy()
 
-        # PICOS - círculos verdes rellenos
-        if not df_picos_major.empty:
-            fig.add_trace(go.Scatter(
-                x=df_picos_major['index'],
-                y=df_picos_major['price'],
-                mode='markers',
-                name='PICO Major',
-                marker=dict(
-                    color='green',
-                    size=8,
-                    symbol='circle'
-                ),
-                text=df_picos_major['timestamp'],
-                hovertemplate='<b>PICO Major</b><br>Time: %{text}<br>Price: %{y:.2f}<extra></extra>'
-            ))
+            # PICOS - círculos verdes rellenos
+            if not df_picos_major.empty:
+                fig.add_trace(go.Scatter(
+                    x=df_picos_major['index'],
+                    y=df_picos_major['price'],
+                    mode='markers',
+                    name='PICO Major',
+                    marker=dict(
+                        color='green',
+                        size=8,
+                        symbol='circle'
+                    ),
+                    text=df_picos_major['timestamp'],
+                    hovertemplate='<b>PICO Major</b><br>Time: %{text}<br>Price: %{y:.2f}<extra></extra>'
+                ))
 
-        # VALLES - círculos rojos rellenos
-        if not df_valles_major.empty:
-            fig.add_trace(go.Scatter(
-                x=df_valles_major['index'],
-                y=df_valles_major['price'],
-                mode='markers',
-                name='VALLE Major',
-                marker=dict(
-                    color='red',
-                    size=8,
-                    symbol='circle'
-                ),
-                text=df_valles_major['timestamp'],
-                hovertemplate='<b>VALLE Major</b><br>Time: %{text}<br>Price: %{y:.2f}<extra></extra>'
-            ))
+            # VALLES - círculos rojos rellenos
+            if not df_valles_major.empty:
+                fig.add_trace(go.Scatter(
+                    x=df_valles_major['index'],
+                    y=df_valles_major['price'],
+                    mode='markers',
+                    name='VALLE Major',
+                    marker=dict(
+                        color='red',
+                        size=8,
+                        symbol='circle'
+                    ),
+                    text=df_valles_major['timestamp'],
+                    hovertemplate='<b>VALLE Major</b><br>Time: %{text}<br>Price: %{y:.2f}<extra></extra>'
+                ))
 
     # Configurar eje X con etiquetas de fecha personalizadas
     # Seleccionar ~20 puntos distribuidos uniformemente para las etiquetas

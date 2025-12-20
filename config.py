@@ -6,8 +6,8 @@ from pathlib import Path
 # ============================================================================
 # RANGO DE FECHAS
 # ============================================================================
-START_DATE = "2025-01-02"
-END_DATE = "2025-05-25"
+START_DATE = "2022-03-13"
+END_DATE = "2025-04-13"
 
 # ============================================================================
 # DIRECTORIOS DEL PROYECTO
@@ -27,4 +27,6 @@ MIN_CHANGE_PCT_MAJOR = 2.1     # 2.1% umbral para fractales grandes
 # PARÁMETROS DE VISUALIZACIÓN
 # ============================================================================
 PLOT_MINOR_FRACTALS = False    # True = dibujar fractales MINOR en el gráfico
-PLOT_MAJOR_FRACTALS = False     # True = dibujar fractales MAJOR en el gráfico
+PLOT_MAJOR_FRACTALS = True     # True = dibujar fractales MAJOR en el gráfico
+PLOT_MINOR_DOTS = False        # True = dibujar puntos en fractales MINOR
+PLOT_MAJOR_DOTS = False        # True = dibujar puntos (circles) en fractales MAJOR
