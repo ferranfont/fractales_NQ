@@ -202,9 +202,9 @@ def plot_range_chart(df, df_fractals_minor, df_fractals_major, start_date, end_d
                     name='Consolidación detectada',
                     marker=dict(
                         color='orange',
-                        size=10,
+                        size=5,
                         symbol='circle',
-                        line=dict(color='darkorange', width=2)
+                        line=dict(color='darkorange', width=1)
                     ),
                     hovertemplate='<b>CONSOLIDACIÓN</b><br>Price: %{y:.2f}<extra></extra>'
                 )
@@ -268,15 +268,22 @@ def plot_range_chart(df, df_fractals_minor, df_fractals_major, start_date, end_d
     tick_text = df.iloc[tick_indices]['timestamp'].dt.strftime('%Y-%m-%d | %H:%M:%S')
 
     if has_metrics:
+        # Eje X para precio (row 1) - sin grid vertical
         fig.update_xaxes(
             tickmode='array', tickvals=tick_vals, ticktext=tick_text,
-            tickangle=-45, showgrid=False, gridcolor='#f0f0f0',
+            tickangle=-45, showgrid=False,
+            row=price_row, col=1
+        )
+        # Eje X para métricas (row 2) - sin grid vertical
+        fig.update_xaxes(
+            tickmode='array', tickvals=tick_vals, ticktext=tick_text,
+            tickangle=-45, showgrid=False,
             row=metrics_row, col=1
         )
     else:
         fig.update_xaxes(
             tickmode='array', tickvals=tick_vals, ticktext=tick_text,
-            tickangle=-45, showgrid=False, gridcolor='#f0f0f0'
+            tickangle=-45, showgrid=False
         )
 
     # Configurar layout
