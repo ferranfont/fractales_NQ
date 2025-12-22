@@ -41,7 +41,7 @@ def plot_range_chart(df, df_fractals_minor, df_fractals_major, start_date, end_d
             shared_xaxes=True,
             vertical_spacing=0.05,
             row_heights=[0.7, 0.3],
-            subplot_titles=(f'{symbol.upper()} - Price & Fractals', 'Alta Frecuencia de Fractales')
+            subplot_titles=(f'{symbol.upper()} - Price & Fractals', 'Tiempo entre Fractales (segundos)')
         )
         price_row = 1
         metrics_row = 2
@@ -178,10 +178,9 @@ def plot_range_chart(df, df_fractals_minor, df_fractals_major, start_date, end_d
             else:
                 fig.add_trace(trace_clone)
 
-    # Añadir subplot de métricas de frecuencia
+    # Añadir subplot de métricas - SEGUNDOS entre fractales
     if has_metrics:
         # Usar directamente los índices de fractales que ya están mapeados
-        # Los fractales ya tienen su 'index' column desde el mapeo anterior
         df_metrics_plot = df_metrics.copy()
 
         # Buscar el DataFrame de fractales minor que ya tiene los índices mapeados
@@ -197,24 +196,24 @@ def plot_range_chart(df, df_fractals_minor, df_fractals_major, start_date, end_d
 
         df_metrics_plot = df_metrics_plot.dropna(subset=['index'])
 
-        # Filtrar solo las filas con valores válidos (no NaN) en las métricas
-        df_metrics_valid = df_metrics_plot.dropna(subset=['cumulative_frequency_n', 'avg_time_between_fractals_n'])
+        # Filtrar solo las filas con valores válidos (no NaN) en time_from_prev_seconds
+        df_metrics_valid = df_metrics_plot.dropna(subset=['time_from_prev_seconds'])
 
         print(f"[DEBUG] Total métricas: {len(df_metrics_plot)}, Válidas: {len(df_metrics_valid)}")
 
         if not df_metrics_valid.empty:
-            print(f"[DEBUG] Rango cumulative_frequency_n: {df_metrics_valid['cumulative_frequency_n'].min():.4f} - {df_metrics_valid['cumulative_frequency_n'].max():.4f}")
+            print(f"[DEBUG] Rango time_from_prev_seconds: {df_metrics_valid['time_from_prev_seconds'].min():.0f} - {df_metrics_valid['time_from_prev_seconds'].max():.0f} segundos")
 
-            # Cumulative Frequency - Alta frecuencia de fractales
-            trace_cumfreq = go.Scatter(
+            # Gráfico de SEGUNDOS entre fractales (continuo, sin rolling window)
+            trace_time = go.Scatter(
                 x=df_metrics_valid['index'],
-                y=df_metrics_valid['cumulative_frequency_n'],
+                y=df_metrics_valid['time_from_prev_seconds'],
                 mode='lines',
-                name='Cumulative Freq (N)',
+                name='Tiempo entre fractales (seg)',
                 line=dict(color='orange', width=2),
                 hoverinfo='skip'
             )
-            fig.add_trace(trace_cumfreq, row=metrics_row, col=1)
+            fig.add_trace(trace_time, row=metrics_row, col=1)
         else:
             print("[DEBUG] No hay métricas válidas para graficar")
 
@@ -276,9 +275,9 @@ def plot_range_chart(df, df_fractals_minor, df_fractals_major, start_date, end_d
             tickcolor='gray', tickfont=dict(color='gray'),
             row=price_row, col=1
         )
-        # Eje Y para métricas (row 2) - Cumulative Freq
+        # Eje Y para métricas (row 2) - Tiempo en segundos
         fig.update_yaxes(
-            title='Cumulative Freq (N)',
+            title='Segundos',
             showgrid=True, gridcolor='#e0e0e0', gridwidth=0.5,
             showline=True, linewidth=1, linecolor='gray',
             tickcolor='gray', tickfont=dict(color='gray'),

@@ -5,7 +5,7 @@ Orquesta la ejecución de:
 2. Generación de gráfico (plot_day.py)
 """
 from pathlib import Path
-from config import START_DATE, END_DATE, DATA_DIR, CONSOLIDATION_PRICE_RANGE_PERIOD
+from config import START_DATE, END_DATE, DATA_DIR
 from find_fractals import process_fractals_range
 from find_reg_channel_scipy import calculate_channel
 from find_choppiness import calculate_fractal_metrics, print_consolidation_table
@@ -40,8 +40,7 @@ def main_quant_range(start_date: str, end_date: str):
     print("PASO 1.4: CÁLCULO DE MÉTRICAS DE CONSOLIDACIÓN")
     print("-"*70)
     df_fractals_metrics = calculate_fractal_metrics(
-        fractals_result['df_fractals_minor'],
-        price_range_period=CONSOLIDATION_PRICE_RANGE_PERIOD
+        fractals_result['df_fractals_minor']
     )
 
     # Imprimir tabla de métricas
