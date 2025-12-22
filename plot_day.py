@@ -179,16 +179,19 @@ def plot_range_chart(df, df_fractals_minor, df_fractals_major, start_date, end_d
                 fig.add_trace(trace_clone)
 
     # Añadir PUNTOS NARANJAS en el gráfico de precio cuando hay trigger de consolidación
-    if has_metrics and df_metrics is not None:
+    if has_metrics and df_metrics is not None and PLOT_MINOR_FRACTALS and df_fractals_minor is not None:
         # Filtrar fractales donde choppiness_trigger == 1
         df_triggers = df_metrics[df_metrics['choppiness_trigger'] == 1].copy()
 
-        if not df_triggers.empty:
-            # Mapear timestamps a índices
-            df_triggers['index'] = df_triggers['timestamp'].apply(
-                lambda ts: df[df['timestamp'] == ts].index[0] if len(df[df['timestamp'] == ts]) > 0 else None
-            )
+        print(f"[DEBUG] Total fractales con trigger: {len(df_triggers)}")
+
+        if not df_triggers.empty and 'index' in df_fractals_minor.columns:
+            # Usar los índices ya mapeados de df_fractals_minor
+            # Los índices de df_metrics y df_fractals_minor están en el mismo orden
+            df_triggers['index'] = df_fractals_minor.loc[df_triggers.index, 'index'].values
             df_triggers = df_triggers.dropna(subset=['index'])
+
+            print(f"[DEBUG] Fractales con índices válidos: {len(df_triggers)}")
 
             if not df_triggers.empty:
                 # Añadir puntos naranjas en el gráfico de precio
@@ -199,9 +202,9 @@ def plot_range_chart(df, df_fractals_minor, df_fractals_major, start_date, end_d
                     name='Consolidación detectada',
                     marker=dict(
                         color='orange',
-                        size=8,
+                        size=10,
                         symbol='circle',
-                        line=dict(color='darkorange', width=1)
+                        line=dict(color='darkorange', width=2)
                     ),
                     hovertemplate='<b>CONSOLIDACIÓN</b><br>Price: %{y:.2f}<extra></extra>'
                 )
@@ -210,7 +213,7 @@ def plot_range_chart(df, df_fractals_minor, df_fractals_major, start_date, end_d
                 else:
                     fig.add_trace(trace_triggers)
 
-                print(f"[DEBUG] Puntos de consolidación detectados: {len(df_triggers)}")
+                print(f"[DEBUG] Puntos de consolidación añadidos al gráfico: {len(df_triggers)}")
 
     # Añadir subplot de métricas - SEGUNDOS entre fractales
     if has_metrics:
