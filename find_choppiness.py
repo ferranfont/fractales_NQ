@@ -48,14 +48,14 @@ def calculate_fractal_metrics(df_fractals, price_range_period=7):
 
     # 6. Frecuencia acumulativa de fractales
     # Invertir el tiempo (1/time) para que menor tiempo = mayor frecuencia
-    # IMPORTANTE: Usar una ventana pequeña fija (3) para detección inmediata,
-    # independiente del parámetro price_range_period que solo afecta ATR/rango
-    FREQUENCY_WINDOW = 3  # Ventana pequeña para respuesta inmediata
+    # IMPORTANTE: Usar EWM (Exponential Weighted Moving) en lugar de rolling
+    # para que NO olvide rápidamente las zonas de alta frecuencia
+    # alpha=0.3 significa que da más peso a valores recientes pero mantiene memoria
     df['frequency_inverse'] = 1.0 / df['time_from_prev_minutes']
-    df['cumulative_frequency_n'] = df['frequency_inverse'].rolling(window=FREQUENCY_WINDOW).sum()
+    df['cumulative_frequency_n'] = df['frequency_inverse'].ewm(alpha=0.3, adjust=False).mean()
 
-    # 7. Promedio de tiempo entre fractales (ventana pequeña independiente)
-    df['avg_time_between_fractals_n'] = df['time_from_prev_minutes'].rolling(window=FREQUENCY_WINDOW).mean()
+    # 7. Promedio de tiempo entre fractales (también con EWM)
+    df['avg_time_between_fractals_n'] = df['time_from_prev_minutes'].ewm(alpha=0.3, adjust=False).mean()
 
     return df
 
