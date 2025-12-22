@@ -159,6 +159,39 @@ def plot_range_chart(df, df_fractals_minor, df_fractals_major, start_date, end_d
         else:
             fig.add_trace(trace_major_line)
 
+    # Añadir Moving Average de Fractales Lows (Valles)
+    if df_fractals_minor is not None and not df_fractals_minor.empty:
+        # Filtrar solo los valles (lows) de los fractales MINOR
+        df_lows = df_fractals_minor[df_fractals_minor['type'] == 'VALLE'].copy()
+
+        if not df_lows.empty and len(df_lows) >= 3:
+            # Calcular moving average de los precios de los valles
+            window = min(5, len(df_lows))  # Ventana de 5 o menos si no hay suficientes puntos
+            df_lows['ma_price'] = df_lows['price'].rolling(window=window, min_periods=1).mean()
+
+            # Mapear timestamps a índices del dataframe principal
+            df_lows['index'] = df_lows['timestamp'].apply(
+                lambda ts: df[df['timestamp'] == ts].index[0] if len(df[df['timestamp'] == ts]) > 0 else None
+            )
+            df_lows = df_lows.dropna(subset=['index'])
+
+            # Crear trace del moving average
+            trace_ma_lows = go.Scatter(
+                x=df_lows['index'],
+                y=df_lows['ma_price'],
+                mode='lines',
+                name='MA Fractal Lows',
+                line=dict(color='green', width=2),
+                opacity=0.8,
+                hovertemplate='MA Lows: %{y:.2f}<extra></extra>'
+            )
+            if show_frequency_subplot:
+                fig.add_trace(trace_ma_lows, row=price_row, col=1)
+            else:
+                fig.add_trace(trace_ma_lows)
+
+            print(f"[INFO] Moving Average de Fractales Lows añadido: {len(df_lows)} puntos (ventana={window})")
+
     # Añadir Canal de Regresión
     if channel_params:
         slope = channel_params['slope']

@@ -6,7 +6,7 @@ from pathlib import Path
 # ============================================================================
 # FECHA ÚNICA (NO HAY RANGO, SOLO UNA FECHA)
 # ============================================================================
-DATE = "20251104"  # Fecha en formato YYYYMMDD
+DATE = "20251103" # Fecha en formato YYYYMMDD
 
 # Compatibilidad con código existente
 START_DATE = DATE
@@ -24,8 +24,8 @@ FRACTALS_DIR = OUTPUTS_DIR / "fractals"
 # PARÁMETROS DE FRACTALES ZIGZAG (PRECIO) - AJUSTADOS PARA NQ
 # ============================================================================
 # NQ tiene precio ~26000, por lo que los porcentajes pueden ser diferentes a GC
-MIN_CHANGE_PCT_MINOR = 0.15    # 0.15% umbral para fractales pequeños (~39 puntos en NQ)
-MIN_CHANGE_PCT_MAJOR = 0.50    # 0.50% umbral para fractales grandes (~130 puntos en NQ)
+MIN_CHANGE_PCT_MINOR = 0.10   #0.15% umbral para fractales pequeños (~39 puntos en NQ)
+MIN_CHANGE_PCT_MAJOR = 0.20   # 0.50% umbral para fractales grandes (~130 puntos en NQ)
 
 # ============================================================================
 # PARÁMETROS DE ANÁLISIS DE CONSOLIDACIÓN
@@ -45,7 +45,7 @@ VWAP_PERIOD = 100                # Periodo para cálculo de VWAP (Volume Weighte
 # PARÁMETROS DE VISUALIZACIÓN
 # ============================================================================
 PLOT_MINOR_FRACTALS = True       # True = dibujar fractales MINOR en el gráfico
-PLOT_MAJOR_FRACTALS = False      # True = dibujar fractales MAJOR en el gráfico
+PLOT_MAJOR_FRACTALS = True      # True = dibujar fractales MAJOR en el gráfico
 PLOT_MINOR_DOTS = True          # True = dibujar puntos en fractales MINOR
 PLOT_MAJOR_DOTS = False          # True = dibujar puntos (circles) en fractales MAJOR
 HIDE_FREQUENCY_INDICATOR = True  # True = ocultar subplot de frecuencia (mantiene puntos naranjas)

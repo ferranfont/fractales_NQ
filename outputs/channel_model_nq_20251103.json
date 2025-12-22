@@ -1,0 +1,14 @@
+{
+    "symbol": "NQ",
+    "start_date": "20251103",
+    "end_date": "20251103",
+    "parameters": {
+        "slope": -0.019736842105263157,
+        "intercept_high": 26088.019736842107,
+        "intercept_low": 26056.91447368421,
+        "intercept_clone": 26035.486842105263,
+        "clone_start_idx": 88,
+        "r_value": 1.0,
+        "std_err": 0.0
+    }
+}
