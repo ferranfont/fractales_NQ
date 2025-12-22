@@ -1,9 +1,11 @@
 """
-Detección de fractales ZigZag para Gold (GC)
+Detección de fractales ZigZag para NQ (Nasdaq Futures)
 Detecta picos y valles usando algoritmo Zigzag sin look-ahead bias
+Lee datos de time_and_sales y los agrega a barras OHLC
 """
 
 import pandas as pd
+import numpy as np
 from pathlib import Path
 from enum import Enum
 from typing import List, Optional
@@ -271,78 +273,128 @@ def detect_fractals(df: pd.DataFrame, min_change_pct: float, tag: str) -> pd.Dat
     return pd.DataFrame(data)
 
 
-def load_date_range(start_date: str, end_date: str) -> pd.DataFrame:
+def load_nq_tick_data(date_str: str) -> pd.DataFrame:
     """
-    Carga y concatena todos los archivos CSV en el rango de fechas especificado
+    Carga datos de time_and_sales para NQ desde archivo CSV
+    Formato: time_and_sales_nq_YYYYMMDD.csv
+    Columnas: Timestamp;Precio;Volumen;Lado;Bid;Ask
 
     Args:
-        start_date: Fecha inicial en formato YYYY-MM-DD
-        end_date: Fecha final en formato YYYY-MM-DD
+        date_str: Fecha en formato YYYYMMDD
 
     Returns:
-        DataFrame concatenado con todos los datos del rango
+        DataFrame con datos de ticks
     """
-    import pandas as pd
-    from datetime import datetime, timedelta
+    csv_path = DATA_DIR / f"time_and_sales_nq_{date_str}.csv"
 
-    print(f"\n[INFO] Cargando datos desde {start_date} hasta {end_date}")
-
-    # Convertir strings a datetime
-    start = datetime.strptime(start_date, "%Y-%m-%d")
-    end = datetime.strptime(end_date, "%Y-%m-%d")
-
-    all_data = []
-    dates_loaded = []
-    dates_missing = []
-
-    # Iterar por cada día en el rango
-    current = start
-    while current <= end:
-        date_str = current.strftime("%Y-%m-%d")
-        csv_path = DATA_DIR / f"gc_{date_str}.csv"
-
-        if csv_path.exists():
-            try:
-                df_day = pd.read_csv(csv_path)
-                all_data.append(df_day)
-                dates_loaded.append(date_str)
-            except Exception as e:
-                print(f"[WARNING] Error al cargar {csv_path}: {e}")
-                dates_missing.append(date_str)
-        else:
-            dates_missing.append(date_str)
-
-        current += timedelta(days=1)
-
-    if not all_data:
-        print(f"[ERROR] No se encontraron datos en el rango especificado")
+    if not csv_path.exists():
+        print(f"[ERROR] No se encontró el archivo: {csv_path}")
         return None
 
-    # Concatenar todos los dataframes
-    df_combined = pd.concat(all_data, ignore_index=True)
+    print(f"[INFO] Cargando datos de tick desde {csv_path}")
 
-    print(f"[OK] Cargados {len(dates_loaded)} días con {len(df_combined)} registros totales")
-    if dates_missing:
-        print(f"[INFO] Días sin datos: {len(dates_missing)}")
+    try:
+        # Leer CSV con separador ; y coma decimal
+        df = pd.read_csv(
+            csv_path,
+            sep=';',
+            decimal=',',
+            parse_dates=['Timestamp']
+        )
 
-    return df_combined
+        print(f"[OK] Cargados {len(df):,} ticks")
+        print(f"[INFO] Rango temporal: {df['Timestamp'].min()} -> {df['Timestamp'].max()}")
+        print(f"[INFO] Rango de precios: {df['Precio'].min():.2f} -> {df['Precio'].max():.2f}")
+
+        return df
+
+    except Exception as e:
+        print(f"[ERROR] Error al cargar {csv_path}: {e}")
+        return None
+
+
+def aggregate_ticks_to_ohlc(df_ticks: pd.DataFrame, timeframe: str = '1min') -> pd.DataFrame:
+    """
+    Agrega datos de tick a barras OHLC
+
+    Args:
+        df_ticks: DataFrame con datos de tick (columnas: Timestamp, Precio, Volumen)
+        timeframe: Timeframe para agregación (ej: '1min', '5min', '1H')
+
+    Returns:
+        DataFrame con OHLC (timestamp, open, high, low, close, volume)
+    """
+    print(f"[INFO] Agregando ticks a barras OHLC ({timeframe})")
+
+    # Establecer Timestamp como índice
+    df_ticks = df_ticks.copy()
+    df_ticks.set_index('Timestamp', inplace=True)
+
+    # Agregar a OHLC
+    ohlc = df_ticks['Precio'].resample(timeframe).ohlc()
+    volume = df_ticks['Volumen'].resample(timeframe).sum()
+
+    # Combinar OHLC y volumen
+    df_ohlc = pd.concat([ohlc, volume], axis=1)
+    df_ohlc.columns = ['open', 'high', 'low', 'close', 'volume']
+
+    # Reset index para tener timestamp como columna
+    df_ohlc.reset_index(inplace=True)
+    df_ohlc.rename(columns={'Timestamp': 'timestamp'}, inplace=True)
+
+    # Eliminar filas con NaN (periodos sin trades)
+    df_ohlc = df_ohlc.dropna()
+
+    print(f"[OK] Generadas {len(df_ohlc):,} barras OHLC")
+    print(f"[INFO] Rango temporal: {df_ohlc['timestamp'].min()} -> {df_ohlc['timestamp'].max()}")
+
+    return df_ohlc
+
+
+def load_date_range(start_date: str, end_date: str) -> pd.DataFrame:
+    """
+    Carga datos de NQ para una fecha (o rango si se expande en el futuro)
+
+    Args:
+        start_date: Fecha en formato YYYYMMDD
+        end_date: Fecha en formato YYYYMMDD
+
+    Returns:
+        DataFrame con OHLC (timestamp, open, high, low, close, volume)
+    """
+    print(f"\n[INFO] Cargando datos NQ para fecha: {start_date}")
+
+    # Para este proyecto, solo procesamos una fecha única
+    if start_date != end_date:
+        print(f"[WARNING] Este proyecto está configurado para una fecha única")
+        print(f"[INFO] Procesando solo {start_date}")
+
+    # Cargar datos de tick
+    df_ticks = load_nq_tick_data(start_date)
+    if df_ticks is None:
+        return None
+
+    # Agregar a barras de 1 minuto
+    df_ohlc = aggregate_ticks_to_ohlc(df_ticks, timeframe='1min')
+
+    return df_ohlc
 
 
 def process_fractals_range(start_date: str, end_date: str) -> dict:
     """
-    Procesa fractales para un rango de fechas
+    Procesa fractales para NQ
 
     Args:
-        start_date: Fecha inicial en formato YYYY-MM-DD
-        end_date: Fecha final en formato YYYY-MM-DD
+        start_date: Fecha en formato YYYYMMDD
+        end_date: Fecha en formato YYYYMMDD
 
     Returns:
         dict con información de fractales procesados o None si hay error
     """
     print("="*70)
-    print("DETECCIÓN DE FRACTALES - Gold (GC)")
+    print("DETECCIÓN DE FRACTALES - NQ (Nasdaq Futures)")
     print("="*70)
-    print(f"\nRango: {start_date} -> {end_date}")
+    print(f"\nFecha: {start_date}")
     print(f"Minor threshold: {MIN_CHANGE_PCT_MINOR}%")
     print(f"Major threshold: {MIN_CHANGE_PCT_MAJOR}%")
     print("-"*70)
@@ -368,12 +420,8 @@ def process_fractals_range(start_date: str, end_date: str) -> dict:
     # Crear directorio de salida
     FRACTALS_DIR.mkdir(parents=True, exist_ok=True)
 
-    # Extraer símbolo del primer archivo CSV cargado
-    first_file = DATA_DIR / f"gc_{start_date}.csv"
-    symbol = 'GC'  # default
-    if first_file.exists():
-        # Extraer símbolo del nombre del archivo (formato: symbol_YYYY-MM-DD.csv)
-        symbol = first_file.stem.split('_')[0]
+    # Símbolo para NQ
+    symbol = 'NQ'
 
     # Guardar fractales con nombre de rango
     date_range_str = f"{start_date}_{end_date}"

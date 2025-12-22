@@ -1,13 +1,13 @@
 """
-Configuración global para detección de fractales en Gold (GC)
+Configuración global para detección de fractales en NQ (Nasdaq Futures)
 """
 from pathlib import Path
 
 # ============================================================================
-# RANGO DE FECHAS
+# FECHA ÚNICA (NO HAY RANGO, SOLO UNA FECHA)
 # ============================================================================
-START_DATE = "2024-03-29"
-END_DATE = "2024-05-02"
+START_DATE = "20251104"
+END_DATE = "20251104"
 
 # ============================================================================
 # DIRECTORIOS DEL PROYECTO
@@ -18,10 +18,11 @@ OUTPUTS_DIR = PROJECT_ROOT / "outputs"
 FRACTALS_DIR = OUTPUTS_DIR / "fractals"
 
 # ============================================================================
-# PARÁMETROS DE FRACTALES ZIGZAG (PRECIO)
+# PARÁMETROS DE FRACTALES ZIGZAG (PRECIO) - AJUSTADOS PARA NQ
 # ============================================================================
-MIN_CHANGE_PCT_MINOR = 0.50    # 0.50% umbral para fractales pequeños
-MIN_CHANGE_PCT_MAJOR = 2.1     # 2.1% umbral para fractales grandes
+# NQ tiene precio ~26000, por lo que los porcentajes pueden ser diferentes a GC
+MIN_CHANGE_PCT_MINOR = 0.15    # 0.15% umbral para fractales pequeños (~39 puntos en NQ)
+MIN_CHANGE_PCT_MAJOR = 0.50    # 0.50% umbral para fractales grandes (~130 puntos en NQ)
 
 # ============================================================================
 # PARÁMETROS DE ANÁLISIS DE CONSOLIDACIÓN

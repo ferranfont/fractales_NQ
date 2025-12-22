@@ -6,7 +6,7 @@ from pathlib import Path
 from config import START_DATE, END_DATE, FRACTALS_DIR, PLOT_MINOR_FRACTALS, PLOT_MAJOR_FRACTALS, PLOT_MINOR_DOTS, PLOT_MAJOR_DOTS, HIDE_FREQUENCY_INDICATOR, PLOT_VWAP, VWAP_PERIOD
 from calculate_vwap import calculate_vwap
 
-def plot_range_chart(df, df_fractals_minor, df_fractals_major, start_date, end_date, symbol='GC', rsi_levels=None, fibo_levels=None, divergences=None, channel_params=None, df_metrics=None):
+def plot_range_chart(df, df_fractals_minor, df_fractals_major, start_date, end_date, symbol='NQ', rsi_levels=None, fibo_levels=None, divergences=None, channel_params=None, df_metrics=None):
     """
     Crea un gráfico con línea de precio y fractales ZigZag para un rango de fechas.
 
@@ -373,7 +373,7 @@ def plot_range_chart(df, df_fractals_minor, df_fractals_major, start_date, end_d
 
     # Guardar gráfico
     date_range_str = f"{start_date}_{end_date}"
-    output_html = os.path.join(output_dir, f'gc_{date_range_str}.html')
+    output_html = os.path.join(output_dir, f'nq_{date_range_str}.html')
     print(f"Guardando gráfico en: {output_html}")
     fig.write_html(output_html)
     print(f"Gráfico guardado exitosamente")
@@ -403,11 +403,8 @@ if __name__ == "__main__":
         print("Error cargando datos")
         exit(1)
 
-    # Extraer símbolo del primer archivo
-    first_file = DATA_DIR / f"gc_{START_DATE}.csv"
-    symbol = 'GC'  # default
-    if first_file.exists():
-        symbol = first_file.stem.split('_')[0]
+    # Symbol for NQ
+    symbol = 'NQ'
 
     # Cargar fractales
     date_range_str = f"{START_DATE}_{END_DATE}"

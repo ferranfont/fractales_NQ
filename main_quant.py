@@ -49,7 +49,7 @@ def main_quant_range(start_date: str, end_date: str):
     # Guardar métricas en CSV
     from config import FRACTALS_DIR
     date_range_str = f"{start_date}_{end_date}"
-    symbol = fractals_result.get('symbol', 'GC')
+    symbol = fractals_result.get('symbol', 'NQ')
     metrics_path = FRACTALS_DIR / f"{symbol}_consolidation_metrics_{date_range_str}.csv"
     df_fractals_metrics.to_csv(metrics_path, index=False)
     print(f"[INFO] Métricas guardadas en: {metrics_path}")
@@ -75,7 +75,7 @@ def main_quant_range(start_date: str, end_date: str):
         fractals_result['df_fractals_major'],
         start_date,
         end_date,
-        symbol=fractals_result.get('symbol', 'GC'),
+        symbol=fractals_result.get('symbol', 'NQ'),
         rsi_levels=None,
         fibo_levels=None,
         divergences=None,
@@ -93,11 +93,12 @@ def main_quant_range(start_date: str, end_date: str):
         
         OUTPUTS_DIR.mkdir(parents=True, exist_ok=True)
         date_range_str = f"{start_date}_{end_date}"
-        model_filename = OUTPUTS_DIR / f"channel_model_gc_{date_range_str}.json"
-        
+        symbol = fractals_result.get('symbol', 'NQ')
+        model_filename = OUTPUTS_DIR / f"channel_model_{symbol.lower()}_{date_range_str}.json"
+
         # Añadir metadatos al modelo
         model_data = {
-            'symbol': fractals_result.get('symbol', 'GC'),
+            'symbol': symbol,
             'start_date': start_date, 
             'end_date': end_date,
             'parameters': channel_params
