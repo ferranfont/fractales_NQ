@@ -3,6 +3,7 @@ Cálculo SIMPLE de tiempo entre fractales - SIN rolling windows
 Solo calcula: tiempo desde fractal anterior en SEGUNDOS
 """
 import pandas as pd
+from config import TRIGGER_THRESHOLD, TRIGGER_PERIODS
 
 
 def calculate_fractal_metrics(df_fractals):
@@ -33,11 +34,9 @@ def calculate_fractal_metrics(df_fractals):
     max_time = df['time_from_prev_seconds'].max()
     df['inverted_frequency'] = max_time - df['time_from_prev_seconds']
 
-    # 4. Trigger de consolidación: frecuencia > 200k durante 2 fractales consecutivos
-    TRIGGER_THRESHOLD = 200000  # 200,000 puntos
-    TRIGGER_PERIODS = 2
-
-    # Marcar fractales donde inverted_frequency > 200
+    # 4. Trigger de consolidación: frecuencia > TRIGGER_THRESHOLD durante TRIGGER_PERIODS fractales consecutivos
+    # Parámetros definidos en config.py
+    # Marcar fractales donde inverted_frequency > TRIGGER_THRESHOLD
     df['above_threshold'] = (df['inverted_frequency'] > TRIGGER_THRESHOLD).astype(int)
 
     # Contar cuántos fractales consecutivos están por encima del umbral
@@ -91,7 +90,7 @@ def print_consolidation_table(df_metrics, max_rows=30):
     print("  - Time(seg): Segundos desde el fractal anterior")
     print("  - PriceDiff: Distancia en precio desde fractal anterior")
     print("  - InvFreq: Frecuencia invertida (alto = consolidación)")
-    print("  - Trigger: YES = consolidación activa (InvFreq > 200,000 durante 2+ fractales)")
+    print(f"  - Trigger: YES = consolidación activa (InvFreq > {TRIGGER_THRESHOLD:,} durante {TRIGGER_PERIODS}+ fractales)")
     print("="*130 + "\n")
 
 

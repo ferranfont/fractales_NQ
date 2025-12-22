@@ -1,5 +1,5 @@
 """
-Script principal de análisis cuantitativo para Gold (GC)
+Script principal de análisis cuantitativo para Nasaq (NQ)
 Orquesta la ejecución de:
 1. Detección de fractales (find_fractals.py)
 2. Generación de gráfico (plot_day.py)
@@ -21,7 +21,7 @@ def main_quant_range(start_date: str, end_date: str):
         end_date: Fecha final en formato YYYY-MM-DD
     """
     print("\n" + "="*70)
-    print("ANÁLISIS CUANTITATIVO - Gold (GC)")
+    print("ANÁLISIS CUANTITATIVO - Nasdaq (NQ")
     print("="*70)
     print(f"Rango: {start_date} -> {end_date}")
     print("="*70 + "\n")

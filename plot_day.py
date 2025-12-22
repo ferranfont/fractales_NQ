@@ -3,7 +3,8 @@ import plotly.graph_objects as go
 from plotly.subplots import make_subplots
 import os
 from pathlib import Path
-from config import START_DATE, END_DATE, FRACTALS_DIR, PLOT_MINOR_FRACTALS, PLOT_MAJOR_FRACTALS, PLOT_MINOR_DOTS, PLOT_MAJOR_DOTS
+from config import START_DATE, END_DATE, FRACTALS_DIR, PLOT_MINOR_FRACTALS, PLOT_MAJOR_FRACTALS, PLOT_MINOR_DOTS, PLOT_MAJOR_DOTS, HIDE_FREQUENCY_INDICATOR, PLOT_VWAP, VWAP_PERIOD
+from calculate_vwap import calculate_vwap
 
 def plot_range_chart(df, df_fractals_minor, df_fractals_major, start_date, end_date, symbol='GC', rsi_levels=None, fibo_levels=None, divergences=None, channel_params=None, df_metrics=None):
     """
@@ -32,9 +33,11 @@ def plot_range_chart(df, df_fractals_minor, df_fractals_major, start_date, end_d
     df['index'] = df.index
 
     # Determinar si se necesita subplot para métricas
+    # Solo crear subplot si hay métricas Y no está oculto el indicador
     has_metrics = df_metrics is not None and not df_metrics.empty
+    show_frequency_subplot = has_metrics and not HIDE_FREQUENCY_INDICATOR
 
-    if has_metrics:
+    if show_frequency_subplot:
         # Crear figura con 2 subplots
         fig = make_subplots(
             rows=2, cols=1,
@@ -60,10 +63,34 @@ def plot_range_chart(df, df_fractals_minor, df_fractals_major, start_date, end_d
         opacity=0.5,
         hoverinfo='skip'
     )
-    if has_metrics:
+    if show_frequency_subplot:
         fig.add_trace(trace_price, row=price_row, col=1)
     else:
         fig.add_trace(trace_price)
+
+    # Añadir indicador VWAP
+    if PLOT_VWAP:
+        df['vwap'] = calculate_vwap(df, period=VWAP_PERIOD)
+
+        # Filtrar valores válidos (no NaN)
+        df_vwap = df[df['vwap'].notna()].copy()
+
+        if not df_vwap.empty:
+            trace_vwap = go.Scatter(
+                x=df_vwap['index'],
+                y=df_vwap['vwap'],
+                mode='lines',
+                name=f'VWAP({VWAP_PERIOD})',
+                line=dict(color='magenta', width=1.5),
+                opacity=0.8,
+                hovertemplate='<b>VWAP</b>: %{y:.2f}<extra></extra>'
+            )
+            if show_frequency_subplot:
+                fig.add_trace(trace_vwap, row=price_row, col=1)
+            else:
+                fig.add_trace(trace_vwap)
+
+            print(f"[INFO] VWAP({VWAP_PERIOD}) añadido al gráfico: {len(df_vwap)} puntos válidos")
 
     # Añadir líneas ZigZag y marcadores de fractales MINOR
     if PLOT_MINOR_FRACTALS and df_fractals_minor is not None and not df_fractals_minor.empty:
@@ -83,7 +110,7 @@ def plot_range_chart(df, df_fractals_minor, df_fractals_major, start_date, end_d
             opacity=0.7,
             hoverinfo='skip'
         )
-        if has_metrics:
+        if show_frequency_subplot:
             fig.add_trace(trace_minor_line, row=price_row, col=1)
         else:
             fig.add_trace(trace_minor_line)
@@ -102,7 +129,7 @@ def plot_range_chart(df, df_fractals_minor, df_fractals_major, start_date, end_d
                 opacity=1,
                 hoverinfo='skip'
             )
-            if has_metrics:
+            if show_frequency_subplot:
                 fig.add_trace(trace_minor_dots, row=price_row, col=1)
             else:
                 fig.add_trace(trace_minor_dots)
@@ -124,7 +151,7 @@ def plot_range_chart(df, df_fractals_minor, df_fractals_major, start_date, end_d
             line=dict(color='blue', width=2),
             hoverinfo='skip'
         )
-        if has_metrics:
+        if show_frequency_subplot:
             fig.add_trace(trace_major_line, row=price_row, col=1)
         else:
             fig.add_trace(trace_major_line)
@@ -146,7 +173,7 @@ def plot_range_chart(df, df_fractals_minor, df_fractals_major, start_date, end_d
             x=x_vals, y=y_high_vals, mode='lines', name='Channel Upper',
             line=dict(color='red', width=1), opacity=0.6, hoverinfo='skip'
         )
-        if has_metrics:
+        if show_frequency_subplot:
             fig.add_trace(trace_upper, row=price_row, col=1)
         else:
             fig.add_trace(trace_upper)
@@ -156,7 +183,7 @@ def plot_range_chart(df, df_fractals_minor, df_fractals_major, start_date, end_d
             x=x_vals, y=y_low_vals, mode='lines', name='Channel Lower',
             line=dict(color='red', width=1), opacity=0.6, hoverinfo='skip'
         )
-        if has_metrics:
+        if show_frequency_subplot:
             fig.add_trace(trace_lower, row=price_row, col=1)
         else:
             fig.add_trace(trace_lower)
@@ -173,12 +200,13 @@ def plot_range_chart(df, df_fractals_minor, df_fractals_major, start_date, end_d
                 line=dict(color='green', width=1), opacity=0.8,
                 fill='tonexty', fillcolor='rgba(0, 255, 0, 0.1)', hoverinfo='skip'
             )
-            if has_metrics:
+            if show_frequency_subplot:
                 fig.add_trace(trace_clone, row=price_row, col=1)
             else:
                 fig.add_trace(trace_clone)
 
     # Añadir PUNTOS NARANJAS en el gráfico de precio cuando hay trigger de consolidación
+    # MANTENER los puntos naranjas incluso si el subplot está oculto
     if has_metrics and df_metrics is not None and PLOT_MINOR_FRACTALS and df_fractals_minor is not None:
         # Filtrar fractales donde choppiness_trigger == 1
         df_triggers = df_metrics[df_metrics['choppiness_trigger'] == 1].copy()
@@ -208,7 +236,7 @@ def plot_range_chart(df, df_fractals_minor, df_fractals_major, start_date, end_d
                     ),
                     hovertemplate='<b>CONSOLIDACIÓN</b><br>Price: %{y:.2f}<extra></extra>'
                 )
-                if has_metrics:
+                if show_frequency_subplot:
                     fig.add_trace(trace_triggers, row=price_row, col=1)
                 else:
                     fig.add_trace(trace_triggers)
@@ -216,7 +244,8 @@ def plot_range_chart(df, df_fractals_minor, df_fractals_major, start_date, end_d
                 print(f"[DEBUG] Puntos de consolidación añadidos al gráfico: {len(df_triggers)}")
 
     # Añadir subplot de métricas - SEGUNDOS entre fractales
-    if has_metrics:
+    # Solo añadir si el subplot de frecuencia NO está oculto
+    if show_frequency_subplot:
         # Usar directamente los índices de fractales que ya están mapeados
         df_metrics_plot = df_metrics.copy()
 
@@ -267,7 +296,7 @@ def plot_range_chart(df, df_fractals_minor, df_fractals_major, start_date, end_d
         df['timestamp'] = pd.to_datetime(df['timestamp'])
     tick_text = df.iloc[tick_indices]['timestamp'].dt.strftime('%Y-%m-%d | %H:%M:%S')
 
-    if has_metrics:
+    if show_frequency_subplot:
         # Eje X para precio (row 1) - sin grid vertical
         fig.update_xaxes(
             tickmode='array', tickvals=tick_vals, ticktext=tick_text,
@@ -287,7 +316,7 @@ def plot_range_chart(df, df_fractals_minor, df_fractals_major, start_date, end_d
         )
 
     # Configurar layout
-    if has_metrics:
+    if show_frequency_subplot:
         fig.update_layout(
             title=f'{symbol.upper()} - {start_date} -> {end_date}',
             template='plotly_white',
@@ -315,7 +344,7 @@ def plot_range_chart(df, df_fractals_minor, df_fractals_major, start_date, end_d
         )
 
     # Configurar eje Y - horizontal grid enabled, vertical grid disabled
-    if has_metrics:
+    if show_frequency_subplot:
         # Eje Y para precio (row 1)
         fig.update_yaxes(
             showgrid=True, gridcolor='#e0e0e0', gridwidth=0.5,
