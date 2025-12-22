@@ -39,7 +39,8 @@ TRIGGER_PERIODS = 2                      # Número de fractales consecutivos por
 # PARÁMETROS DE INDICADORES TÉCNICOS
 # ============================================================================
 PLOT_VWAP = True                 # True = dibujar indicador VWAP en el gráfico
-VWAP_PERIOD = 100                # Periodo para cálculo de VWAP (Volume Weighted Average Price)
+VWAP_PERIOD = 50                 # Periodo para cálculo de VWAP (Volume Weighted Average Price)
+LOWS_MA = 5                      # Periodo para EWA (Exponential Weighted Average) de fractales lows
 
 # ============================================================================
 # PARÁMETROS DE VISUALIZACIÓN

@@ -3,7 +3,7 @@ import plotly.graph_objects as go
 from plotly.subplots import make_subplots
 import os
 from pathlib import Path
-from config import START_DATE, END_DATE, FRACTALS_DIR, PLOT_MINOR_FRACTALS, PLOT_MAJOR_FRACTALS, PLOT_MINOR_DOTS, PLOT_MAJOR_DOTS, HIDE_FREQUENCY_INDICATOR, PLOT_VWAP, VWAP_PERIOD
+from config import START_DATE, END_DATE, FRACTALS_DIR, PLOT_MINOR_FRACTALS, PLOT_MAJOR_FRACTALS, PLOT_MINOR_DOTS, PLOT_MAJOR_DOTS, HIDE_FREQUENCY_INDICATOR, PLOT_VWAP, VWAP_PERIOD, LOWS_MA
 from calculate_vwap import calculate_vwap
 
 def plot_range_chart(df, df_fractals_minor, df_fractals_major, start_date, end_date, symbol='NQ', rsi_levels=None, fibo_levels=None, divergences=None, channel_params=None, df_metrics=None):
@@ -159,15 +159,15 @@ def plot_range_chart(df, df_fractals_minor, df_fractals_major, start_date, end_d
         else:
             fig.add_trace(trace_major_line)
 
-    # Añadir Moving Average de Fractales Lows (Valles)
+    # Añadir EWA (Exponential Weighted Average) de Fractales Lows (Valles)
     if df_fractals_minor is not None and not df_fractals_minor.empty:
         # Filtrar solo los valles (lows) de los fractales MINOR
         df_lows = df_fractals_minor[df_fractals_minor['type'] == 'VALLE'].copy()
 
-        if not df_lows.empty and len(df_lows) >= 3:
-            # Calcular moving average de los precios de los valles
-            window = min(5, len(df_lows))  # Ventana de 5 o menos si no hay suficientes puntos
-            df_lows['ma_price'] = df_lows['price'].rolling(window=window, min_periods=1).mean()
+        if not df_lows.empty and len(df_lows) >= 2:
+            # Calcular EWA (Exponential Weighted Average) de los precios de los valles
+            # span = LOWS_MA es equivalente a un período de LOWS_MA en EMA
+            df_lows['ewa_price'] = df_lows['price'].ewm(span=LOWS_MA, adjust=False).mean()
 
             # Mapear timestamps a índices del dataframe principal
             df_lows['index'] = df_lows['timestamp'].apply(
@@ -175,22 +175,22 @@ def plot_range_chart(df, df_fractals_minor, df_fractals_major, start_date, end_d
             )
             df_lows = df_lows.dropna(subset=['index'])
 
-            # Crear trace del moving average
-            trace_ma_lows = go.Scatter(
+            # Crear trace del EWA
+            trace_ewa_lows = go.Scatter(
                 x=df_lows['index'],
-                y=df_lows['ma_price'],
+                y=df_lows['ewa_price'],
                 mode='lines',
-                name='MA Fractal Lows',
+                name=f'EWA({LOWS_MA}) Fractal Lows',
                 line=dict(color='green', width=2),
                 opacity=0.8,
-                hovertemplate='MA Lows: %{y:.2f}<extra></extra>'
+                hovertemplate='EWA Lows: %{y:.2f}<extra></extra>'
             )
             if show_frequency_subplot:
-                fig.add_trace(trace_ma_lows, row=price_row, col=1)
+                fig.add_trace(trace_ewa_lows, row=price_row, col=1)
             else:
-                fig.add_trace(trace_ma_lows)
+                fig.add_trace(trace_ewa_lows)
 
-            print(f"[INFO] Moving Average de Fractales Lows añadido: {len(df_lows)} puntos (ventana={window})")
+            print(f"[INFO] EWA({LOWS_MA}) de Fractales Lows añadido: {len(df_lows)} puntos")
 
     # Añadir Canal de Regresión
     if channel_params:
