@@ -178,6 +178,40 @@ def plot_range_chart(df, df_fractals_minor, df_fractals_major, start_date, end_d
             else:
                 fig.add_trace(trace_clone)
 
+    # Añadir PUNTOS NARANJAS en el gráfico de precio cuando hay trigger de consolidación
+    if has_metrics and df_metrics is not None:
+        # Filtrar fractales donde choppiness_trigger == 1
+        df_triggers = df_metrics[df_metrics['choppiness_trigger'] == 1].copy()
+
+        if not df_triggers.empty:
+            # Mapear timestamps a índices
+            df_triggers['index'] = df_triggers['timestamp'].apply(
+                lambda ts: df[df['timestamp'] == ts].index[0] if len(df[df['timestamp'] == ts]) > 0 else None
+            )
+            df_triggers = df_triggers.dropna(subset=['index'])
+
+            if not df_triggers.empty:
+                # Añadir puntos naranjas en el gráfico de precio
+                trace_triggers = go.Scatter(
+                    x=df_triggers['index'],
+                    y=df_triggers['price'],
+                    mode='markers',
+                    name='Consolidación detectada',
+                    marker=dict(
+                        color='orange',
+                        size=8,
+                        symbol='circle',
+                        line=dict(color='darkorange', width=1)
+                    ),
+                    hovertemplate='<b>CONSOLIDACIÓN</b><br>Price: %{y:.2f}<extra></extra>'
+                )
+                if has_metrics:
+                    fig.add_trace(trace_triggers, row=price_row, col=1)
+                else:
+                    fig.add_trace(trace_triggers)
+
+                print(f"[DEBUG] Puntos de consolidación detectados: {len(df_triggers)}")
+
     # Añadir subplot de métricas - SEGUNDOS entre fractales
     if has_metrics:
         # Usar directamente los índices de fractales que ya están mapeados

@@ -28,6 +28,24 @@ def calculate_fractal_metrics(df_fractals):
     # 2. Distancia en precio desde el fractal anterior
     df['price_diff_from_prev'] = df['price'].diff().abs()
 
+    # 3. Calcular frecuencia INVERTIDA (para trigger de consolidación)
+    # Invertir: valores bajos de tiempo -> valores ALTOS de frecuencia
+    max_time = df['time_from_prev_seconds'].max()
+    df['inverted_frequency'] = max_time - df['time_from_prev_seconds']
+
+    # 4. Trigger de consolidación: frecuencia > 200 durante 2 fractales consecutivos
+    TRIGGER_THRESHOLD = 200
+    TRIGGER_PERIODS = 2
+
+    # Marcar fractales donde inverted_frequency > 200
+    df['above_threshold'] = (df['inverted_frequency'] > TRIGGER_THRESHOLD).astype(int)
+
+    # Contar cuántos fractales consecutivos están por encima del umbral
+    df['consecutive_above'] = df['above_threshold'].rolling(window=TRIGGER_PERIODS).sum()
+
+    # Trigger activo cuando hay 2 o más periodos consecutivos por encima de 200
+    df['choppiness_trigger'] = (df['consecutive_above'] >= TRIGGER_PERIODS).astype(int)
+
     return df
 
 
@@ -42,34 +60,39 @@ def print_consolidation_table(df_metrics, max_rows=30):
     # Seleccionar columnas para la tabla
     table_cols = [
         'timestamp', 'type', 'price',
-        'time_from_prev_seconds', 'price_diff_from_prev'
+        'time_from_prev_seconds', 'price_diff_from_prev', 'inverted_frequency', 'choppiness_trigger'
     ]
 
     df_table = df_metrics[table_cols].copy()
 
     # Formatear para impresión
-    print("\n" + "="*100)
+    print("\n" + "="*130)
     print("TABLA DE MÉTRICAS DE FRACTALES (SIMPLE)")
-    print("="*100)
-    print(f"{'#':<4} {'Timestamp':<25} {'Type':<6} {'Price':<10} {'Time(seg)':<12} {'PriceDiff':<12}")
-    print("-"*100)
+    print("="*130)
+    print(f"{'#':<4} {'Timestamp':<25} {'Type':<6} {'Price':<10} {'Time(seg)':<12} {'PriceDiff':<12} {'InvFreq':<10} {'Trigger':<8}")
+    print("-"*130)
 
     for idx, row in df_table.head(max_rows).iterrows():
         time_val = f"{row['time_from_prev_seconds']:.0f}" if pd.notna(row['time_from_prev_seconds']) else "N/A"
         price_diff = f"{row['price_diff_from_prev']:.2f}" if pd.notna(row['price_diff_from_prev']) else "N/A"
+        inv_freq = f"{row['inverted_frequency']:.0f}" if pd.notna(row['inverted_frequency']) else "N/A"
+        trigger = "YES" if row['choppiness_trigger'] == 1 else "NO"
 
         print(f"{idx:<4} {str(row['timestamp']):<25} {row['type']:<6} {row['price']:<10.1f} "
-              f"{time_val:<12} {price_diff:<12}")
+              f"{time_val:<12} {price_diff:<12} {inv_freq:<10} {trigger:<8}")
 
     if len(df_table) > max_rows:
         print(f"... ({len(df_table) - max_rows} filas más)")
 
-    print("="*100)
+    print("="*130)
     print(f"\nTotal fractales: {len(df_table)}")
+    print(f"Fractales con trigger activo: {df_table['choppiness_trigger'].sum()}")
     print("\nLeyenda:")
     print("  - Time(seg): Segundos desde el fractal anterior")
     print("  - PriceDiff: Distancia en precio desde fractal anterior")
-    print("="*100 + "\n")
+    print("  - InvFreq: Frecuencia invertida (alto = consolidación)")
+    print("  - Trigger: YES = consolidación activa (InvFreq > 200 durante 2+ fractales)")
+    print("="*130 + "\n")
 
 
 if __name__ == "__main__":
