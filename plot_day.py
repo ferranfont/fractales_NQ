@@ -41,7 +41,7 @@ def plot_range_chart(df, df_fractals_minor, df_fractals_major, start_date, end_d
             shared_xaxes=True,
             vertical_spacing=0.05,
             row_heights=[0.7, 0.3],
-            subplot_titles=(f'{symbol.upper()} - Price & Fractals', 'Tiempo entre Fractales (segundos)')
+            subplot_titles=(f'{symbol.upper()} - Price & Fractals', 'Frecuencia de Fractales (invertido: ↑ = consolidación)')
         )
         price_row = 1
         metrics_row = 2
@@ -204,12 +204,16 @@ def plot_range_chart(df, df_fractals_minor, df_fractals_major, start_date, end_d
         if not df_metrics_valid.empty:
             print(f"[DEBUG] Rango time_from_prev_seconds: {df_metrics_valid['time_from_prev_seconds'].min():.0f} - {df_metrics_valid['time_from_prev_seconds'].max():.0f} segundos")
 
-            # Gráfico de SEGUNDOS entre fractales (continuo, sin rolling window)
+            # Gráfico de SEGUNDOS INVERTIDOS entre fractales
+            # INVERTIR: valores bajos (consolidación) -> arriba, valores altos (trending) -> abajo
+            max_time = df_metrics_valid['time_from_prev_seconds'].max()
+            inverted_time = max_time - df_metrics_valid['time_from_prev_seconds']
+
             trace_time = go.Scatter(
                 x=df_metrics_valid['index'],
-                y=df_metrics_valid['time_from_prev_seconds'],
+                y=inverted_time,
                 mode='lines',
-                name='Tiempo entre fractales (seg)',
+                name='Frecuencia de fractales (invertido)',
                 line=dict(color='orange', width=2),
                 hoverinfo='skip'
             )
@@ -275,9 +279,9 @@ def plot_range_chart(df, df_fractals_minor, df_fractals_major, start_date, end_d
             tickcolor='gray', tickfont=dict(color='gray'),
             row=price_row, col=1
         )
-        # Eje Y para métricas (row 2) - Tiempo en segundos
+        # Eje Y para métricas (row 2) - Frecuencia invertida
         fig.update_yaxes(
-            title='Segundos',
+            title='Frecuencia (↑ alta)',
             showgrid=True, gridcolor='#e0e0e0', gridwidth=0.5,
             showline=True, linewidth=1, linecolor='gray',
             tickcolor='gray', tickfont=dict(color='gray'),
