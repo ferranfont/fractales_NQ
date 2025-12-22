@@ -1,0 +1,7 @@
+timestamp,price,type,direction,tag
+2024-04-01 16:42:00+02:00,2370.2,VALLE,down,major
+2024-04-12 17:05:00+02:00,2569.9,PICO,up,major
+2024-04-15 16:11:00+02:00,2461.3,VALLE,down,major
+2024-04-19 03:47:00+02:00,2554.4,PICO,up,major
+2024-04-23 11:20:00+02:00,2425.7,VALLE,down,major
+2024-04-26 11:13:00+02:00,2485.5,PICO,up,major

@@ -1,10 +1,11 @@
 import pandas as pd
 import plotly.graph_objects as go
+from plotly.subplots import make_subplots
 import os
 from pathlib import Path
 from config import START_DATE, END_DATE, FRACTALS_DIR, PLOT_MINOR_FRACTALS, PLOT_MAJOR_FRACTALS, PLOT_MINOR_DOTS, PLOT_MAJOR_DOTS
 
-def plot_range_chart(df, df_fractals_minor, df_fractals_major, start_date, end_date, symbol='GC', rsi_levels=None, fibo_levels=None, divergences=None):
+def plot_range_chart(df, df_fractals_minor, df_fractals_major, start_date, end_date, symbol='GC', rsi_levels=None, fibo_levels=None, divergences=None, channel_params=None, df_metrics=None):
     """
     Crea un gráfico con línea de precio y fractales ZigZag para un rango de fechas.
 
@@ -17,6 +18,8 @@ def plot_range_chart(df, df_fractals_minor, df_fractals_major, start_date, end_d
         rsi_levels: No usado (compatibilidad)
         fibo_levels: No usado (compatibilidad)
         divergences: No usado (compatibilidad)
+        channel_params: Parámetros del canal de regresión
+        df_metrics: DataFrame con métricas de consolidación (opcional)
 
     Returns:
         dict con información del gráfico generado o None si hay error
@@ -24,24 +27,43 @@ def plot_range_chart(df, df_fractals_minor, df_fractals_major, start_date, end_d
     print(f"Generando gráfico para rango: {start_date} -> {end_date}")
     print(f"Datos cargados: {len(df)} registros")
 
-    # Crear figura simple
-    fig = go.Figure()
-
     # Crear índice numérico para evitar huecos de fines de semana
     df = df.reset_index(drop=True)
     df['index'] = df.index
 
-    # Línea de precio (close) - gris con transparencia
-    fig.add_trace(go.Scatter(
+    # Determinar si se necesita subplot para métricas
+    has_metrics = df_metrics is not None and not df_metrics.empty
+
+    if has_metrics:
+        # Crear figura con 2 subplots
+        fig = make_subplots(
+            rows=2, cols=1,
+            shared_xaxes=True,
+            vertical_spacing=0.05,
+            row_heights=[0.7, 0.3],
+            subplot_titles=(f'{symbol.upper()} - Price & Fractals', 'Alta Frecuencia de Fractales')
+        )
+        price_row = 1
+        metrics_row = 2
+    else:
+        # Crear figura simple
+        fig = go.Figure()
+        price_row = None
+
+    # Añadir línea de precio original
+    trace_price = go.Scatter(
         x=df['index'],
         y=df['close'],
         mode='lines',
         name='Price',
         line=dict(color='gray', width=0.5),
         opacity=0.5,
-        text=df['timestamp'],
-        hovertemplate='<b>Price</b><br>Time: %{text}<br>Price: %{y:.2f}<extra></extra>'
-    ))
+        hoverinfo='skip'
+    )
+    if has_metrics:
+        fig.add_trace(trace_price, row=price_row, col=1)
+    else:
+        fig.add_trace(trace_price)
 
     # Añadir líneas ZigZag y marcadores de fractales MINOR
     if PLOT_MINOR_FRACTALS and df_fractals_minor is not None and not df_fractals_minor.empty:
@@ -52,143 +74,222 @@ def plot_range_chart(df, df_fractals_minor, df_fractals_major, start_date, end_d
         )
         df_fractals_minor = df_fractals_minor.dropna(subset=['index'])
 
-        # Línea ZigZag MINOR - dodgerblue
-        fig.add_trace(go.Scatter(
+        trace_minor_line = go.Scatter(
             x=df_fractals_minor['index'],
             y=df_fractals_minor['price'],
             mode='lines',
             name='ZigZag Minor',
             line=dict(color='dodgerblue', width=1),
             opacity=0.7,
-            text=df_fractals_minor['timestamp'],
-            hovertemplate='<b>Minor</b><br>Time: %{text}<br>Price: %{y:.2f}<extra></extra>'
-        ))
+            hoverinfo='skip'
+        )
+        if has_metrics:
+            fig.add_trace(trace_minor_line, row=price_row, col=1)
+        else:
+            fig.add_trace(trace_minor_line)
 
-        # Puntos MINOR - dodgerblue pequeños (solo si PLOT_MINOR_DOTS está activado)
         if PLOT_MINOR_DOTS:
-            fig.add_trace(go.Scatter(
+            trace_minor_dots = go.Scatter(
                 x=df_fractals_minor['index'],
                 y=df_fractals_minor['price'],
                 mode='markers',
                 name='Fractales Minor',
                 marker=dict(
                     color='cornflowerblue',
-                    size=3,
+                    size=4,
                     symbol='circle'
                 ),
                 opacity=1,
-                text=df_fractals_minor['timestamp'],
-                hovertemplate='<b>Minor</b><br>Time: %{text}<br>Price: %{y:.2f}<extra></extra>'
-            ))
+                hoverinfo='skip'
+            )
+            if has_metrics:
+                fig.add_trace(trace_minor_dots, row=price_row, col=1)
+            else:
+                fig.add_trace(trace_minor_dots)
 
     # Añadir líneas ZigZag y marcadores de fractales MAJOR
     if PLOT_MAJOR_FRACTALS and df_fractals_major is not None and not df_fractals_major.empty:
         # Mapear timestamps de fractales MAJOR a índices
-        df_fractals_major = df_fractals_major.copy()
-        df_fractals_major['index'] = df_fractals_major['timestamp'].apply(
+        df_fractals_major_copy = df_fractals_major.copy()
+        df_fractals_major_copy['index'] = df_fractals_major_copy['timestamp'].apply(
             lambda ts: df[df['timestamp'] == ts].index[0] if len(df[df['timestamp'] == ts]) > 0 else None
         )
-        df_fractals_major = df_fractals_major.dropna(subset=['index'])
+        df_fractals_major_copy = df_fractals_major_copy.dropna(subset=['index'])
 
-        # Línea ZigZag MAJOR - AZUL
-        fig.add_trace(go.Scatter(
-            x=df_fractals_major['index'],
-            y=df_fractals_major['price'],
+        trace_major_line = go.Scatter(
+            x=df_fractals_major_copy['index'],
+            y=df_fractals_major_copy['price'],
             mode='lines',
             name='ZigZag Major',
             line=dict(color='blue', width=2),
-            text=df_fractals_major['timestamp'],
-            hovertemplate='<b>Major</b><br>Time: %{text}<br>Price: %{y:.2f}<extra></extra>'
-        ))
+            hoverinfo='skip'
+        )
+        if has_metrics:
+            fig.add_trace(trace_major_line, row=price_row, col=1)
+        else:
+            fig.add_trace(trace_major_line)
 
-        # Puntos MAJOR (solo si PLOT_MAJOR_DOTS está activado)
-        if PLOT_MAJOR_DOTS:
-            # Separar picos y valles MAJOR para los marcadores
-            df_picos_major = df_fractals_major[df_fractals_major['type'] == 'PICO'].copy()
-            df_valles_major = df_fractals_major[df_fractals_major['type'] == 'VALLE'].copy()
+    # Añadir Canal de Regresión
+    if channel_params:
+        slope = channel_params['slope']
+        intercept_high = channel_params['intercept_high']
+        intercept_low = channel_params['intercept_low']
 
-            # PICOS - círculos verdes rellenos
-            if not df_picos_major.empty:
-                fig.add_trace(go.Scatter(
-                    x=df_picos_major['index'],
-                    y=df_picos_major['price'],
-                    mode='markers',
-                    name='PICO Major',
-                    marker=dict(
-                        color='green',
-                        size=8,
-                        symbol='circle'
-                    ),
-                    text=df_picos_major['timestamp'],
-                    hovertemplate='<b>PICO Major</b><br>Time: %{text}<br>Price: %{y:.2f}<extra></extra>'
-                ))
+        x_start = df['index'].iloc[0]
+        x_end = df['index'].iloc[-1]
+        x_vals = [x_start, x_end]
+        y_high_vals = [slope * x + intercept_high for x in x_vals]
+        y_low_vals = [slope * x + intercept_low for x in x_vals]
 
-            # VALLES - círculos rojos rellenos
-            if not df_valles_major.empty:
-                fig.add_trace(go.Scatter(
-                    x=df_valles_major['index'],
-                    y=df_valles_major['price'],
-                    mode='markers',
-                    name='VALLE Major',
-                    marker=dict(
-                        color='red',
-                        size=8,
-                        symbol='circle'
-                    ),
-                    text=df_valles_major['timestamp'],
-                    hovertemplate='<b>VALLE Major</b><br>Time: %{text}<br>Price: %{y:.2f}<extra></extra>'
-                ))
+        # Canal Superior
+        trace_upper = go.Scatter(
+            x=x_vals, y=y_high_vals, mode='lines', name='Channel Upper',
+            line=dict(color='red', width=1), opacity=0.6, hoverinfo='skip'
+        )
+        if has_metrics:
+            fig.add_trace(trace_upper, row=price_row, col=1)
+        else:
+            fig.add_trace(trace_upper)
+
+        # Canal Inferior
+        trace_lower = go.Scatter(
+            x=x_vals, y=y_low_vals, mode='lines', name='Channel Lower',
+            line=dict(color='red', width=1), opacity=0.6, hoverinfo='skip'
+        )
+        if has_metrics:
+            fig.add_trace(trace_lower, row=price_row, col=1)
+        else:
+            fig.add_trace(trace_lower)
+
+        # Canal Clonado (Green)
+        if channel_params.get('intercept_clone') is not None:
+            intercept_clone = channel_params['intercept_clone']
+            start_idx = channel_params.get('clone_start_idx', x_start)
+            x_vals_clone = [start_idx, x_end]
+            y_clone_vals = [slope * x + intercept_clone for x in x_vals_clone]
+
+            trace_clone = go.Scatter(
+                x=x_vals_clone, y=y_clone_vals, mode='lines', name='Channel Clone',
+                line=dict(color='green', width=1), opacity=0.8,
+                fill='tonexty', fillcolor='rgba(0, 255, 0, 0.1)', hoverinfo='skip'
+            )
+            if has_metrics:
+                fig.add_trace(trace_clone, row=price_row, col=1)
+            else:
+                fig.add_trace(trace_clone)
+
+    # Añadir subplot de métricas de frecuencia
+    if has_metrics:
+        # Usar directamente los índices de fractales que ya están mapeados
+        # Los fractales ya tienen su 'index' column desde el mapeo anterior
+        df_metrics_plot = df_metrics.copy()
+
+        # Buscar el DataFrame de fractales minor que ya tiene los índices mapeados
+        if PLOT_MINOR_FRACTALS and df_fractals_minor is not None and 'index' in df_fractals_minor.columns:
+            # Usar los índices ya mapeados de df_fractals_minor
+            df_metrics_plot['index'] = df_fractals_minor['index'].values
+        else:
+            # Fallback: mapear timestamps manualmente
+            df_metrics_plot['timestamp'] = pd.to_datetime(df_metrics_plot['timestamp'])
+            df_metrics_plot['index'] = df_metrics_plot['timestamp'].apply(
+                lambda ts: df[df['timestamp'] == ts].index[0] if len(df[df['timestamp'] == ts]) > 0 else None
+            )
+
+        df_metrics_plot = df_metrics_plot.dropna(subset=['index'])
+
+        # Filtrar solo las filas con valores válidos (no NaN) en las métricas
+        df_metrics_valid = df_metrics_plot.dropna(subset=['cumulative_frequency_n', 'avg_time_between_fractals_n'])
+
+        print(f"[DEBUG] Total métricas: {len(df_metrics_plot)}, Válidas: {len(df_metrics_valid)}")
+
+        if not df_metrics_valid.empty:
+            print(f"[DEBUG] Rango cumulative_frequency_n: {df_metrics_valid['cumulative_frequency_n'].min():.4f} - {df_metrics_valid['cumulative_frequency_n'].max():.4f}")
+
+            # Cumulative Frequency - Alta frecuencia de fractales
+            trace_cumfreq = go.Scatter(
+                x=df_metrics_valid['index'],
+                y=df_metrics_valid['cumulative_frequency_n'],
+                mode='lines',
+                name='Cumulative Freq (N)',
+                line=dict(color='orange', width=2),
+                hoverinfo='skip'
+            )
+            fig.add_trace(trace_cumfreq, row=metrics_row, col=1)
+        else:
+            print("[DEBUG] No hay métricas válidas para graficar")
 
     # Configurar eje X con etiquetas de fecha personalizadas
-    # Seleccionar ~20 puntos distribuidos uniformemente para las etiquetas
-    step = max(1, len(df) // 20)
-    tickvals = list(range(0, len(df), step))
-    # Eliminar timezone info y añadir separador | entre fecha y hora
-    ticktext = [str(df.loc[i, 'timestamp']).replace('+01:00', '').replace('+00:00', '').replace('+02:00', '').replace(' ', ' | ') for i in tickvals]
+    num_ticks = 10
+    tick_indices = [int(i) for i in range(0, len(df), max(1, len(df)//num_ticks))]
+    tick_vals = df.iloc[tick_indices]['index']
+    # Ensure 'timestamp' column is datetime for dt.strftime
+    if not pd.api.types.is_datetime64_any_dtype(df['timestamp']):
+        df['timestamp'] = pd.to_datetime(df['timestamp'])
+    tick_text = df.iloc[tick_indices]['timestamp'].dt.strftime('%Y-%m-%d | %H:%M:%S')
+
+    if has_metrics:
+        fig.update_xaxes(
+            tickmode='array', tickvals=tick_vals, ticktext=tick_text,
+            tickangle=-45, showgrid=False, gridcolor='#f0f0f0',
+            row=metrics_row, col=1
+        )
+    else:
+        fig.update_xaxes(
+            tickmode='array', tickvals=tick_vals, ticktext=tick_text,
+            tickangle=-45, showgrid=False, gridcolor='#f0f0f0'
+        )
 
     # Configurar layout
-    fig.update_layout(
-        title=f'{symbol.upper()} - {start_date} -> {end_date}',
-        template='plotly_white',
-        hovermode='closest',
-        plot_bgcolor='white',
-        paper_bgcolor='white',
-        font=dict(
-            family='Arial',
-            size=12,
-            color='#333333'
-        ),
-        height=900,
-        showlegend=True,
-        xaxis_title="",
-        yaxis_title=""
-    )
+    if has_metrics:
+        fig.update_layout(
+            title=f'{symbol.upper()} - {start_date} -> {end_date}',
+            template='plotly_white',
+            hovermode='closest',
+            plot_bgcolor='white',
+            paper_bgcolor='white',
+            font=dict(family="Arial", size=12, color="#333333"),
+            showlegend=True,
+            height=1000,
+            xaxis_title="",
+            yaxis_title=""
+        )
+    else:
+        fig.update_layout(
+            title=f'{symbol.upper()} - {start_date} -> {end_date}',
+            template='plotly_white',
+            hovermode='closest',
+            plot_bgcolor='white',
+            paper_bgcolor='white',
+            font=dict(family="Arial", size=12, color="#333333"),
+            showlegend=True,
+            height=900,
+            xaxis_title="",
+            yaxis_title=""
+        )
 
-    # Configurar eje X con etiquetas de fecha
-    fig.update_xaxes(
-        showgrid=False,
-        showline=True,
-        linewidth=1,
-        linecolor='gray',
-        tickcolor='gray',
-        tickfont=dict(color='gray'),
-        tickmode='array',
-        tickvals=tickvals,
-        ticktext=ticktext,
-        tickangle=-45
-    )
-
-    # Configurar eje Y
-    fig.update_yaxes(
-        showgrid=True,
-        gridcolor='#f0f0f0',
-        showline=True,
-        linewidth=1,
-        linecolor='gray',
-        tickcolor='gray',
-        tickfont=dict(color='gray'),
-        side='left'
-    )
+    # Configurar eje Y - horizontal grid enabled, vertical grid disabled
+    if has_metrics:
+        # Eje Y para precio (row 1)
+        fig.update_yaxes(
+            showgrid=True, gridcolor='#e0e0e0', gridwidth=0.5,
+            showline=True, linewidth=1, linecolor='gray',
+            tickcolor='gray', tickfont=dict(color='gray'),
+            row=price_row, col=1
+        )
+        # Eje Y para métricas (row 2) - Cumulative Freq
+        fig.update_yaxes(
+            title='Cumulative Freq (N)',
+            showgrid=True, gridcolor='#e0e0e0', gridwidth=0.5,
+            showline=True, linewidth=1, linecolor='gray',
+            tickcolor='gray', tickfont=dict(color='gray'),
+            row=metrics_row, col=1
+        )
+    else:
+        fig.update_yaxes(
+            showgrid=True, gridcolor='#e0e0e0', gridwidth=0.5,
+            showline=True, linewidth=1, linecolor='gray',
+            tickcolor='gray', tickfont=dict(color='gray')
+        )
 
     # Crear carpeta de salida si no existe
     output_dir = 'outputs'
