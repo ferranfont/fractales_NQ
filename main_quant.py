@@ -21,9 +21,12 @@ def main_quant_range(start_date: str, end_date: str):
         end_date: Fecha final en formato YYYY-MM-DD
     """
     print("\n" + "="*70)
-    print("ANÁLISIS CUANTITATIVO - Nasdaq (NQ")
+    print("ANÁLISIS CUANTITATIVO - Nasdaq (NQ)")
     print("="*70)
-    print(f"Rango: {start_date} -> {end_date}")
+    if start_date == end_date:
+        print(f"Fecha: {start_date}")
+    else:
+        print(f"Rango: {start_date} -> {end_date}")
     print("="*70 + "\n")
  
     # 1. Procesar fractales
@@ -48,7 +51,10 @@ def main_quant_range(start_date: str, end_date: str):
 
     # Guardar métricas en CSV
     from config import FRACTALS_DIR
-    date_range_str = f"{start_date}_{end_date}"
+    if start_date == end_date:
+        date_range_str = start_date
+    else:
+        date_range_str = f"{start_date}_{end_date}"
     symbol = fractals_result.get('symbol', 'NQ')
     metrics_path = FRACTALS_DIR / f"{symbol}_consolidation_metrics_{date_range_str}.csv"
     df_fractals_metrics.to_csv(metrics_path, index=False)
@@ -92,7 +98,10 @@ def main_quant_range(start_date: str, end_date: str):
         from config import OUTPUTS_DIR
         
         OUTPUTS_DIR.mkdir(parents=True, exist_ok=True)
-        date_range_str = f"{start_date}_{end_date}"
+        if start_date == end_date:
+            date_range_str = start_date
+        else:
+            date_range_str = f"{start_date}_{end_date}"
         symbol = fractals_result.get('symbol', 'NQ')
         model_filename = OUTPUTS_DIR / f"channel_model_{symbol.lower()}_{date_range_str}.json"
 
@@ -116,7 +125,10 @@ def main_quant_range(start_date: str, end_date: str):
     print("\n" + "="*70)
     print("RESUMEN FINAL")
     print("="*70)
-    print(f"Rango analizado: {start_date} -> {end_date}")
+    if start_date == end_date:
+        print(f"Fecha analizada: {start_date}")
+    else:
+        print(f"Rango analizado: {start_date} -> {end_date}")
     print(f"Registros procesados: {fractals_result['total_records']}")
     print(f"Fractales MINOR detectados: {fractals_result['minor_count']}")
     print(f"Fractales MAJOR detectados: {fractals_result['major_count']}")

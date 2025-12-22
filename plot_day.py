@@ -25,7 +25,10 @@ def plot_range_chart(df, df_fractals_minor, df_fractals_major, start_date, end_d
     Returns:
         dict con información del gráfico generado o None si hay error
     """
-    print(f"Generando gráfico para rango: {start_date} -> {end_date}")
+    if start_date == end_date:
+        print(f"Generando gráfico para fecha: {start_date}")
+    else:
+        print(f"Generando gráfico para rango: {start_date} -> {end_date}")
     print(f"Datos cargados: {len(df)} registros")
 
     # Crear índice numérico para evitar huecos de fines de semana
@@ -372,7 +375,10 @@ def plot_range_chart(df, df_fractals_minor, df_fractals_major, start_date, end_d
     os.makedirs(output_dir, exist_ok=True)
 
     # Guardar gráfico
-    date_range_str = f"{start_date}_{end_date}"
+    if start_date == end_date:
+        date_range_str = start_date
+    else:
+        date_range_str = f"{start_date}_{end_date}"
     output_html = os.path.join(output_dir, f'nq_{date_range_str}.html')
     print(f"Guardando gráfico en: {output_html}")
     fig.write_html(output_html)

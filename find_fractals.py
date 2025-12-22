@@ -423,8 +423,11 @@ def process_fractals_range(start_date: str, end_date: str) -> dict:
     # Símbolo para NQ
     symbol = 'NQ'
 
-    # Guardar fractales con nombre de rango
-    date_range_str = f"{start_date}_{end_date}"
+    # Guardar fractales con nombre de fecha/rango
+    if start_date == end_date:
+        date_range_str = start_date
+    else:
+        date_range_str = f"{start_date}_{end_date}"
     output_minor = FRACTALS_DIR / f"{symbol}_fractals_minor_{date_range_str}.csv"
     output_major = FRACTALS_DIR / f"{symbol}_fractals_major_{date_range_str}.csv"
 

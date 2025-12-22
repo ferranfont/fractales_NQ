@@ -6,8 +6,11 @@ from pathlib import Path
 # ============================================================================
 # FECHA ÚNICA (NO HAY RANGO, SOLO UNA FECHA)
 # ============================================================================
-START_DATE = "20251104"
-END_DATE = "20251104"
+DATE = "20251104"  # Fecha en formato YYYYMMDD
+
+# Compatibilidad con código existente
+START_DATE = DATE
+END_DATE = DATE
 
 # ============================================================================
 # DIRECTORIOS DEL PROYECTO
