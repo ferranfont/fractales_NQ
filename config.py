@@ -32,7 +32,7 @@ MIN_CHANGE_PCT_MAJOR = 0.20   # 0.50% umbral para fractales grandes (~130 puntos
 # ============================================================================
 CONSOLIDATION_PRICE_RANGE_PERIOD = 7     # Número de fractales para cálculo de rango y ATR
 CONSOLIDATION_ATR_THRESHOLD = 1.20       # Multiplicador del ATR para umbral de consolidación
-TRIGGER_THRESHOLD = 180000               # Umbral de frecuencia invertida para trigger de consolidación
+TRIGGER_THRESHOLD = 5000                 # Umbral de frecuencia invertida para trigger de consolidación
 TRIGGER_PERIODS = 2                      # Número de fractales consecutivos por encima del umbral
 
 # ============================================================================

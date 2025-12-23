@@ -104,7 +104,7 @@ def plot_range_chart(df, df_fractals_minor, df_fractals_major, start_date, end_d
                 y=df_vwap_slow['vwap_slow'],
                 mode='lines',
                 name=f'VWAP Slow({VWAP_SLOW})',
-                line=dict(color='green', width=2),
+                line=dict(color='green', width=1),
                 opacity=0.8,
                 hovertemplate='<b>VWAP Slow</b>: %{y:.2f}<extra></extra>'
             )
