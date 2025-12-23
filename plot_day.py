@@ -400,6 +400,37 @@ def plot_range_chart(df, df_fractals_minor, df_fractals_major, start_date, end_d
             showline=True, linewidth=1, linecolor='#d3d3d3'
         )
 
+    # Añadir líneas verticales grises en horarios clave (9:00, 15:30, 22:00)
+    key_times = ['09:00:00', '15:30:00', '22:00:00']
+    for time_str in key_times:
+        # Encontrar el índice más cercano a este horario
+        if not pd.api.types.is_datetime64_any_dtype(df['timestamp']):
+            df['timestamp'] = pd.to_datetime(df['timestamp'])
+
+        # Crear timestamp completo para buscar
+        if start_date == end_date:
+            target_time = pd.to_datetime(f"{start_date} {time_str}")
+        else:
+            # Para rangos, usar la fecha de inicio
+            target_time = pd.to_datetime(f"{start_date} {time_str}")
+
+        # Buscar el registro más cercano a este horario
+        df_time = df[df['timestamp'].dt.time == pd.to_datetime(time_str).time()]
+
+        if not df_time.empty:
+            time_index = df_time.iloc[0]['index']
+
+            # Añadir línea vertical gris con transparencia
+            if show_frequency_subplot:
+                # Añadir línea en ambos subplots
+                fig.add_vline(x=time_index, line_width=1, line_dash="solid",
+                             line_color="rgba(128, 128, 128, 0.3)", row=price_row, col=1)
+                fig.add_vline(x=time_index, line_width=1, line_dash="solid",
+                             line_color="rgba(128, 128, 128, 0.3)", row=metrics_row, col=1)
+            else:
+                fig.add_vline(x=time_index, line_width=1, line_dash="solid",
+                             line_color="rgba(128, 128, 128, 0.3)")
+
     # Configurar layout
     # Título: mostrar solo una fecha si start_date == end_date
     if start_date == end_date:
