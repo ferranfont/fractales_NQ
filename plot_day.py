@@ -372,9 +372,15 @@ def plot_range_chart(df, df_fractals_minor, df_fractals_major, start_date, end_d
         )
 
     # Configurar layout
+    # Título: mostrar solo una fecha si start_date == end_date
+    if start_date == end_date:
+        title_text = f'{symbol.upper()} - {start_date}'
+    else:
+        title_text = f'{symbol.upper()} - {start_date} -> {end_date}'
+
     if show_frequency_subplot:
         fig.update_layout(
-            title=f'{symbol.upper()} - {start_date} -> {end_date}',
+            title=title_text,
             template='plotly_white',
             hovermode='closest',
             plot_bgcolor='white',
@@ -387,7 +393,7 @@ def plot_range_chart(df, df_fractals_minor, df_fractals_major, start_date, end_d
         )
     else:
         fig.update_layout(
-            title=f'{symbol.upper()} - {start_date} -> {end_date}',
+            title=title_text,
             template='plotly_white',
             hovermode='closest',
             plot_bgcolor='white',
@@ -406,6 +412,7 @@ def plot_range_chart(df, df_fractals_minor, df_fractals_major, start_date, end_d
             showgrid=True, gridcolor='#e0e0e0', gridwidth=0.5,
             showline=True, linewidth=1, linecolor='gray',
             tickcolor='gray', tickfont=dict(color='gray'),
+            tickformat=',',
             row=price_row, col=1
         )
         # Eje Y para métricas (row 2) - Frecuencia invertida
@@ -420,6 +427,7 @@ def plot_range_chart(df, df_fractals_minor, df_fractals_major, start_date, end_d
         fig.update_yaxes(
             showgrid=True, gridcolor='#e0e0e0', gridwidth=0.5,
             showline=True, linewidth=1, linecolor='gray',
+            tickformat=',',
             tickcolor='gray', tickfont=dict(color='gray')
         )
 
