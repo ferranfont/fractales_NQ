@@ -3,7 +3,7 @@ import plotly.graph_objects as go
 from plotly.subplots import make_subplots
 import os
 from pathlib import Path
-from config import START_DATE, END_DATE, FRACTALS_DIR, PLOT_MINOR_FRACTALS, PLOT_MAJOR_FRACTALS, PLOT_MINOR_DOTS, PLOT_MAJOR_DOTS, HIDE_FREQUENCY_INDICATOR, PLOT_VWAP, VWAP_FAST, VWAP_SLOW
+from config import START_DATE, END_DATE, FRACTALS_DIR, PLOT_MINOR_FRACTALS, PLOT_MAJOR_FRACTALS, PLOT_MINOR_DOTS, PLOT_MAJOR_DOTS, HIDE_FREQUENCY_INDICATOR, PLOT_VWAP, VWAP_FAST, VWAP_SLOW, SHOW_REGRESSION_CHANNEL
 from calculate_vwap import calculate_vwap
 
 def plot_range_chart(df, df_fractals_minor, df_fractals_major, start_date, end_date, symbol='NQ', rsi_levels=None, fibo_levels=None, divergences=None, channel_params=None, df_metrics=None):
@@ -180,7 +180,7 @@ def plot_range_chart(df, df_fractals_minor, df_fractals_major, start_date, end_d
             fig.add_trace(trace_major_line)
 
     # Añadir Canal de Regresión
-    if channel_params:
+    if channel_params and SHOW_REGRESSION_CHANNEL:
         slope = channel_params['slope']
         intercept_high = channel_params['intercept_high']
         intercept_low = channel_params['intercept_low']
