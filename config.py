@@ -4,13 +4,22 @@ Configuración global para detección de fractales en NQ (Nasdaq Futures)
 from pathlib import Path
 
 # ============================================================================
-# FECHA ÚNICA (NO HAY RANGO, SOLO UNA FECHA)
+# CONFIGURACIÓN DE FECHAS
 # ============================================================================
-DATE = "20251103" # Fecha en formato YYYYMMDD
-
-# Compatibilidad con código existente
+# Opción 1: Fecha única (descomentar para usar una sola fecha)
+DATE = "20251103"  # Fecha en formato YYYYMMDD
 START_DATE = DATE
 END_DATE = DATE
+
+# Opción 2: Rango de fechas (descomentar para usar rango de fechas)
+# START_DATE = "20251101"  # Fecha inicial en formato YYYYMMDD
+# END_DATE = "20251105"    # Fecha final en formato YYYYMMDD
+
+# ============================================================================
+# HORARIOS DE TRADING
+# ============================================================================
+START_TRADING_HOUR = "09:00:00"  # Hora de inicio de análisis (HH:MM:SS)
+END_TRADING_HOUR = "22:00:00"    # Hora de fin de análisis (HH:MM:SS)
 
 # ============================================================================
 # DIRECTORIOS DEL PROYECTO
@@ -45,7 +54,7 @@ VWAP_FAST = 50                   # Periodo para VWAP rápido (magenta)
 VWAP_SLOW = 100                  # Periodo para VWAP lento (verde)
 
 PRICE_EJECTION_TRIGGER = 0.001   # Porcentaje mínimo de distancia entre precio y VWAP fast para trigger (0.001 = 0.1%)
-OVER_PRICE_EJECTION_TRIGGER = 0.002  # Porcentaje para trigger de sobre-alejamiento (puntos rojos) (0.005 = 0.5%)
+OVER_PRICE_EJECTION_TRIGGER = 0.003  # Porcentaje para trigger de sobre-alejamiento (puntos rojos) (0.005 = 0.5%)
 
 # ============================================================================
 # PARÁMETROS DE VISUALIZACIÓN
