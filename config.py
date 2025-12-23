@@ -11,21 +11,15 @@ DATE = "20251103"  # Fecha en formato YYYYMMDD
 START_DATE = DATE
 END_DATE = DATE
 
-# Opción 2: Rango de fechas (descomentar para usar rango de fechas)
-# START_DATE = "20251101"  # Fecha inicial en formato YYYYMMDD
-# END_DATE = "20251105"    # Fecha final en formato YYYYMMDD
-
-# ============================================================================
-# HORARIOS DE TRADING
-# ============================================================================
-START_TRADING_HOUR = "09:00:00"  # Hora de inicio de análisis (HH:MM:SS)
-END_TRADING_HOUR = "22:00:00"    # Hora de fin de análisis (HH:MM:SS)
-
 # ============================================================================
 # TRADING PARAMETERS
 # ============================================================================
-TP_POINTS = 5.0   # Take profit in points, usar 4 para scalping and 20 for swing
-SL_POINTS = 9.0   # Stop loss in points, usar 9 para scalping
+TP_POINTS = 5.0               # Take profit in points, usar 4 para scalping and 20 for swing
+SL_POINTS = 9.0               # Stop loss in points, usar 9 para scalping
+MAXIMUM_POSITIONS_OPEN = 1    # Maximum number of positions open simultaneously
+
+START_TRADING_HOUR = "09:00:00"  # Hora de inicio de análisis (HH:MM:SS)
+END_TRADING_HOUR = "22:00:00"    # Hora de fin de análisis (HH:MM:SS)
 
 # ============================================================================
 # DIRECTORIOS DEL PROYECTO
