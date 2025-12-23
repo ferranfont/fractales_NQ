@@ -3,7 +3,7 @@ import plotly.graph_objects as go
 from plotly.subplots import make_subplots
 import os
 from pathlib import Path
-from config import START_DATE, END_DATE, FRACTALS_DIR, PLOT_MINOR_FRACTALS, PLOT_MAJOR_FRACTALS, PLOT_MINOR_DOTS, PLOT_MAJOR_DOTS, HIDE_FREQUENCY_INDICATOR, PLOT_VWAP, VWAP_PERIOD, LOWS_MA
+from config import START_DATE, END_DATE, FRACTALS_DIR, PLOT_MINOR_FRACTALS, PLOT_MAJOR_FRACTALS, PLOT_MINOR_DOTS, PLOT_MAJOR_DOTS, HIDE_FREQUENCY_INDICATOR, PLOT_VWAP, VWAP_FAST, VWAP_SLOW
 from calculate_vwap import calculate_vwap
 
 def plot_range_chart(df, df_fractals_minor, df_fractals_major, start_date, end_date, symbol='NQ', rsi_levels=None, fibo_levels=None, divergences=None, channel_params=None, df_metrics=None):
@@ -73,27 +73,47 @@ def plot_range_chart(df, df_fractals_minor, df_fractals_major, start_date, end_d
 
     # Añadir indicador VWAP
     if PLOT_VWAP:
-        df['vwap'] = calculate_vwap(df, period=VWAP_PERIOD)
+        # VWAP Rápido (Fast - Magenta)
+        df['vwap_fast'] = calculate_vwap(df, period=VWAP_FAST)
+        df_vwap_fast = df[df['vwap_fast'].notna()].copy()
 
-        # Filtrar valores válidos (no NaN)
-        df_vwap = df[df['vwap'].notna()].copy()
-
-        if not df_vwap.empty:
-            trace_vwap = go.Scatter(
-                x=df_vwap['index'],
-                y=df_vwap['vwap'],
+        if not df_vwap_fast.empty:
+            trace_vwap_fast = go.Scatter(
+                x=df_vwap_fast['index'],
+                y=df_vwap_fast['vwap_fast'],
                 mode='lines',
-                name=f'VWAP({VWAP_PERIOD})',
+                name=f'VWAP Fast({VWAP_FAST})',
                 line=dict(color='magenta', width=1.5),
                 opacity=0.8,
-                hovertemplate='<b>VWAP</b>: %{y:.2f}<extra></extra>'
+                hovertemplate='<b>VWAP Fast</b>: %{y:.2f}<extra></extra>'
             )
             if show_frequency_subplot:
-                fig.add_trace(trace_vwap, row=price_row, col=1)
+                fig.add_trace(trace_vwap_fast, row=price_row, col=1)
             else:
-                fig.add_trace(trace_vwap)
+                fig.add_trace(trace_vwap_fast)
 
-            print(f"[INFO] VWAP({VWAP_PERIOD}) añadido al gráfico: {len(df_vwap)} puntos válidos")
+            print(f"[INFO] VWAP Fast({VWAP_FAST}) añadido al gráfico: {len(df_vwap_fast)} puntos válidos")
+
+        # VWAP Lento (Slow - Verde)
+        df['vwap_slow'] = calculate_vwap(df, period=VWAP_SLOW)
+        df_vwap_slow = df[df['vwap_slow'].notna()].copy()
+
+        if not df_vwap_slow.empty:
+            trace_vwap_slow = go.Scatter(
+                x=df_vwap_slow['index'],
+                y=df_vwap_slow['vwap_slow'],
+                mode='lines',
+                name=f'VWAP Slow({VWAP_SLOW})',
+                line=dict(color='green', width=2),
+                opacity=0.8,
+                hovertemplate='<b>VWAP Slow</b>: %{y:.2f}<extra></extra>'
+            )
+            if show_frequency_subplot:
+                fig.add_trace(trace_vwap_slow, row=price_row, col=1)
+            else:
+                fig.add_trace(trace_vwap_slow)
+
+            print(f"[INFO] VWAP Slow({VWAP_SLOW}) añadido al gráfico: {len(df_vwap_slow)} puntos válidos")
 
     # Añadir líneas ZigZag y marcadores de fractales MINOR
     if PLOT_MINOR_FRACTALS and df_fractals_minor is not None and not df_fractals_minor.empty:
@@ -158,39 +178,6 @@ def plot_range_chart(df, df_fractals_minor, df_fractals_major, start_date, end_d
             fig.add_trace(trace_major_line, row=price_row, col=1)
         else:
             fig.add_trace(trace_major_line)
-
-    # Añadir EWA (Exponential Weighted Average) de Fractales Lows (Valles)
-    if df_fractals_minor is not None and not df_fractals_minor.empty:
-        # Filtrar solo los valles (lows) de los fractales MINOR
-        df_lows = df_fractals_minor[df_fractals_minor['type'] == 'VALLE'].copy()
-
-        if not df_lows.empty and len(df_lows) >= 2:
-            # Calcular EWA (Exponential Weighted Average) de los precios de los valles
-            # span = LOWS_MA es equivalente a un período de LOWS_MA en EMA
-            df_lows['ewa_price'] = df_lows['price'].ewm(span=LOWS_MA, adjust=False).mean()
-
-            # Mapear timestamps a índices del dataframe principal
-            df_lows['index'] = df_lows['timestamp'].apply(
-                lambda ts: df[df['timestamp'] == ts].index[0] if len(df[df['timestamp'] == ts]) > 0 else None
-            )
-            df_lows = df_lows.dropna(subset=['index'])
-
-            # Crear trace del EWA
-            trace_ewa_lows = go.Scatter(
-                x=df_lows['index'],
-                y=df_lows['ewa_price'],
-                mode='lines',
-                name=f'EWA({LOWS_MA}) Fractal Lows',
-                line=dict(color='green', width=2),
-                opacity=0.8,
-                hovertemplate='EWA Lows: %{y:.2f}<extra></extra>'
-            )
-            if show_frequency_subplot:
-                fig.add_trace(trace_ewa_lows, row=price_row, col=1)
-            else:
-                fig.add_trace(trace_ewa_lows)
-
-            print(f"[INFO] EWA({LOWS_MA}) de Fractales Lows añadido: {len(df_lows)} puntos")
 
     # Añadir Canal de Regresión
     if channel_params:

@@ -2,22 +2,19 @@
 Cálculo del indicador VWAP (Volume Weighted Average Price)
 """
 import pandas as pd
-from config import VWAP_PERIOD
 
 
-def calculate_vwap(df, period=None):
+def calculate_vwap(df, period=50):
     """
     Calcula VWAP con ventana móvil (rolling VWAP)
 
     Args:
         df: DataFrame con columnas ['high', 'low', 'close', 'volume']
-        period: Periodo de la ventana móvil (default: VWAP_PERIOD desde config)
+        period: Periodo de la ventana móvil (default: 50)
 
     Returns:
         Series con valores de VWAP
     """
-    if period is None:
-        period = VWAP_PERIOD
 
     df = df.copy()
 
@@ -39,13 +36,14 @@ def calculate_vwap(df, period=None):
 
 if __name__ == "__main__":
     from find_fractals import load_date_range
-    from config import START_DATE, END_DATE
+    from config import START_DATE, END_DATE, VWAP_FAST, VWAP_SLOW
 
     print("="*70)
     print("TEST: Cálculo de VWAP")
     print("="*70)
     print(f"Periodo: {START_DATE} -> {END_DATE}")
-    print(f"Ventana VWAP: {VWAP_PERIOD} periodos")
+    print(f"Ventana VWAP Fast: {VWAP_FAST} periodos")
+    print(f"Ventana VWAP Slow: {VWAP_SLOW} periodos")
 
     # Cargar datos
     df = load_date_range(START_DATE, END_DATE)
@@ -53,19 +51,27 @@ if __name__ == "__main__":
         print("[ERROR] No se pudieron cargar datos")
         exit(1)
 
-    # Calcular VWAP
-    df['vwap'] = calculate_vwap(df)
+    # Calcular ambos VWAPs
+    df['vwap_fast'] = calculate_vwap(df, period=VWAP_FAST)
+    df['vwap_slow'] = calculate_vwap(df, period=VWAP_SLOW)
 
     # Mostrar primeros resultados
     print("\nPrimeros 20 registros con VWAP:")
-    print(df[['timestamp', 'close', 'volume', 'vwap']].head(20))
+    print(df[['timestamp', 'close', 'volume', 'vwap_fast', 'vwap_slow']].head(20))
 
-    # Estadísticas
-    print(f"\nEstadísticas VWAP:")
-    print(f"  Media: {df['vwap'].mean():.2f}")
-    print(f"  Min: {df['vwap'].min():.2f}")
-    print(f"  Max: {df['vwap'].max():.2f}")
-    print(f"  Registros con VWAP válido: {df['vwap'].notna().sum()}")
-    print(f"  Registros totales: {len(df)}")
+    # Estadísticas VWAP Fast
+    print(f"\nEstadísticas VWAP Fast ({VWAP_FAST} periodos):")
+    print(f"  Media: {df['vwap_fast'].mean():.2f}")
+    print(f"  Min: {df['vwap_fast'].min():.2f}")
+    print(f"  Max: {df['vwap_fast'].max():.2f}")
+    print(f"  Registros con VWAP válido: {df['vwap_fast'].notna().sum()}")
 
+    # Estadísticas VWAP Slow
+    print(f"\nEstadísticas VWAP Slow ({VWAP_SLOW} periodos):")
+    print(f"  Media: {df['vwap_slow'].mean():.2f}")
+    print(f"  Min: {df['vwap_slow'].min():.2f}")
+    print(f"  Max: {df['vwap_slow'].max():.2f}")
+    print(f"  Registros con VWAP válido: {df['vwap_slow'].notna().sum()}")
+
+    print(f"\nRegistros totales: {len(df)}")
     print("\n[OK] Test completado")
