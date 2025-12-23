@@ -49,6 +49,6 @@ PLOT_MINOR_FRACTALS = True       # True = dibujar fractales MINOR en el gráfico
 PLOT_MAJOR_FRACTALS = True      # True = dibujar fractales MAJOR en el gráfico
 PLOT_MINOR_DOTS = True          # True = dibujar puntos en fractales MINOR
 PLOT_MAJOR_DOTS = False          # True = dibujar puntos (circles) en fractales MAJOR
-HIDE_FREQUENCY_INDICATOR = True  # True = ocultar subplot de frecuencia (mantiene puntos naranjas)
+HIDE_FREQUENCY_INDICATOR = False  # True = ocultar subplot de frecuencia (mantiene puntos naranjas)
 SHOW_REGRESSION_CHANNEL = False  # True = mostrar canal de regresión en el gráfico
 

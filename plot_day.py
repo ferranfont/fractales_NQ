@@ -171,7 +171,7 @@ def plot_range_chart(df, df_fractals_minor, df_fractals_major, start_date, end_d
             y=df_fractals_major_copy['price'],
             mode='lines',
             name='ZigZag Major',
-            line=dict(color='blue', width=2),
+            line=dict(color='blue', width=1),
             hoverinfo='skip'
         )
         if show_frequency_subplot:
