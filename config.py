@@ -41,7 +41,7 @@ TRIGGER_PERIODS = 2                      # Número de fractales consecutivos por
 PLOT_VWAP = True                 # True = dibujar indicador VWAP en el gráfico
 VWAP_FAST = 50                   # Periodo para VWAP rápido (magenta)
 VWAP_SLOW = 200                  # Periodo para VWAP lento (verde)
-PRICE_EJECTION_TRIGGER = 0.02    # Porcentaje mínimo de distancia entre precio y VWAP fast para trigger (0.02 = 2%)
+PRICE_EJECTION_TRIGGER = 0.002   # Porcentaje mínimo de distancia entre precio y VWAP fast para trigger (0.002 = 0.2%)
 
 # ============================================================================
 # PARÁMETROS DE VISUALIZACIÓN
