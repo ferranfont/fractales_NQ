@@ -343,26 +343,6 @@ def plot_range_chart(df, df_fractals_minor, df_fractals_major, start_date, end_d
         else:
             print("[DEBUG] No hay métricas válidas para graficar")
 
-    # Añadir línea horizontal como marco inferior del gráfico
-    # Obtener el valor mínimo del eje Y para colocar la línea en la base
-    min_price = df['low'].min()
-    x_start = df['index'].iloc[0]
-    x_end = df['index'].iloc[-1]
-
-    trace_bottom_line = go.Scatter(
-        x=[x_start, x_end],
-        y=[min_price, min_price],
-        mode='lines',
-        name='',
-        line=dict(color='black', width=2),
-        showlegend=False,
-        hoverinfo='skip'
-    )
-    if show_frequency_subplot:
-        fig.add_trace(trace_bottom_line, row=price_row, col=1)
-    else:
-        fig.add_trace(trace_bottom_line)
-
     # Configurar eje X con etiquetas de fecha personalizadas
     num_ticks = 30
     tick_indices = [int(i) for i in range(0, len(df), max(1, len(df)//num_ticks))]
@@ -373,22 +353,25 @@ def plot_range_chart(df, df_fractals_minor, df_fractals_major, start_date, end_d
     tick_text = df.iloc[tick_indices]['timestamp'].dt.strftime('%H:%M:%S')
 
     if show_frequency_subplot:
-        # Eje X para precio (row 1) - sin grid vertical
+        # Eje X para precio (row 1) - sin grid vertical, con marco inferior gris
         fig.update_xaxes(
             tickmode='array', tickvals=tick_vals, ticktext=tick_text,
             tickangle=-45, showgrid=False,
+            showline=True, linewidth=3, linecolor='#d3d3d3',
             row=price_row, col=1
         )
-        # Eje X para métricas (row 2) - sin grid vertical
+        # Eje X para métricas (row 2) - sin grid vertical, con marco inferior gris
         fig.update_xaxes(
             tickmode='array', tickvals=tick_vals, ticktext=tick_text,
             tickangle=-45, showgrid=False,
+            showline=True, linewidth=3, linecolor='#d3d3d3',
             row=metrics_row, col=1
         )
     else:
         fig.update_xaxes(
             tickmode='array', tickvals=tick_vals, ticktext=tick_text,
-            tickangle=-45, showgrid=False
+            tickangle=-45, showgrid=False,
+            showline=True, linewidth=3, linecolor='#d3d3d3'
         )
 
     # Configurar layout
@@ -425,28 +408,28 @@ def plot_range_chart(df, df_fractals_minor, df_fractals_major, start_date, end_d
             yaxis_title=""
         )
 
-    # Configurar eje Y - horizontal grid enabled, vertical grid disabled
+    # Configurar eje Y - horizontal grid enabled, marco izquierdo gris suave
     if show_frequency_subplot:
-        # Eje Y para precio (row 1)
+        # Eje Y para precio (row 1) - con marco lateral izquierdo gris
         fig.update_yaxes(
             showgrid=True, gridcolor='#e0e0e0', gridwidth=0.5,
-            showline=True, linewidth=1, linecolor='gray',
+            showline=True, linewidth=3, linecolor='#d3d3d3',
             tickcolor='gray', tickfont=dict(color='gray'),
             tickformat=',',
             row=price_row, col=1
         )
-        # Eje Y para métricas (row 2) - Frecuencia invertida
+        # Eje Y para métricas (row 2) - Frecuencia invertida con marco lateral izquierdo gris
         fig.update_yaxes(
             title='Frecuencia (↑ alta)',
             showgrid=True, gridcolor='#e0e0e0', gridwidth=0.5,
-            showline=True, linewidth=1, linecolor='gray',
+            showline=True, linewidth=3, linecolor='#d3d3d3',
             tickcolor='gray', tickfont=dict(color='gray'),
             row=metrics_row, col=1
         )
     else:
         fig.update_yaxes(
             showgrid=True, gridcolor='#e0e0e0', gridwidth=0.5,
-            showline=True, linewidth=1, linecolor='gray',
+            showline=True, linewidth=3, linecolor='#d3d3d3',
             tickformat=',',
             tickcolor='gray', tickfont=dict(color='gray')
         )
