@@ -3,7 +3,7 @@ import plotly.graph_objects as go
 from plotly.subplots import make_subplots
 import os
 from pathlib import Path
-from config import START_DATE, END_DATE, FRACTALS_DIR, PLOT_MINOR_FRACTALS, PLOT_MAJOR_FRACTALS, PLOT_MINOR_DOTS, PLOT_MAJOR_DOTS, HIDE_FREQUENCY_INDICATOR, PLOT_VWAP, SHOW_FAST_VWAP, SHOW_SLOW_VWAP, VWAP_FAST, VWAP_SLOW, SHOW_REGRESSION_CHANNEL, PRICE_EJECTION_TRIGGER, OVER_PRICE_EJECTION_TRIGGER
+from config import START_DATE, END_DATE, FRACTALS_DIR, CHARTS_DIR, PLOT_MINOR_FRACTALS, PLOT_MAJOR_FRACTALS, PLOT_MINOR_DOTS, PLOT_MAJOR_DOTS, HIDE_FREQUENCY_INDICATOR, PLOT_VWAP, SHOW_FAST_VWAP, SHOW_SLOW_VWAP, VWAP_FAST, VWAP_SLOW, SHOW_REGRESSION_CHANNEL, PRICE_EJECTION_TRIGGER, OVER_PRICE_EJECTION_TRIGGER
 from calculate_vwap import calculate_vwap
 
 def plot_range_chart(df, df_fractals_minor, df_fractals_major, start_date, end_date, symbol='NQ', rsi_levels=None, fibo_levels=None, divergences=None, channel_params=None, df_metrics=None):
@@ -492,15 +492,14 @@ def plot_range_chart(df, df_fractals_minor, df_fractals_major, start_date, end_d
         )
 
     # Crear carpeta de salida si no existe
-    output_dir = 'outputs'
-    os.makedirs(output_dir, exist_ok=True)
+    CHARTS_DIR.mkdir(parents=True, exist_ok=True)
 
     # Guardar gráfico
     if start_date == end_date:
         date_range_str = start_date
     else:
         date_range_str = f"{start_date}_{end_date}"
-    output_html = os.path.join(output_dir, f'nq_{date_range_str}.html')
+    output_html = str(CHARTS_DIR / f'nq_{date_range_str}.html')
     print(f"Guardando gráfico en: {output_html}")
     fig.write_html(output_html)
     print(f"Gráfico guardado exitosamente")
