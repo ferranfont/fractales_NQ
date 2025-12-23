@@ -344,13 +344,13 @@ def plot_range_chart(df, df_fractals_minor, df_fractals_major, start_date, end_d
             print("[DEBUG] No hay métricas válidas para graficar")
 
     # Configurar eje X con etiquetas de fecha personalizadas
-    num_ticks = 10
+    num_ticks = 30
     tick_indices = [int(i) for i in range(0, len(df), max(1, len(df)//num_ticks))]
     tick_vals = df.iloc[tick_indices]['index']
     # Ensure 'timestamp' column is datetime for dt.strftime
     if not pd.api.types.is_datetime64_any_dtype(df['timestamp']):
         df['timestamp'] = pd.to_datetime(df['timestamp'])
-    tick_text = df.iloc[tick_indices]['timestamp'].dt.strftime('%Y-%m-%d | %H:%M:%S')
+    tick_text = df.iloc[tick_indices]['timestamp'].dt.strftime('%H:%M:%S')
 
     if show_frequency_subplot:
         # Eje X para precio (row 1) - sin grid vertical
