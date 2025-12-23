@@ -22,6 +22,12 @@ START_TRADING_HOUR = "09:00:00"  # Hora de inicio de análisis (HH:MM:SS)
 END_TRADING_HOUR = "22:00:00"    # Hora de fin de análisis (HH:MM:SS)
 
 # ============================================================================
+# TRADING PARAMETERS
+# ============================================================================
+TP_POINTS = 5.0   # Take profit in points, usar 4 para scalping and 20 for swing
+SL_POINTS = 9.0   # Stop loss in points, usar 9 para scalping
+
+# ============================================================================
 # DIRECTORIOS DEL PROYECTO
 # ============================================================================
 PROJECT_ROOT = Path(__file__).parent
