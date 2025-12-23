@@ -1,0 +1,158 @@
+
+Iniciando análisis cuantitativo...
+
+
+======================================================================
+ANÁLISIS CUANTITATIVO - Nasdaq (NQ)
+======================================================================
+Fecha: 20251103
+======================================================================
+
+
+----------------------------------------------------------------------
+PASO 1: DETECCIÓN DE FRACTALES
+----------------------------------------------------------------------
+======================================================================
+DETECCIÓN DE FRACTALES - NQ (Nasdaq Futures)
+======================================================================
+
+Fecha: 20251103
+Minor threshold: 0.1%
+Major threshold: 0.2%
+----------------------------------------------------------------------
+
+[INFO] Cargando datos NQ para fecha: 20251103
+[INFO] Cargando datos de tick desde d:\PYTHON\ALGOS\factales_NQ\data\time_and_sales_nq_20251103.csv
+[OK] Cargados 405,724 ticks
+[INFO] Rango temporal: 2025-11-03 06:00:05.920000 -> 2025-11-03 22:59:59.824000
+[INFO] Rango de precios: 26015.50 -> 26266.00
+[INFO] Agregando ticks a barras OHLC (1min)
+[OK] Generadas 1,020 barras OHLC
+[INFO] Rango temporal: 2025-11-03 06:00:00 -> 2025-11-03 22:59:00
+
+[INFO] Detectando fractales MINOR (min_change=0.100%)...
+[OK] Detectados 77 fractales minor
+    Picos: 39
+    Valles: 38
+[OK] Alternancia correcta verificada
+
+[INFO] Detectando fractales MAJOR (min_change=0.200%)...
+[OK] Detectados 17 fractales major
+    Picos: 9
+    Valles: 8
+[OK] Alternancia correcta verificada
+
+======================================================================
+RESUMEN
+======================================================================
+Registros procesados: 1020
+Fractales MINOR: 77
+  - Guardado en: d:\PYTHON\ALGOS\factales_NQ\outputs\fractals\NQ_fractals_minor_20251103.csv
+Fractales MAJOR: 17
+  - Guardado en: d:\PYTHON\ALGOS\factales_NQ\outputs\fractals\NQ_fractals_major_20251103.csv
+======================================================================
+
+----------------------------------------------------------------------
+PASO 1.4: CÁLCULO DE MÉTRICAS DE CONSOLIDACIÓN
+----------------------------------------------------------------------
+
+==================================================================================================================================
+TABLA DE MÉTRICAS DE FRACTALES (SIMPLE)
+==================================================================================================================================
+#    Timestamp                 Type   Price      Time(seg)    PriceDiff    InvFreq    Trigger 
+----------------------------------------------------------------------------------------------------------------------------------
+0    2025-11-03 06:01:00       PICO   26088.0    N/A          N/A          N/A        NO      
+1    2025-11-03 06:21:00       VALLE  26056.5    1200         31.50        5040       NO      
+2    2025-11-03 06:39:00       PICO   26087.2    1080         30.75        5160       YES     
+3    2025-11-03 07:28:00       VALLE  26033.8    2940         53.50        3300       NO      
+4    2025-11-03 07:37:00       PICO   26060.5    540          26.75        5700       NO      
+5    2025-11-03 07:46:00       VALLE  26031.8    540          28.75        5700       YES     
+6    2025-11-03 07:53:00       PICO   26060.2    420          28.50        5820       YES     
+7    2025-11-03 08:48:00       VALLE  26017.2    3300         43.00        2940       NO      
+8    2025-11-03 10:32:00       PICO   26156.0    6240         138.75       0          NO      
+9    2025-11-03 11:03:00       VALLE  26123.5    1860         32.50        4380       NO      
+10   2025-11-03 11:52:00       PICO   26163.0    2940         39.50        3300       NO      
+11   2025-11-03 11:58:00       VALLE  26132.2    360          30.75        5880       NO      
+12   2025-11-03 12:20:00       PICO   26178.2    1320         46.00        4920       NO      
+13   2025-11-03 12:58:00       VALLE  26149.8    2280         28.50        3960       NO      
+14   2025-11-03 13:14:00       PICO   26182.0    960          32.25        5280       NO      
+15   2025-11-03 13:38:00       VALLE  26144.0    1440         38.00        4800       NO      
+16   2025-11-03 13:50:00       PICO   26173.8    720          29.75        5520       NO      
+17   2025-11-03 14:06:00       VALLE  26133.0    960          40.75        5280       YES     
+18   2025-11-03 15:00:00       PICO   26259.8    3240         126.75       3000       NO      
+19   2025-11-03 15:00:00       VALLE  26188.8    0            71.00        6240       NO      
+20   2025-11-03 15:01:00       PICO   26235.0    60           46.25        6180       YES     
+21   2025-11-03 15:02:00       VALLE  26202.2    60           32.75        6180       YES     
+22   2025-11-03 15:05:00       PICO   26234.8    180          32.50        6060       YES     
+23   2025-11-03 15:09:00       VALLE  26206.5    240          28.25        6000       YES     
+24   2025-11-03 15:33:00       PICO   26266.0    1440         59.50        4800       NO      
+25   2025-11-03 15:35:00       VALLE  26206.8    120          59.25        6120       NO      
+26   2025-11-03 15:35:00       PICO   26238.2    0            31.50        6240       YES     
+27   2025-11-03 15:42:00       VALLE  26155.0    420          83.25        5820       YES     
+28   2025-11-03 15:47:00       PICO   26182.5    300          27.50        5940       YES     
+29   2025-11-03 15:50:00       VALLE  26130.2    180          52.25        6060       YES     
+... (47 filas más)
+==================================================================================================================================
+
+Total fractales: 77
+Fractales con trigger activo: 54
+
+Leyenda:
+  - Time(seg): Segundos desde el fractal anterior
+  - PriceDiff: Distancia en precio desde fractal anterior
+  - InvFreq: Frecuencia invertida (alto = consolidación)
+  - Trigger: YES = consolidación activa (InvFreq > 5,000 durante 2+ fractales)
+==================================================================================================================================
+
+[INFO] Métricas guardadas en: d:\PYTHON\ALGOS\factales_NQ\outputs\fractals\NQ_consolidation_metrics_20251103.csv
+
+----------------------------------------------------------------------
+PASO 1.5: CÁLCULO DE CANAL DE REGRESIÓN
+----------------------------------------------------------------------
+
+[INFO] Usando los primeros 3 fractales para el canal:
+  1. PICO @ 2025-11-03 06:01:00 (idx=1, price=26088.0)
+  2. VALLE @ 2025-11-03 06:21:00 (idx=21, price=26056.5)
+  3. PICO @ 2025-11-03 06:39:00 (idx=39, price=26087.25)
+[INFO] Patrón detectado: PICO -> VALLE -> PICO
+
+[INFO] Canal Calculado (3-Puntos):
+  Pendiente (Slope): -0.01974
+  Intercepto Superior: 26088.02
+  Intercepto Inferior: 26056.91
+[INFO] Primer Outlier detectado: VALLE @ 2025-11-03 07:28:00 (idx=88, price=26033.75)
+       Límite Low era: 26055.18, Precio: 26033.75
+       Intercepto Clonado: 26035.49
+
+----------------------------------------------------------------------
+PASO 2: GENERACIÓN DE GRÁFICO
+----------------------------------------------------------------------
+Generando gráfico para fecha: 20251103
+Datos cargados: 1020 registros
+[INFO] VWAP Fast(50) añadido al gráfico: 971 puntos válidos
+[INFO] VWAP Slow(200) añadido al gráfico: 821 puntos válidos
+[INFO] No hay Price Ejection points. Distancia máxima: 0.36% (threshold: 2.0%)
+[DEBUG] Total fractales con trigger: 54
+[DEBUG] Fractales con índices válidos: 54
+[DEBUG] Puntos de consolidación añadidos al gráfico: 54
+Guardando gráfico en: outputs\nq_20251103.html
+Gráfico guardado exitosamente
+Abriendo en navegador...
+
+----------------------------------------------------------------------
+PASO 3: GUARDADO DE MODELO
+----------------------------------------------------------------------
+Modelo guardado en: d:\PYTHON\ALGOS\factales_NQ\outputs\channel_model_nq_20251103.json
+
+======================================================================
+RESUMEN FINAL
+======================================================================
+Fecha analizada: 20251103
+Registros procesados: 1020
+Fractales MINOR detectados: 77
+Fractales MAJOR detectados: 17
+Gráfico generado: outputs\nq_20251103.html
+======================================================================
+
+[OK] Análisis completado exitosamente
+

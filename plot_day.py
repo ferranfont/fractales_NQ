@@ -3,7 +3,7 @@ import plotly.graph_objects as go
 from plotly.subplots import make_subplots
 import os
 from pathlib import Path
-from config import START_DATE, END_DATE, FRACTALS_DIR, PLOT_MINOR_FRACTALS, PLOT_MAJOR_FRACTALS, PLOT_MINOR_DOTS, PLOT_MAJOR_DOTS, HIDE_FREQUENCY_INDICATOR, PLOT_VWAP, VWAP_FAST, VWAP_SLOW, SHOW_REGRESSION_CHANNEL
+from config import START_DATE, END_DATE, FRACTALS_DIR, PLOT_MINOR_FRACTALS, PLOT_MAJOR_FRACTALS, PLOT_MINOR_DOTS, PLOT_MAJOR_DOTS, HIDE_FREQUENCY_INDICATOR, PLOT_VWAP, VWAP_FAST, VWAP_SLOW, SHOW_REGRESSION_CHANNEL, PRICE_EJECTION_TRIGGER
 from calculate_vwap import calculate_vwap
 
 def plot_range_chart(df, df_fractals_minor, df_fractals_major, start_date, end_date, symbol='NQ', rsi_levels=None, fibo_levels=None, divergences=None, channel_params=None, df_metrics=None):
@@ -114,6 +114,39 @@ def plot_range_chart(df, df_fractals_minor, df_fractals_major, start_date, end_d
                 fig.add_trace(trace_vwap_slow)
 
             print(f"[INFO] VWAP Slow({VWAP_SLOW}) añadido al gráfico: {len(df_vwap_slow)} puntos válidos")
+
+    # Añadir puntos verdes cuando el precio se aleja del VWAP Fast (Price Ejection)
+    if PLOT_VWAP and 'vwap_fast' in df.columns:
+        # Calcular la distancia porcentual entre precio y VWAP fast
+        df['price_vwap_distance'] = abs((df['close'] - df['vwap_fast']) / df['vwap_fast'])
+
+        # Filtrar puntos donde la distancia supera el threshold
+        df_ejection = df[df['price_vwap_distance'] >= PRICE_EJECTION_TRIGGER].copy()
+
+        if not df_ejection.empty:
+            trace_ejection = go.Scatter(
+                x=df_ejection['index'],
+                y=df_ejection['close'],
+                mode='markers',
+                name=f'Price Ejection (>{PRICE_EJECTION_TRIGGER*100:.1f}%)',
+                marker=dict(
+                    color='green',
+                    size=4,
+                    symbol='circle'
+                ),
+                hovertemplate='<b>Price Ejection</b><br>Price: %{y:.2f}<br>Distance: %{customdata:.2f}%<extra></extra>',
+                customdata=df_ejection['price_vwap_distance'] * 100
+            )
+            if show_frequency_subplot:
+                fig.add_trace(trace_ejection, row=price_row, col=1)
+            else:
+                fig.add_trace(trace_ejection)
+
+            print(f"[INFO] Price Ejection points detectados: {len(df_ejection)} (threshold: {PRICE_EJECTION_TRIGGER*100:.1f}%)")
+        else:
+            # Debug: mostrar la distancia máxima detectada
+            max_distance = df['price_vwap_distance'].max()
+            print(f"[INFO] No hay Price Ejection points. Distancia máxima: {max_distance*100:.2f}% (threshold: {PRICE_EJECTION_TRIGGER*100:.1f}%)")
 
     # Añadir líneas ZigZag y marcadores de fractales MINOR
     if PLOT_MINOR_FRACTALS and df_fractals_minor is not None and not df_fractals_minor.empty:

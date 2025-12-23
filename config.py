@@ -41,6 +41,7 @@ TRIGGER_PERIODS = 2                      # Número de fractales consecutivos por
 PLOT_VWAP = True                 # True = dibujar indicador VWAP en el gráfico
 VWAP_FAST = 50                   # Periodo para VWAP rápido (magenta)
 VWAP_SLOW = 200                  # Periodo para VWAP lento (verde)
+PRICE_EJECTION_TRIGGER = 0.02    # Porcentaje mínimo de distancia entre precio y VWAP fast para trigger (0.02 = 2%)
 
 # ============================================================================
 # PARÁMETROS DE VISUALIZACIÓN
@@ -49,6 +50,7 @@ PLOT_MINOR_FRACTALS = True       # True = dibujar fractales MINOR en el gráfico
 PLOT_MAJOR_FRACTALS = True      # True = dibujar fractales MAJOR en el gráfico
 PLOT_MINOR_DOTS = True          # True = dibujar puntos en fractales MINOR
 PLOT_MAJOR_DOTS = False          # True = dibujar puntos (circles) en fractales MAJOR
-HIDE_FREQUENCY_INDICATOR = False  # True = ocultar subplot de frecuencia (mantiene puntos naranjas)
-SHOW_REGRESSION_CHANNEL = False  # True = mostrar canal de regresión en el gráfico
+
+HIDE_FREQUENCY_INDICATOR = True   # True = ocultar subplot de frecuencia (mantiene puntos naranjas)
+SHOW_REGRESSION_CHANNEL = False   # True = mostrar canal de regresión en el gráfico
 
