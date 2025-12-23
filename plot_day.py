@@ -343,6 +343,26 @@ def plot_range_chart(df, df_fractals_minor, df_fractals_major, start_date, end_d
         else:
             print("[DEBUG] No hay métricas válidas para graficar")
 
+    # Añadir línea horizontal como marco inferior del gráfico
+    # Obtener el valor mínimo del eje Y para colocar la línea en la base
+    min_price = df['low'].min()
+    x_start = df['index'].iloc[0]
+    x_end = df['index'].iloc[-1]
+
+    trace_bottom_line = go.Scatter(
+        x=[x_start, x_end],
+        y=[min_price, min_price],
+        mode='lines',
+        name='',
+        line=dict(color='black', width=2),
+        showlegend=False,
+        hoverinfo='skip'
+    )
+    if show_frequency_subplot:
+        fig.add_trace(trace_bottom_line, row=price_row, col=1)
+    else:
+        fig.add_trace(trace_bottom_line)
+
     # Configurar eje X con etiquetas de fecha personalizadas
     num_ticks = 30
     tick_indices = [int(i) for i in range(0, len(df), max(1, len(df)//num_ticks))]
