@@ -14,6 +14,7 @@ __pycache__/
 # Outputs
 outputs/*.html
 outputs/charts/*.html
+outputs/trading/*.csv
 
 # IDEs
 .vscode/
