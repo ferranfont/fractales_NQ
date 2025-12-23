@@ -357,21 +357,21 @@ def plot_range_chart(df, df_fractals_minor, df_fractals_major, start_date, end_d
         fig.update_xaxes(
             tickmode='array', tickvals=tick_vals, ticktext=tick_text,
             tickangle=-45, showgrid=False,
-            showline=True, linewidth=3, linecolor='#d3d3d3',
+            showline=True, linewidth=1, linecolor='#d3d3d3',
             row=price_row, col=1
         )
         # Eje X para métricas (row 2) - sin grid vertical, con marco inferior gris
         fig.update_xaxes(
             tickmode='array', tickvals=tick_vals, ticktext=tick_text,
             tickangle=-45, showgrid=False,
-            showline=True, linewidth=3, linecolor='#d3d3d3',
+            showline=True, linewidth=1, linecolor='#d3d3d3',
             row=metrics_row, col=1
         )
     else:
         fig.update_xaxes(
             tickmode='array', tickvals=tick_vals, ticktext=tick_text,
             tickangle=-45, showgrid=False,
-            showline=True, linewidth=3, linecolor='#d3d3d3'
+            showline=True, linewidth=1, linecolor='#d3d3d3'
         )
 
     # Configurar layout
@@ -413,7 +413,7 @@ def plot_range_chart(df, df_fractals_minor, df_fractals_major, start_date, end_d
         # Eje Y para precio (row 1) - con marco lateral izquierdo gris
         fig.update_yaxes(
             showgrid=True, gridcolor='#e0e0e0', gridwidth=0.5,
-            showline=True, linewidth=3, linecolor='#d3d3d3',
+            showline=True, linewidth=1, linecolor='#d3d3d3',
             tickcolor='gray', tickfont=dict(color='gray'),
             tickformat=',',
             row=price_row, col=1
@@ -422,14 +422,14 @@ def plot_range_chart(df, df_fractals_minor, df_fractals_major, start_date, end_d
         fig.update_yaxes(
             title='Frecuencia (↑ alta)',
             showgrid=True, gridcolor='#e0e0e0', gridwidth=0.5,
-            showline=True, linewidth=3, linecolor='#d3d3d3',
+            showline=True, linewidth=1, linecolor='#d3d3d3',
             tickcolor='gray', tickfont=dict(color='gray'),
             row=metrics_row, col=1
         )
     else:
         fig.update_yaxes(
             showgrid=True, gridcolor='#e0e0e0', gridwidth=0.5,
-            showline=True, linewidth=3, linecolor='#d3d3d3',
+            showline=True, linewidth=1, linecolor='#d3d3d3',
             tickformat=',',
             tickcolor='gray', tickfont=dict(color='gray')
         )
