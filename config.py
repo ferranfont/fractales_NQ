@@ -39,6 +39,8 @@ TRIGGER_PERIODS = 2                      # Número de fractales consecutivos por
 # PARÁMETROS DE INDICADORES TÉCNICOS
 # ============================================================================
 PLOT_VWAP = True                 # True = dibujar indicador VWAP en el gráfico
+SHOW_FAST_VWAP = True            # True = mostrar VWAP Fast (magenta)
+SHOW_SLOW_VWAP = False           # True = mostrar VWAP Slow (verde)
 VWAP_FAST = 50                   # Periodo para VWAP rápido (magenta)
 VWAP_SLOW = 100                  # Periodo para VWAP lento (verde)
 

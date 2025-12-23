@@ -3,7 +3,7 @@ import plotly.graph_objects as go
 from plotly.subplots import make_subplots
 import os
 from pathlib import Path
-from config import START_DATE, END_DATE, FRACTALS_DIR, PLOT_MINOR_FRACTALS, PLOT_MAJOR_FRACTALS, PLOT_MINOR_DOTS, PLOT_MAJOR_DOTS, HIDE_FREQUENCY_INDICATOR, PLOT_VWAP, VWAP_FAST, VWAP_SLOW, SHOW_REGRESSION_CHANNEL, PRICE_EJECTION_TRIGGER, OVER_PRICE_EJECTION_TRIGGER
+from config import START_DATE, END_DATE, FRACTALS_DIR, PLOT_MINOR_FRACTALS, PLOT_MAJOR_FRACTALS, PLOT_MINOR_DOTS, PLOT_MAJOR_DOTS, HIDE_FREQUENCY_INDICATOR, PLOT_VWAP, SHOW_FAST_VWAP, SHOW_SLOW_VWAP, VWAP_FAST, VWAP_SLOW, SHOW_REGRESSION_CHANNEL, PRICE_EJECTION_TRIGGER, OVER_PRICE_EJECTION_TRIGGER
 from calculate_vwap import calculate_vwap
 
 def plot_range_chart(df, df_fractals_minor, df_fractals_major, start_date, end_date, symbol='NQ', rsi_levels=None, fibo_levels=None, divergences=None, channel_params=None, df_metrics=None):
@@ -77,7 +77,7 @@ def plot_range_chart(df, df_fractals_minor, df_fractals_major, start_date, end_d
         df['vwap_fast'] = calculate_vwap(df, period=VWAP_FAST)
         df_vwap_fast = df[df['vwap_fast'].notna()].copy()
 
-        if not df_vwap_fast.empty:
+        if SHOW_FAST_VWAP and not df_vwap_fast.empty:
             trace_vwap_fast = go.Scatter(
                 x=df_vwap_fast['index'],
                 y=df_vwap_fast['vwap_fast'],
@@ -98,7 +98,7 @@ def plot_range_chart(df, df_fractals_minor, df_fractals_major, start_date, end_d
         df['vwap_slow'] = calculate_vwap(df, period=VWAP_SLOW)
         df_vwap_slow = df[df['vwap_slow'].notna()].copy()
 
-        if not df_vwap_slow.empty:
+        if SHOW_SLOW_VWAP and not df_vwap_slow.empty:
             trace_vwap_slow = go.Scatter(
                 x=df_vwap_slow['index'],
                 y=df_vwap_slow['vwap_slow'],
