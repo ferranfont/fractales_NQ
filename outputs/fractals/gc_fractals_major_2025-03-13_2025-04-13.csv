@@ -1,7 +1,0 @@
-timestamp,price,type,direction,tag
-2025-04-02 22:29:00+02:00,3168.6,PICO,up,major
-2025-04-03 15:13:00+02:00,3052.0,VALLE,down,major
-2025-04-03 16:52:00+02:00,3133.1,PICO,up,major
-2025-04-07 02:11:00+02:00,2965.0,VALLE,down,major
-2025-04-07 03:45:00+02:00,3050.8,PICO,up,major
-2025-04-07 19:30:00+02:00,2949.7,VALLE,down,major

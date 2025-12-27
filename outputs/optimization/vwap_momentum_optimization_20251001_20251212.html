@@ -1,0 +1,1141 @@
+
+    <!DOCTYPE html>
+    <html>
+    <head>
+        <title>VWAP Momentum - Multi-Day Optimization Report</title>
+        <style>
+            body {
+                font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+                margin: 20px;
+                background-color: #f5f5f5;
+            }
+            .header {
+                background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+                color: white;
+                padding: 30px;
+                border-radius: 10px;
+                margin-bottom: 20px;
+            }
+            .header h1 {
+                margin: 0;
+                font-size: 28px;
+            }
+            .header p {
+                margin: 5px 0 0 0;
+                opacity: 0.9;
+            }
+            .section {
+                background: white;
+                padding: 20px;
+                margin-bottom: 20px;
+                border-radius: 8px;
+                box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+            }
+            .section h2 {
+                margin-top: 0;
+                color: #667eea;
+                border-bottom: 2px solid #667eea;
+                padding-bottom: 10px;
+            }
+            .best-params {
+                display: grid;
+                grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+                gap: 15px;
+                margin-bottom: 20px;
+            }
+            .param-card {
+                background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+                color: white;
+                padding: 15px;
+                border-radius: 8px;
+            }
+            .param-card h3 {
+                margin: 0 0 10px 0;
+                font-size: 14px;
+                opacity: 0.9;
+            }
+            .param-card .value {
+                font-size: 24px;
+                font-weight: bold;
+            }
+            .param-card .details {
+                font-size: 12px;
+                margin-top: 10px;
+                opacity: 0.9;
+            }
+            table {
+                width: 100%;
+                border-collapse: collapse;
+                margin-top: 15px;
+                font-size: 13px;
+            }
+            th, td {
+                padding: 10px;
+                text-align: right;
+                border-bottom: 1px solid #e0e0e0;
+            }
+            th {
+                background-color: #f8f9fa;
+                font-weight: 600;
+                color: #333;
+                position: sticky;
+                top: 0;
+            }
+            tr:hover {
+                background-color: #f8f9fa;
+            }
+            .positive {
+                color: #22c55e;
+                font-weight: 600;
+            }
+            .negative {
+                color: #ef4444;
+                font-weight: 600;
+            }
+            .rank {
+                background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+                color: white;
+                padding: 4px 8px;
+                border-radius: 4px;
+                font-size: 11px;
+                font-weight: bold;
+            }
+            .footer {
+                text-align: center;
+                color: #666;
+                margin-top: 30px;
+                padding-top: 20px;
+                border-top: 1px solid #e0e0e0;
+            }
+            .info-box {
+                background: #e3f2fd;
+                border-left: 4px solid #2196f3;
+                padding: 15px;
+                margin: 15px 0;
+                border-radius: 4px;
+            }
+        </style>
+    </head>
+    <body>
+        <div class="header">
+            <h1>VWAP Momentum Strategy - Multi-Day Parameter Optimization</h1>
+            <p>Period: 20251001 → 20251212</p>
+            <p>Total Days Analyzed: 53</p>
+            <p>Total Combinations Tested: 42</p>
+        </div>
+
+        <div class="section">
+            <h2>Recommendation</h2>
+            <div class="info-box">
+                <strong>Important:</strong> Results are ranked by <strong>Sharpe Ratio</strong>, which measures risk-adjusted returns.
+                This is generally more reliable than raw P&L for long-term profitability.
+                A higher Sharpe Ratio indicates more consistent returns relative to risk.
+            </div>
+        </div>
+    
+        <div class="section">
+            <h2>Recommended Parameters</h2>
+            <div class="best-params">
+    
+                <div class="param-card">
+                    <h3>🏆 BEST SHARPE RATIO (RECOMMENDED)</h3>
+                    <div class="value">TP: 125 / SL: 75</div>
+                    <div class="details">
+                        R:R Ratio: 1.67<br>
+                        Sharpe: 1.85<br>
+                        Total P&L: $93,130<br>
+                        Win Rate: 42.6%<br>
+                        Trades: 420 (8.2/day)
+                    </div>
+                </div>
+        
+                <div class="param-card">
+                    <h3>💰 BEST TOTAL P&L</h3>
+                    <div class="value">TP: 125 / SL: 75</div>
+                    <div class="details">
+                        Total P&L: $93,130<br>
+                        R:R Ratio: 1.67<br>
+                        Win Rate: 42.6%<br>
+                        Sharpe: 1.85<br>
+                        Trades: 420
+                    </div>
+                </div>
+        
+                <div class="param-card">
+                    <h3>🎯 BEST WIN RATE</h3>
+                    <div class="value">TP: 25 / SL: 100</div>
+                    <div class="details">
+                        Win Rate: 82.2%<br>
+                        Total P&L: $56,240<br>
+                        Sharpe: 0.68<br>
+                        Trades: 1346
+                    </div>
+                </div>
+        
+                <div class="param-card">
+                    <h3>📊 BEST PROFIT FACTOR</h3>
+                    <div class="value">TP: 125 / SL: 75</div>
+                    <div class="details">
+                        Profit Factor: 1.24<br>
+                        Total P&L: $93,130<br>
+                        Win Rate: 42.6%<br>
+                        Sharpe: 1.85
+                    </div>
+                </div>
+        
+            </div>
+        </div>
+    
+        <div class="section">
+            <h2>Top 10 Combinations (by Sharpe Ratio)</h2>
+            <table>
+                <thead>
+                    <tr>
+                        <th>Rank</th>
+                        <th>TP</th>
+                        <th>SL</th>
+                        <th>R:R</th>
+                        <th>Days</th>
+                        <th>Trades</th>
+                        <th>Avg/Day</th>
+                        <th>Win%</th>
+                        <th>Total P&L</th>
+                        <th>Avg/Trade</th>
+                        <th>Sharpe</th>
+                        <th>Sortino</th>
+                        <th>PF</th>
+                        <th>Max DD</th>
+                    </tr>
+                </thead>
+                <tbody>
+    
+                    <tr>
+                        <td><span class="rank">#1</span></td>
+                        <td>125</td>
+                        <td>75</td>
+                        <td>1.67</td>
+                        <td>51</td>
+                        <td>420</td>
+                        <td>8.2</td>
+                        <td>42.6%</td>
+                        <td class="positive">$93,130</td>
+                        <td class="positive">$221.74</td>
+                        <td><strong>1.85</strong></td>
+                        <td>10.13</td>
+                        <td>1.24</td>
+                        <td class="negative">$-24,105</td>
+                    </tr>
+        
+                    <tr>
+                        <td><span class="rank">#2</span></td>
+                        <td>200</td>
+                        <td>50</td>
+                        <td>4.00</td>
+                        <td>51</td>
+                        <td>414</td>
+                        <td>8.1</td>
+                        <td>19.9%</td>
+                        <td class="positive">$74,910</td>
+                        <td class="positive">$180.94</td>
+                        <td><strong>1.41</strong></td>
+                        <td>30.31</td>
+                        <td>1.00</td>
+                        <td class="negative">$-31,350</td>
+                    </tr>
+        
+                    <tr>
+                        <td><span class="rank">#3</span></td>
+                        <td>125</td>
+                        <td>100</td>
+                        <td>1.25</td>
+                        <td>51</td>
+                        <td>339</td>
+                        <td>6.6</td>
+                        <td>47.4%</td>
+                        <td class="positive">$61,935</td>
+                        <td class="positive">$182.70</td>
+                        <td><strong>1.34</strong></td>
+                        <td>6.38</td>
+                        <td>1.13</td>
+                        <td class="negative">$-18,460</td>
+                    </tr>
+        
+                    <tr>
+                        <td><span class="rank">#4</span></td>
+                        <td>150</td>
+                        <td>75</td>
+                        <td>2.00</td>
+                        <td>51</td>
+                        <td>358</td>
+                        <td>7.0</td>
+                        <td>35.2%</td>
+                        <td class="positive">$60,895</td>
+                        <td class="positive">$170.10</td>
+                        <td><strong>1.29</strong></td>
+                        <td>10.33</td>
+                        <td>1.08</td>
+                        <td class="negative">$-19,980</td>
+                    </tr>
+        
+                    <tr>
+                        <td><span class="rank">#5</span></td>
+                        <td>150</td>
+                        <td>100</td>
+                        <td>1.50</td>
+                        <td>51</td>
+                        <td>281</td>
+                        <td>5.5</td>
+                        <td>42.5%</td>
+                        <td class="positive">$53,080</td>
+                        <td class="positive">$188.90</td>
+                        <td><strong>1.28</strong></td>
+                        <td>6.08</td>
+                        <td>1.11</td>
+                        <td class="negative">$-15,435</td>
+                    </tr>
+        
+                    <tr>
+                        <td><span class="rank">#6</span></td>
+                        <td>200</td>
+                        <td>75</td>
+                        <td>2.67</td>
+                        <td>51</td>
+                        <td>302</td>
+                        <td>5.9</td>
+                        <td>26.5%</td>
+                        <td class="positive">$53,440</td>
+                        <td class="positive">$176.95</td>
+                        <td><strong>1.18</strong></td>
+                        <td>14.29</td>
+                        <td>0.96</td>
+                        <td class="negative">$-22,855</td>
+                    </tr>
+        
+                    <tr>
+                        <td><span class="rank">#7</span></td>
+                        <td>150</td>
+                        <td>35</td>
+                        <td>4.29</td>
+                        <td>51</td>
+                        <td>656</td>
+                        <td>12.9</td>
+                        <td>20.0%</td>
+                        <td class="positive">$66,850</td>
+                        <td class="positive">$101.91</td>
+                        <td><strong>1.08</strong></td>
+                        <td>8.27</td>
+                        <td>1.07</td>
+                        <td class="negative">$-29,080</td>
+                    </tr>
+        
+                    <tr>
+                        <td><span class="rank">#8</span></td>
+                        <td>75</td>
+                        <td>100</td>
+                        <td>0.75</td>
+                        <td>51</td>
+                        <td>509</td>
+                        <td>10.0</td>
+                        <td>61.0%</td>
+                        <td class="positive">$57,230</td>
+                        <td class="positive">$112.44</td>
+                        <td><strong>1.06</strong></td>
+                        <td>3.80</td>
+                        <td>1.18</td>
+                        <td class="negative">$-25,785</td>
+                    </tr>
+        
+                    <tr>
+                        <td><span class="rank">#9</span></td>
+                        <td>100</td>
+                        <td>75</td>
+                        <td>1.33</td>
+                        <td>51</td>
+                        <td>526</td>
+                        <td>10.3</td>
+                        <td>45.7%</td>
+                        <td class="positive">$59,515</td>
+                        <td class="positive">$113.15</td>
+                        <td><strong>1.05</strong></td>
+                        <td>5.13</td>
+                        <td>1.12</td>
+                        <td class="negative">$-25,695</td>
+                    </tr>
+        
+                    <tr>
+                        <td><span class="rank">#10</span></td>
+                        <td>125</td>
+                        <td>35</td>
+                        <td>3.57</td>
+                        <td>51</td>
+                        <td>761</td>
+                        <td>14.9</td>
+                        <td>23.7%</td>
+                        <td class="positive">$60,990</td>
+                        <td class="positive">$80.14</td>
+                        <td><strong>0.93</strong></td>
+                        <td>6.83</td>
+                        <td>1.11</td>
+                        <td class="negative">$-19,365</td>
+                    </tr>
+        
+                </tbody>
+            </table>
+        </div>
+    
+        <div class="section">
+            <h2>All Results (sorted by Sharpe Ratio)</h2>
+            <div style="max-height: 600px; overflow-y: auto;">
+                <table>
+                    <thead>
+                        <tr>
+                            <th>Rank</th>
+                            <th>TP</th>
+                            <th>SL</th>
+                            <th>R:R</th>
+                            <th>Days</th>
+                            <th>Trades</th>
+                            <th>Avg/Day</th>
+                            <th>Win%</th>
+                            <th>Total P&L</th>
+                            <th>Avg/Trade</th>
+                            <th>Sharpe</th>
+                            <th>Sortino</th>
+                            <th>PF</th>
+                            <th>Max DD</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+    
+                        <tr>
+                            <td>1</td>
+                            <td>125</td>
+                            <td>75</td>
+                            <td>1.67</td>
+                            <td>51</td>
+                            <td>420</td>
+                            <td>8.2</td>
+                            <td>42.6%</td>
+                            <td class="positive">$93,130</td>
+                            <td class="positive">$221.74</td>
+                            <td><strong>1.85</strong></td>
+                            <td>10.13</td>
+                            <td>1.24</td>
+                            <td class="negative">$-24,105</td>
+                        </tr>
+        
+                        <tr>
+                            <td>2</td>
+                            <td>200</td>
+                            <td>50</td>
+                            <td>4.00</td>
+                            <td>51</td>
+                            <td>414</td>
+                            <td>8.1</td>
+                            <td>19.9%</td>
+                            <td class="positive">$74,910</td>
+                            <td class="positive">$180.94</td>
+                            <td><strong>1.41</strong></td>
+                            <td>30.31</td>
+                            <td>1.00</td>
+                            <td class="negative">$-31,350</td>
+                        </tr>
+        
+                        <tr>
+                            <td>3</td>
+                            <td>125</td>
+                            <td>100</td>
+                            <td>1.25</td>
+                            <td>51</td>
+                            <td>339</td>
+                            <td>6.6</td>
+                            <td>47.4%</td>
+                            <td class="positive">$61,935</td>
+                            <td class="positive">$182.70</td>
+                            <td><strong>1.34</strong></td>
+                            <td>6.38</td>
+                            <td>1.13</td>
+                            <td class="negative">$-18,460</td>
+                        </tr>
+        
+                        <tr>
+                            <td>4</td>
+                            <td>150</td>
+                            <td>75</td>
+                            <td>2.00</td>
+                            <td>51</td>
+                            <td>358</td>
+                            <td>7.0</td>
+                            <td>35.2%</td>
+                            <td class="positive">$60,895</td>
+                            <td class="positive">$170.10</td>
+                            <td><strong>1.29</strong></td>
+                            <td>10.33</td>
+                            <td>1.08</td>
+                            <td class="negative">$-19,980</td>
+                        </tr>
+        
+                        <tr>
+                            <td>5</td>
+                            <td>150</td>
+                            <td>100</td>
+                            <td>1.50</td>
+                            <td>51</td>
+                            <td>281</td>
+                            <td>5.5</td>
+                            <td>42.5%</td>
+                            <td class="positive">$53,080</td>
+                            <td class="positive">$188.90</td>
+                            <td><strong>1.28</strong></td>
+                            <td>6.08</td>
+                            <td>1.11</td>
+                            <td class="negative">$-15,435</td>
+                        </tr>
+        
+                        <tr>
+                            <td>6</td>
+                            <td>200</td>
+                            <td>75</td>
+                            <td>2.67</td>
+                            <td>51</td>
+                            <td>302</td>
+                            <td>5.9</td>
+                            <td>26.5%</td>
+                            <td class="positive">$53,440</td>
+                            <td class="positive">$176.95</td>
+                            <td><strong>1.18</strong></td>
+                            <td>14.29</td>
+                            <td>0.96</td>
+                            <td class="negative">$-22,855</td>
+                        </tr>
+        
+                        <tr>
+                            <td>7</td>
+                            <td>150</td>
+                            <td>35</td>
+                            <td>4.29</td>
+                            <td>51</td>
+                            <td>656</td>
+                            <td>12.9</td>
+                            <td>20.0%</td>
+                            <td class="positive">$66,850</td>
+                            <td class="positive">$101.91</td>
+                            <td><strong>1.08</strong></td>
+                            <td>8.27</td>
+                            <td>1.07</td>
+                            <td class="negative">$-29,080</td>
+                        </tr>
+        
+                        <tr>
+                            <td>8</td>
+                            <td>75</td>
+                            <td>100</td>
+                            <td>0.75</td>
+                            <td>51</td>
+                            <td>509</td>
+                            <td>10.0</td>
+                            <td>61.0%</td>
+                            <td class="positive">$57,230</td>
+                            <td class="positive">$112.44</td>
+                            <td><strong>1.06</strong></td>
+                            <td>3.80</td>
+                            <td>1.18</td>
+                            <td class="negative">$-25,785</td>
+                        </tr>
+        
+                        <tr>
+                            <td>9</td>
+                            <td>100</td>
+                            <td>75</td>
+                            <td>1.33</td>
+                            <td>51</td>
+                            <td>526</td>
+                            <td>10.3</td>
+                            <td>45.7%</td>
+                            <td class="positive">$59,515</td>
+                            <td class="positive">$113.15</td>
+                            <td><strong>1.05</strong></td>
+                            <td>5.13</td>
+                            <td>1.12</td>
+                            <td class="negative">$-25,695</td>
+                        </tr>
+        
+                        <tr>
+                            <td>10</td>
+                            <td>125</td>
+                            <td>35</td>
+                            <td>3.57</td>
+                            <td>51</td>
+                            <td>761</td>
+                            <td>14.9</td>
+                            <td>23.7%</td>
+                            <td class="positive">$60,990</td>
+                            <td class="positive">$80.14</td>
+                            <td><strong>0.93</strong></td>
+                            <td>6.83</td>
+                            <td>1.11</td>
+                            <td class="negative">$-19,365</td>
+                        </tr>
+        
+                        <tr>
+                            <td>11</td>
+                            <td>200</td>
+                            <td>15</td>
+                            <td>13.33</td>
+                            <td>51</td>
+                            <td>906</td>
+                            <td>17.8</td>
+                            <td>7.1%</td>
+                            <td class="positive">$62,105</td>
+                            <td class="positive">$68.55</td>
+                            <td><strong>0.93</strong></td>
+                            <td>101.69</td>
+                            <td>1.02</td>
+                            <td class="negative">$-24,440</td>
+                        </tr>
+        
+                        <tr>
+                            <td>12</td>
+                            <td>75</td>
+                            <td>75</td>
+                            <td>1.00</td>
+                            <td>51</td>
+                            <td>643</td>
+                            <td>12.6</td>
+                            <td>52.8%</td>
+                            <td class="positive">$55,920</td>
+                            <td class="positive">$86.97</td>
+                            <td><strong>0.93</strong></td>
+                            <td>4.45</td>
+                            <td>1.12</td>
+                            <td class="negative">$-30,170</td>
+                        </tr>
+        
+                        <tr>
+                            <td>13</td>
+                            <td>100</td>
+                            <td>50</td>
+                            <td>2.00</td>
+                            <td>51</td>
+                            <td>712</td>
+                            <td>14.0</td>
+                            <td>35.9%</td>
+                            <td class="positive">$59,220</td>
+                            <td class="positive">$83.17</td>
+                            <td><strong>0.92</strong></td>
+                            <td>6.25</td>
+                            <td>1.12</td>
+                            <td class="negative">$-30,015</td>
+                        </tr>
+        
+                        <tr>
+                            <td>14</td>
+                            <td>200</td>
+                            <td>35</td>
+                            <td>5.71</td>
+                            <td>51</td>
+                            <td>537</td>
+                            <td>10.5</td>
+                            <td>14.1%</td>
+                            <td class="positive">$47,645</td>
+                            <td class="positive">$88.72</td>
+                            <td><strong>0.83</strong></td>
+                            <td>27.97</td>
+                            <td>0.94</td>
+                            <td class="negative">$-28,060</td>
+                        </tr>
+        
+                        <tr>
+                            <td>15</td>
+                            <td>100</td>
+                            <td>25</td>
+                            <td>4.00</td>
+                            <td>51</td>
+                            <td>1142</td>
+                            <td>22.4</td>
+                            <td>21.7%</td>
+                            <td class="positive">$62,850</td>
+                            <td class="positive">$55.04</td>
+                            <td><strong>0.83</strong></td>
+                            <td>5.89</td>
+                            <td>1.11</td>
+                            <td class="negative">$-21,725</td>
+                        </tr>
+        
+                        <tr>
+                            <td>16</td>
+                            <td>150</td>
+                            <td>15</td>
+                            <td>10.00</td>
+                            <td>51</td>
+                            <td>1262</td>
+                            <td>24.7</td>
+                            <td>9.8%</td>
+                            <td class="positive">$65,590</td>
+                            <td class="positive">$51.97</td>
+                            <td><strong>0.81</strong></td>
+                            <td>6.06</td>
+                            <td>1.09</td>
+                            <td class="negative">$-18,825</td>
+                        </tr>
+        
+                        <tr>
+                            <td>17</td>
+                            <td>50</td>
+                            <td>100</td>
+                            <td>0.50</td>
+                            <td>51</td>
+                            <td>741</td>
+                            <td>14.5</td>
+                            <td>69.7%</td>
+                            <td class="positive">$52,120</td>
+                            <td class="positive">$70.34</td>
+                            <td><strong>0.81</strong></td>
+                            <td>2.24</td>
+                            <td>1.15</td>
+                            <td class="negative">$-23,655</td>
+                        </tr>
+        
+                        <tr>
+                            <td>18</td>
+                            <td>150</td>
+                            <td>50</td>
+                            <td>3.00</td>
+                            <td>51</td>
+                            <td>507</td>
+                            <td>9.9</td>
+                            <td>25.9%</td>
+                            <td class="positive">$43,850</td>
+                            <td class="positive">$86.49</td>
+                            <td><strong>0.79</strong></td>
+                            <td>5.46</td>
+                            <td>1.05</td>
+                            <td class="negative">$-24,210</td>
+                        </tr>
+        
+                        <tr>
+                            <td>19</td>
+                            <td>100</td>
+                            <td>35</td>
+                            <td>2.86</td>
+                            <td>51</td>
+                            <td>921</td>
+                            <td>18.1</td>
+                            <td>27.6%</td>
+                            <td class="positive">$55,350</td>
+                            <td class="positive">$60.10</td>
+                            <td><strong>0.78</strong></td>
+                            <td>5.49</td>
+                            <td>1.09</td>
+                            <td class="negative">$-31,060</td>
+                        </tr>
+        
+                        <tr>
+                            <td>20</td>
+                            <td>125</td>
+                            <td>15</td>
+                            <td>8.33</td>
+                            <td>51</td>
+                            <td>1405</td>
+                            <td>27.5</td>
+                            <td>11.5%</td>
+                            <td class="positive">$60,165</td>
+                            <td class="positive">$42.82</td>
+                            <td><strong>0.74</strong></td>
+                            <td>5.21</td>
+                            <td>1.09</td>
+                            <td class="negative">$-18,460</td>
+                        </tr>
+        
+                        <tr>
+                            <td>21</td>
+                            <td>125</td>
+                            <td>50</td>
+                            <td>2.50</td>
+                            <td>51</td>
+                            <td>592</td>
+                            <td>11.6</td>
+                            <td>29.9%</td>
+                            <td class="positive">$42,005</td>
+                            <td class="positive">$70.95</td>
+                            <td><strong>0.71</strong></td>
+                            <td>4.90</td>
+                            <td>1.06</td>
+                            <td class="negative">$-28,095</td>
+                        </tr>
+        
+                        <tr>
+                            <td>22</td>
+                            <td>25</td>
+                            <td>100</td>
+                            <td>0.25</td>
+                            <td>51</td>
+                            <td>1346</td>
+                            <td>26.4</td>
+                            <td>82.2%</td>
+                            <td class="positive">$56,240</td>
+                            <td class="positive">$41.78</td>
+                            <td><strong>0.68</strong></td>
+                            <td>1.44</td>
+                            <td>1.16</td>
+                            <td class="negative">$-27,640</td>
+                        </tr>
+        
+                        <tr>
+                            <td>23</td>
+                            <td>200</td>
+                            <td>100</td>
+                            <td>2.00</td>
+                            <td>51</td>
+                            <td>240</td>
+                            <td>4.7</td>
+                            <td>31.6%</td>
+                            <td class="positive">$26,615</td>
+                            <td class="positive">$110.90</td>
+                            <td><strong>0.66</strong></td>
+                            <td>4.49</td>
+                            <td>0.92</td>
+                            <td class="negative">$-24,870</td>
+                        </tr>
+        
+                        <tr>
+                            <td>24</td>
+                            <td>25</td>
+                            <td>75</td>
+                            <td>0.33</td>
+                            <td>51</td>
+                            <td>1626</td>
+                            <td>31.9</td>
+                            <td>77.1%</td>
+                            <td class="positive">$56,965</td>
+                            <td class="positive">$35.03</td>
+                            <td><strong>0.65</strong></td>
+                            <td>1.96</td>
+                            <td>1.12</td>
+                            <td class="negative">$-32,860</td>
+                        </tr>
+        
+                        <tr>
+                            <td>25</td>
+                            <td>50</td>
+                            <td>75</td>
+                            <td>0.67</td>
+                            <td>51</td>
+                            <td>923</td>
+                            <td>18.1</td>
+                            <td>62.1%</td>
+                            <td class="positive">$45,130</td>
+                            <td class="positive">$48.89</td>
+                            <td><strong>0.64</strong></td>
+                            <td>2.40</td>
+                            <td>1.09</td>
+                            <td class="negative">$-47,050</td>
+                        </tr>
+        
+                        <tr>
+                            <td>26</td>
+                            <td>125</td>
+                            <td>25</td>
+                            <td>5.00</td>
+                            <td>51</td>
+                            <td>983</td>
+                            <td>19.3</td>
+                            <td>17.4%</td>
+                            <td class="positive">$45,105</td>
+                            <td class="positive">$45.89</td>
+                            <td><strong>0.63</strong></td>
+                            <td>4.66</td>
+                            <td>1.05</td>
+                            <td class="negative">$-23,595</td>
+                        </tr>
+        
+                        <tr>
+                            <td>27</td>
+                            <td>100</td>
+                            <td>15</td>
+                            <td>6.67</td>
+                            <td>51</td>
+                            <td>1573</td>
+                            <td>30.8</td>
+                            <td>14.0%</td>
+                            <td class="positive">$46,485</td>
+                            <td class="positive">$29.55</td>
+                            <td><strong>0.57</strong></td>
+                            <td>3.71</td>
+                            <td>1.09</td>
+                            <td class="negative">$-19,575</td>
+                        </tr>
+        
+                        <tr>
+                            <td>28</td>
+                            <td>50</td>
+                            <td>35</td>
+                            <td>1.43</td>
+                            <td>51</td>
+                            <td>1556</td>
+                            <td>30.5</td>
+                            <td>42.8%</td>
+                            <td class="positive">$47,305</td>
+                            <td class="positive">$30.40</td>
+                            <td><strong>0.56</strong></td>
+                            <td>3.34</td>
+                            <td>1.07</td>
+                            <td class="negative">$-23,590</td>
+                        </tr>
+        
+                        <tr>
+                            <td>29</td>
+                            <td>100</td>
+                            <td>100</td>
+                            <td>1.00</td>
+                            <td>51</td>
+                            <td>408</td>
+                            <td>8.0</td>
+                            <td>51.9%</td>
+                            <td class="positive">$26,695</td>
+                            <td class="positive">$65.43</td>
+                            <td><strong>0.54</strong></td>
+                            <td>2.19</td>
+                            <td>1.08</td>
+                            <td class="negative">$-18,020</td>
+                        </tr>
+        
+                        <tr>
+                            <td>30</td>
+                            <td>200</td>
+                            <td>25</td>
+                            <td>8.00</td>
+                            <td>51</td>
+                            <td>682</td>
+                            <td>13.4</td>
+                            <td>10.3%</td>
+                            <td class="positive">$30,550</td>
+                            <td class="positive">$44.79</td>
+                            <td><strong>0.50</strong></td>
+                            <td>3.92</td>
+                            <td>0.92</td>
+                            <td class="negative">$-34,375</td>
+                        </tr>
+        
+                        <tr>
+                            <td>31</td>
+                            <td>50</td>
+                            <td>50</td>
+                            <td>1.00</td>
+                            <td>51</td>
+                            <td>1247</td>
+                            <td>24.5</td>
+                            <td>51.4%</td>
+                            <td class="positive">$35,080</td>
+                            <td class="positive">$28.13</td>
+                            <td><strong>0.44</strong></td>
+                            <td>2.33</td>
+                            <td>1.06</td>
+                            <td class="negative">$-32,075</td>
+                        </tr>
+        
+                        <tr>
+                            <td>32</td>
+                            <td>150</td>
+                            <td>25</td>
+                            <td>6.00</td>
+                            <td>51</td>
+                            <td>883</td>
+                            <td>17.3</td>
+                            <td>14.2%</td>
+                            <td class="positive">$30,405</td>
+                            <td class="positive">$34.43</td>
+                            <td><strong>0.44</strong></td>
+                            <td>3.36</td>
+                            <td>1.00</td>
+                            <td class="negative">$-44,710</td>
+                        </tr>
+        
+                        <tr>
+                            <td>33</td>
+                            <td>50</td>
+                            <td>25</td>
+                            <td>2.00</td>
+                            <td>51</td>
+                            <td>1891</td>
+                            <td>37.1</td>
+                            <td>34.3%</td>
+                            <td class="positive">$31,200</td>
+                            <td class="positive">$16.50</td>
+                            <td><strong>0.36</strong></td>
+                            <td>2.07</td>
+                            <td>1.05</td>
+                            <td class="negative">$-19,460</td>
+                        </tr>
+        
+                        <tr>
+                            <td>34</td>
+                            <td>50</td>
+                            <td>15</td>
+                            <td>3.33</td>
+                            <td>51</td>
+                            <td>2471</td>
+                            <td>48.5</td>
+                            <td>23.9%</td>
+                            <td class="positive">$30,820</td>
+                            <td class="positive">$12.47</td>
+                            <td><strong>0.35</strong></td>
+                            <td>1.87</td>
+                            <td>1.05</td>
+                            <td class="negative">$-16,140</td>
+                        </tr>
+        
+                        <tr>
+                            <td>35</td>
+                            <td>25</td>
+                            <td>50</td>
+                            <td>0.50</td>
+                            <td>51</td>
+                            <td>2081</td>
+                            <td>40.8</td>
+                            <td>67.7%</td>
+                            <td class="positive">$24,855</td>
+                            <td class="positive">$11.94</td>
+                            <td><strong>0.27</strong></td>
+                            <td>1.08</td>
+                            <td>1.05</td>
+                            <td class="negative">$-24,950</td>
+                        </tr>
+        
+                        <tr>
+                            <td>36</td>
+                            <td>75</td>
+                            <td>50</td>
+                            <td>1.50</td>
+                            <td>51</td>
+                            <td>899</td>
+                            <td>17.6</td>
+                            <td>40.3%</td>
+                            <td class="positive">$16,735</td>
+                            <td class="positive">$18.62</td>
+                            <td><strong>0.24</strong></td>
+                            <td>1.46</td>
+                            <td>1.01</td>
+                            <td class="negative">$-31,860</td>
+                        </tr>
+        
+                        <tr>
+                            <td>37</td>
+                            <td>75</td>
+                            <td>35</td>
+                            <td>2.14</td>
+                            <td>51</td>
+                            <td>1128</td>
+                            <td>22.1</td>
+                            <td>31.9%</td>
+                            <td class="positive">$17,680</td>
+                            <td class="positive">$15.67</td>
+                            <td><strong>0.24</strong></td>
+                            <td>1.56</td>
+                            <td>1.00</td>
+                            <td class="negative">$-39,210</td>
+                        </tr>
+        
+                        <tr>
+                            <td>38</td>
+                            <td>75</td>
+                            <td>15</td>
+                            <td>5.00</td>
+                            <td>51</td>
+                            <td>1901</td>
+                            <td>37.3</td>
+                            <td>16.9%</td>
+                            <td class="positive">$16,385</td>
+                            <td class="positive">$8.62</td>
+                            <td><strong>0.20</strong></td>
+                            <td>1.18</td>
+                            <td>1.02</td>
+                            <td class="negative">$-19,270</td>
+                        </tr>
+        
+                        <tr>
+                            <td>39</td>
+                            <td>25</td>
+                            <td>15</td>
+                            <td>1.67</td>
+                            <td>51</td>
+                            <td>3576</td>
+                            <td>70.1</td>
+                            <td>38.1%</td>
+                            <td class="positive">$16,730</td>
+                            <td class="positive">$4.68</td>
+                            <td><strong>0.18</strong></td>
+                            <td>0.75</td>
+                            <td>1.02</td>
+                            <td class="negative">$-14,635</td>
+                        </tr>
+        
+                        <tr>
+                            <td>40</td>
+                            <td>75</td>
+                            <td>25</td>
+                            <td>3.00</td>
+                            <td>51</td>
+                            <td>1417</td>
+                            <td>27.8</td>
+                            <td>25.1%</td>
+                            <td class="positive">$14,400</td>
+                            <td class="positive">$10.16</td>
+                            <td><strong>0.18</strong></td>
+                            <td>1.19</td>
+                            <td>1.00</td>
+                            <td class="negative">$-31,725</td>
+                        </tr>
+        
+                        <tr>
+                            <td>41</td>
+                            <td>25</td>
+                            <td>35</td>
+                            <td>0.71</td>
+                            <td>51</td>
+                            <td>2478</td>
+                            <td>48.6</td>
+                            <td>58.8%</td>
+                            <td class="positive">$12,290</td>
+                            <td class="positive">$4.96</td>
+                            <td><strong>0.13</strong></td>
+                            <td>0.57</td>
+                            <td>1.02</td>
+                            <td class="negative">$-29,930</td>
+                        </tr>
+        
+                        <tr>
+                            <td>42</td>
+                            <td>25</td>
+                            <td>25</td>
+                            <td>1.00</td>
+                            <td>51</td>
+                            <td>2843</td>
+                            <td>55.7</td>
+                            <td>50.4%</td>
+                            <td class="positive">$10,815</td>
+                            <td class="positive">$3.80</td>
+                            <td><strong>0.12</strong></td>
+                            <td>0.50</td>
+                            <td>1.02</td>
+                            <td class="negative">$-22,415</td>
+                        </tr>
+        
+                    </tbody>
+                </table>
+            </div>
+        </div>
+
+        <div class="footer">
+            <p>Generated on 2025-12-24 17:07:57</p>
+            <p><strong>Metric Definitions:</strong></p>
+            <p style="font-size: 12px; margin: 5px 0;">
+                <strong>Sharpe Ratio:</strong> Risk-adjusted return (higher is better, >1.0 is good, >2.0 is excellent)<br>
+                <strong>Sortino Ratio:</strong> Like Sharpe but only penalizes downside volatility<br>
+                <strong>Profit Factor:</strong> Gross profit / Gross loss (>1.5 is good)<br>
+                <strong>Max DD:</strong> Maximum drawdown from peak equity
+            </p>
+        </div>
+    </body>
+    </html>
+    

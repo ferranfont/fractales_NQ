@@ -1,0 +1,466 @@
+================================================================================
+OPTIMIZACIÓN DE TIEMPO EN MERCADO - VWAP MOMENTUM STRATEGY
+================================================================================
+
+[INFO] Archivos encontrados: 53
+[INFO] Rango: 20251001 -> 20251212
+
+================================================================================
+PARTE 1: OPTIMIZACIÓN GLOBAL POR DURACIÓN
+================================================================================
+
+[INFO] Procesando 20251001...
+[INFO] Señales detectadas: 176
+  [  1min] Trades: 176 | P&L: $     385 | Avg: $     2 | WR:  49.4%
+  [  5min] Trades: 176 | P&L: $     585 | Avg: $     3 | WR:  50.0%
+  [ 15min] Trades: 176 | P&L: $    3735 | Avg: $    21 | WR:  55.1%
+  [ 60min] Trades: 176 | P&L: $   56360 | Avg: $   320 | WR:  76.7%
+  [120min] Trades: 176 | P&L: $   78565 | Avg: $   446 | WR:  75.6%
+  [180min] Trades: 176 | P&L: $  162650 | Avg: $   924 | WR:  79.0%
+  [240min] Trades: 176 | P&L: $  205400 | Avg: $  1167 | WR:  78.4%
+  [300min] Trades: 176 | P&L: $  212910 | Avg: $  1210 | WR:  79.0%
+  [360min] Trades: 176 | P&L: $  261895 | Avg: $  1488 | WR:  79.0%
+  [480min] Trades: 176 | P&L: $  277765 | Avg: $  1578 | WR:  79.0%
+  [   EOD] Trades: 176 | P&L: $  199720 | Avg: $  1135 | WR:  73.9%
+
+[INFO] Procesando 20251002...
+[INFO] Señales detectadas: 58
+  [  1min] Trades:  58 | P&L: $    -885 | Avg: $   -15 | WR:  46.6%
+  [  5min] Trades:  58 | P&L: $    1145 | Avg: $    20 | WR:  46.6%
+  [ 15min] Trades:  58 | P&L: $   -4975 | Avg: $   -86 | WR:  29.3%
+  [ 60min] Trades:  58 | P&L: $  -11690 | Avg: $  -202 | WR:  36.2%
+  [120min] Trades:  58 | P&L: $   -4500 | Avg: $   -78 | WR:  43.1%
+  [180min] Trades:  58 | P&L: $  -16720 | Avg: $  -288 | WR:  41.4%
+  [240min] Trades:  58 | P&L: $  -41055 | Avg: $  -708 | WR:  29.3%
+  [300min] Trades:  58 | P&L: $  -49315 | Avg: $  -850 | WR:  27.6%
+  [360min] Trades:  58 | P&L: $  -48515 | Avg: $  -836 | WR:  25.9%
+  [480min] Trades:  58 | P&L: $  -46335 | Avg: $  -799 | WR:  27.6%
+  [   EOD] Trades:  58 | P&L: $  -46335 | Avg: $  -799 | WR:  27.6%
+
+[INFO] Procesando 20251003...
+[INFO] Señales detectadas: 111
+  [  1min] Trades: 111 | P&L: $     -25 | Avg: $    -0 | WR:  43.2%
+  [  5min] Trades: 111 | P&L: $     195 | Avg: $     2 | WR:  45.0%
+  [ 15min] Trades: 111 | P&L: $   -4335 | Avg: $   -39 | WR:  42.3%
+  [ 60min] Trades: 111 | P&L: $  -16325 | Avg: $  -147 | WR:  35.1%
+  [120min] Trades: 111 | P&L: $  -45580 | Avg: $  -411 | WR:  28.8%
+  [180min] Trades: 111 | P&L: $   -6075 | Avg: $   -55 | WR:  45.9%
+  [240min] Trades: 111 | P&L: $   43670 | Avg: $   393 | WR:  55.0%
+  [300min] Trades: 111 | P&L: $   26595 | Avg: $   240 | WR:  55.0%
+  [360min] Trades: 111 | P&L: $   34955 | Avg: $   315 | WR:  55.0%
+  [480min] Trades: 111 | P&L: $   34435 | Avg: $   310 | WR:  55.0%
+  [   EOD] Trades: 111 | P&L: $   34435 | Avg: $   310 | WR:  55.0%
+
+[INFO] Procesando 20251006...
+[INFO] Señales detectadas: 56
+  [  1min] Trades:  56 | P&L: $   -1115 | Avg: $   -20 | WR:  41.1%
+  [  5min] Trades:  56 | P&L: $   -1760 | Avg: $   -31 | WR:  39.3%
+  [ 15min] Trades:  56 | P&L: $   -3420 | Avg: $   -61 | WR:  37.5%
+  [ 60min] Trades:  56 | P&L: $  -14040 | Avg: $  -251 | WR:  30.4%
+  [120min] Trades:  56 | P&L: $  -30290 | Avg: $  -541 | WR:  33.9%
+  [180min] Trades:  56 | P&L: $  -25530 | Avg: $  -456 | WR:  33.9%
+  [240min] Trades:  56 | P&L: $  -18600 | Avg: $  -332 | WR:  30.4%
+  [300min] Trades:  56 | P&L: $  -33380 | Avg: $  -596 | WR:  25.0%
+  [360min] Trades:  56 | P&L: $  -13920 | Avg: $  -249 | WR:  39.3%
+  [480min] Trades:  56 | P&L: $  -24600 | Avg: $  -439 | WR:  19.6%
+  [   EOD] Trades:  56 | P&L: $  -24570 | Avg: $  -439 | WR:  17.9%
+
+[INFO] Procesando 20251007...
+[INFO] Señales detectadas: 122
+  [  1min] Trades: 122 | P&L: $    1725 | Avg: $    14 | WR:  50.0%
+  [  5min] Trades: 122 | P&L: $    6905 | Avg: $    57 | WR:  50.0%
+  [ 15min] Trades: 122 | P&L: $   18975 | Avg: $   156 | WR:  57.4%
+  [ 60min] Trades: 122 | P&L: $   74830 | Avg: $   613 | WR:  48.4%
+  [120min] Trades: 122 | P&L: $   51625 | Avg: $   423 | WR:  56.6%
+  [180min] Trades: 122 | P&L: $   39890 | Avg: $   327 | WR:  50.8%
+  [240min] Trades: 122 | P&L: $   27675 | Avg: $   227 | WR:  48.4%
+  [300min] Trades: 122 | P&L: $    1970 | Avg: $    16 | WR:  45.9%
+  [360min] Trades: 122 | P&L: $    2770 | Avg: $    23 | WR:  45.9%
+  [480min] Trades: 122 | P&L: $    7050 | Avg: $    58 | WR:  45.9%
+  [   EOD] Trades: 122 | P&L: $   23220 | Avg: $   190 | WR:  52.5%
+
+[INFO] Procesando 20251008...
+[INFO] Señales detectadas: 102
+  [  1min] Trades: 102 | P&L: $    -345 | Avg: $    -3 | WR:  46.1%
+  [  5min] Trades: 102 | P&L: $    1440 | Avg: $    14 | WR:  52.0%
+  [ 15min] Trades: 102 | P&L: $    9650 | Avg: $    95 | WR:  50.0%
+  [ 60min] Trades: 102 | P&L: $    8735 | Avg: $    86 | WR:  53.9%
+  [120min] Trades: 102 | P&L: $   62505 | Avg: $   613 | WR:  76.5%
+  [180min] Trades: 102 | P&L: $   60570 | Avg: $   594 | WR:  76.5%
+  [240min] Trades: 102 | P&L: $  104425 | Avg: $  1024 | WR:  76.5%
+  [300min] Trades: 102 | P&L: $  126200 | Avg: $  1237 | WR:  76.5%
+  [360min] Trades: 102 | P&L: $  164725 | Avg: $  1615 | WR:  76.5%
+  [480min] Trades: 102 | P&L: $  183535 | Avg: $  1799 | WR:  76.5%
+  [   EOD] Trades: 102 | P&L: $  182260 | Avg: $  1787 | WR:  76.5%
+
+[INFO] Procesando 20251009...
+[INFO] Señales detectadas: 100
+  [  1min] Trades: 100 | P&L: $   -3370 | Avg: $   -34 | WR:  42.0%
+  [  5min] Trades: 100 | P&L: $  -11625 | Avg: $  -116 | WR:  31.0%
+  [ 15min] Trades: 100 | P&L: $  -19910 | Avg: $  -199 | WR:  35.0%
+  [ 60min] Trades: 100 | P&L: $  -20390 | Avg: $  -204 | WR:  41.0%
+  [120min] Trades: 100 | P&L: $  -53120 | Avg: $  -531 | WR:  31.0%
+  [180min] Trades: 100 | P&L: $  -37240 | Avg: $  -372 | WR:  43.0%
+  [240min] Trades: 100 | P&L: $  -31760 | Avg: $  -318 | WR:  52.0%
+  [300min] Trades: 100 | P&L: $  -57675 | Avg: $  -577 | WR:  45.0%
+  [360min] Trades: 100 | P&L: $  -71675 | Avg: $  -717 | WR:  37.0%
+  [480min] Trades: 100 | P&L: $  -77605 | Avg: $  -776 | WR:  36.0%
+  [   EOD] Trades: 100 | P&L: $  -74350 | Avg: $  -744 | WR:  36.0%
+
+[INFO] Procesando 20251010...
+[INFO] Señales detectadas: 278
+  [  1min] Trades: 278 | P&L: $    6535 | Avg: $    24 | WR:  49.3%
+  [  5min] Trades: 278 | P&L: $   39065 | Avg: $   141 | WR:  54.0%
+  [ 15min] Trades: 278 | P&L: $   95155 | Avg: $   342 | WR:  50.7%
+  [ 60min] Trades: 278 | P&L: $  459255 | Avg: $  1652 | WR:  69.1%
+  [120min] Trades: 278 | P&L: $  749470 | Avg: $  2696 | WR:  80.6%
+  [180min] Trades: 278 | P&L: $  997035 | Avg: $  3586 | WR:  82.7%
+  [240min] Trades: 278 | P&L: $ 1226375 | Avg: $  4411 | WR:  82.7%
+  [300min] Trades: 278 | P&L: $ 1485305 | Avg: $  5343 | WR:  82.7%
+  [360min] Trades: 278 | P&L: $ 1826860 | Avg: $  6571 | WR:  86.7%
+  [480min] Trades: 278 | P&L: $ 1789425 | Avg: $  6437 | WR:  86.3%
+  [   EOD] Trades: 278 | P&L: $ 1952625 | Avg: $  7024 | WR:  87.1%
+
+[INFO] Procesando 20251013...
+[INFO] Señales detectadas: 297
+  [  1min] Trades: 297 | P&L: $   -4140 | Avg: $   -14 | WR:  49.5%
+  [  5min] Trades: 297 | P&L: $  -23065 | Avg: $   -78 | WR:  46.1%
+  [ 15min] Trades: 297 | P&L: $  -73690 | Avg: $  -248 | WR:  36.7%
+  [ 60min] Trades: 297 | P&L: $ -164360 | Avg: $  -553 | WR:  34.0%
+  [120min] Trades: 297 | P&L: $ -162235 | Avg: $  -546 | WR:  42.4%
+  [180min] Trades: 297 | P&L: $  -76100 | Avg: $  -256 | WR:  45.1%
+  [240min] Trades: 297 | P&L: $ -133275 | Avg: $  -449 | WR:  45.8%
+  [300min] Trades: 297 | P&L: $ -173030 | Avg: $  -583 | WR:  43.8%
+  [360min] Trades: 297 | P&L: $ -174415 | Avg: $  -587 | WR:  41.4%
+  [480min] Trades: 297 | P&L: $ -189065 | Avg: $  -637 | WR:  35.4%
+  [   EOD] Trades: 297 | P&L: $ -140130 | Avg: $  -472 | WR:  41.1%
+
+[INFO] Procesando 20251014...
+[INFO] Señales detectadas: 563
+  [  1min] Trades: 563 | P&L: $    7685 | Avg: $    14 | WR:  52.6%
+  [  5min] Trades: 563 | P&L: $   29580 | Avg: $    53 | WR:  52.9%
+  [ 15min] Trades: 563 | P&L: $   56190 | Avg: $   100 | WR:  54.5%
+  [ 60min] Trades: 563 | P&L: $  125265 | Avg: $   222 | WR:  56.3%
+  [120min] Trades: 563 | P&L: $  176085 | Avg: $   313 | WR:  52.6%
+  [180min] Trades: 563 | P&L: $  431315 | Avg: $   766 | WR:  62.7%
+  [240min] Trades: 563 | P&L: $  192460 | Avg: $   342 | WR:  51.3%
+  [300min] Trades: 563 | P&L: $  112470 | Avg: $   200 | WR:  47.1%
+  [360min] Trades: 563 | P&L: $   58865 | Avg: $   105 | WR:  53.8%
+  [480min] Trades: 563 | P&L: $   13325 | Avg: $    24 | WR:  50.1%
+  [   EOD] Trades: 563 | P&L: $ -246075 | Avg: $  -437 | WR:  48.3%
+
+[INFO] Procesando 20251015...
+[INFO] Señales detectadas: 346
+  [  1min] Trades: 346 | P&L: $    1920 | Avg: $     6 | WR:  51.2%
+  [  5min] Trades: 346 | P&L: $   15925 | Avg: $    46 | WR:  51.4%
+  [ 15min] Trades: 346 | P&L: $   32275 | Avg: $    93 | WR:  46.2%
+  [ 60min] Trades: 346 | P&L: $  -95140 | Avg: $  -275 | WR:  40.8%
+  [120min] Trades: 346 | P&L: $  -70415 | Avg: $  -204 | WR:  41.3%
+  [180min] Trades: 346 | P&L: $ -252310 | Avg: $  -729 | WR:  55.2%
+  [240min] Trades: 346 | P&L: $ -123750 | Avg: $  -358 | WR:  51.7%
+  [300min] Trades: 346 | P&L: $ -178820 | Avg: $  -517 | WR:  48.3%
+  [360min] Trades: 346 | P&L: $ -129460 | Avg: $  -374 | WR:  49.1%
+  [480min] Trades: 346 | P&L: $ -185300 | Avg: $  -536 | WR:  42.8%
+  [   EOD] Trades: 346 | P&L: $ -170945 | Avg: $  -494 | WR:  42.8%
+
+[INFO] Procesando 20251016...
+[INFO] Señales detectadas: 406
+  [  1min] Trades: 406 | P&L: $   -3125 | Avg: $    -8 | WR:  48.3%
+  [  5min] Trades: 406 | P&L: $  -16155 | Avg: $   -40 | WR:  43.8%
+  [ 15min] Trades: 406 | P&L: $  -26525 | Avg: $   -65 | WR:  41.6%
+  [ 60min] Trades: 406 | P&L: $ -153320 | Avg: $  -378 | WR:  31.5%
+  [120min] Trades: 406 | P&L: $ -123090 | Avg: $  -303 | WR:  45.8%
+  [180min] Trades: 406 | P&L: $  -19470 | Avg: $   -48 | WR:  45.3%
+  [240min] Trades: 406 | P&L: $ -174915 | Avg: $  -431 | WR:  43.6%
+  [300min] Trades: 406 | P&L: $ -126585 | Avg: $  -312 | WR:  46.6%
+  [360min] Trades: 406 | P&L: $ -175020 | Avg: $  -431 | WR:  45.1%
+  [480min] Trades: 406 | P&L: $ -165550 | Avg: $  -408 | WR:  42.6%
+  [   EOD] Trades: 406 | P&L: $ -330655 | Avg: $  -814 | WR:  39.2%
+
+[INFO] Procesando 20251017...
+[INFO] Señales detectadas: 610
+  [  1min] Trades: 610 | P&L: $   -1135 | Avg: $    -2 | WR:  48.4%
+  [  5min] Trades: 610 | P&L: $    4670 | Avg: $     8 | WR:  48.2%
+  [ 15min] Trades: 610 | P&L: $   68000 | Avg: $   111 | WR:  57.7%
+  [ 60min] Trades: 610 | P&L: $ -152965 | Avg: $  -251 | WR:  49.7%
+  [120min] Trades: 610 | P&L: $  177330 | Avg: $   291 | WR:  63.6%
+  [180min] Trades: 610 | P&L: $  320020 | Avg: $   525 | WR:  61.1%
+  [240min] Trades: 610 | P&L: $  155570 | Avg: $   255 | WR:  64.1%
+  [300min] Trades: 610 | P&L: $  313345 | Avg: $   514 | WR:  63.3%
+  [360min] Trades: 610 | P&L: $  143195 | Avg: $   235 | WR:  60.2%
+  [480min] Trades: 610 | P&L: $  393655 | Avg: $   645 | WR:  59.7%
+  [   EOD] Trades: 610 | P&L: $ -187665 | Avg: $  -308 | WR:  55.6%
+
+[INFO] Procesando 20251020...
+[INFO] Señales detectadas: 112
+  [  1min] Trades: 112 | P&L: $    -385 | Avg: $    -3 | WR:  48.2%
+  [  5min] Trades: 112 | P&L: $    3880 | Avg: $    35 | WR:  49.1%
+  [ 15min] Trades: 112 | P&L: $   21590 | Avg: $   193 | WR:  67.0%
+  [ 60min] Trades: 112 | P&L: $  100745 | Avg: $   900 | WR:  86.6%
+  [120min] Trades: 112 | P&L: $  125035 | Avg: $  1116 | WR:  86.6%
+  [180min] Trades: 112 | P&L: $  148310 | Avg: $  1324 | WR:  92.0%
+  [240min] Trades: 112 | P&L: $  149905 | Avg: $  1338 | WR:  89.3%
+  [300min] Trades: 112 | P&L: $  115835 | Avg: $  1034 | WR:  73.2%
+  [360min] Trades: 112 | P&L: $   94345 | Avg: $   842 | WR:  85.7%
+  [480min] Trades: 112 | P&L: $   97570 | Avg: $   871 | WR:  85.7%
+  [   EOD] Trades: 112 | P&L: $   94360 | Avg: $   842 | WR:  85.7%
+
+[INFO] Procesando 20251021...
+[INFO] Señales detectadas: 113
+  [  1min] Trades: 113 | P&L: $   -3350 | Avg: $   -30 | WR:  47.8%
+  [  5min] Trades: 113 | P&L: $  -10670 | Avg: $   -94 | WR:  40.7%
+  [ 15min] Trades: 113 | P&L: $  -20085 | Avg: $  -178 | WR:  23.9%
+  [ 60min] Trades: 113 | P&L: $  -37380 | Avg: $  -331 | WR:  22.1%
+  [120min] Trades: 113 | P&L: $  -60635 | Avg: $  -537 | WR:  11.5%
+  [180min] Trades: 113 | P&L: $  -35545 | Avg: $  -315 | WR:  26.5%
+  [240min] Trades: 113 | P&L: $  -44035 | Avg: $  -390 | WR:  40.7%
+  [300min] Trades: 113 | P&L: $  -69220 | Avg: $  -613 | WR:  21.2%
+  [360min] Trades: 113 | P&L: $  -68065 | Avg: $  -602 | WR:  12.4%
+  [480min] Trades: 113 | P&L: $  -58650 | Avg: $  -519 | WR:  12.4%
+  [   EOD] Trades: 113 | P&L: $  -58650 | Avg: $  -519 | WR:  12.4%
+
+[INFO] Procesando 20251022...
+[INFO] Señales detectadas: 331
+  [  1min] Trades: 331 | P&L: $   -2475 | Avg: $    -7 | WR:  50.2%
+  [  5min] Trades: 331 | P&L: $   -8050 | Avg: $   -24 | WR:  46.5%
+  [ 15min] Trades: 331 | P&L: $  -35995 | Avg: $  -109 | WR:  43.8%
+  [ 60min] Trades: 331 | P&L: $   85525 | Avg: $   258 | WR:  59.8%
+  [120min] Trades: 331 | P&L: $   31370 | Avg: $    95 | WR:  55.9%
+  [180min] Trades: 331 | P&L: $   12050 | Avg: $    36 | WR:  56.2%
+  [240min] Trades: 331 | P&L: $  -61305 | Avg: $  -185 | WR:  54.4%
+  [300min] Trades: 331 | P&L: $  -76595 | Avg: $  -231 | WR:  50.2%
+  [360min] Trades: 331 | P&L: $  -10620 | Avg: $   -32 | WR:  51.4%
+  [480min] Trades: 331 | P&L: $  -29905 | Avg: $   -90 | WR:  51.4%
+  [   EOD] Trades: 331 | P&L: $ -136910 | Avg: $  -414 | WR:  51.4%
+
+[INFO] Procesando 20251023...
+[INFO] Señales detectadas: 231
+  [  1min] Trades: 231 | P&L: $    -550 | Avg: $    -2 | WR:  48.9%
+  [  5min] Trades: 231 | P&L: $   -4335 | Avg: $   -19 | WR:  45.5%
+  [ 15min] Trades: 231 | P&L: $    1970 | Avg: $     9 | WR:  40.7%
+  [ 60min] Trades: 231 | P&L: $   94875 | Avg: $   411 | WR:  59.7%
+  [120min] Trades: 231 | P&L: $   99645 | Avg: $   431 | WR:  68.0%
+  [180min] Trades: 231 | P&L: $  135595 | Avg: $   587 | WR:  67.1%
+  [240min] Trades: 231 | P&L: $  160910 | Avg: $   697 | WR:  68.4%
+  [300min] Trades: 231 | P&L: $  159550 | Avg: $   691 | WR:  68.4%
+  [360min] Trades: 231 | P&L: $  148990 | Avg: $   645 | WR:  68.4%
+  [480min] Trades: 231 | P&L: $  124785 | Avg: $   540 | WR:  63.2%
+  [   EOD] Trades: 231 | P&L: $  203390 | Avg: $   880 | WR:  71.4%
+
+[INFO] Procesando 20251024...
+[INFO] Señales detectadas: 83
+  [  1min] Trades:  83 | P&L: $   -2230 | Avg: $   -27 | WR:  49.4%
+  [  5min] Trades:  83 | P&L: $  -11165 | Avg: $  -135 | WR:  31.3%
+  [ 15min] Trades:  83 | P&L: $  -30355 | Avg: $  -366 | WR:  16.9%
+  [ 60min] Trades:  83 | P&L: $  -32045 | Avg: $  -386 | WR:  38.6%
+  [120min] Trades:  83 | P&L: $  -13345 | Avg: $  -161 | WR:  68.7%
+  [180min] Trades:  83 | P&L: $   -2710 | Avg: $   -33 | WR:  77.1%
+  [240min] Trades:  83 | P&L: $   11060 | Avg: $   133 | WR:  77.1%
+  [300min] Trades:  83 | P&L: $    1425 | Avg: $    17 | WR:  48.2%
+  [360min] Trades:  83 | P&L: $  -14645 | Avg: $  -176 | WR:  27.7%
+  [480min] Trades:  83 | P&L: $  -25005 | Avg: $  -301 | WR:  16.9%
+  [   EOD] Trades:  83 | P&L: $  -27280 | Avg: $  -329 | WR:  15.7%
+
+[INFO] Procesando 20251027...
+[INFO] Señales detectadas: 54
+  [  1min] Trades:  54 | P&L: $    -515 | Avg: $   -10 | WR:  48.1%
+  [  5min] Trades:  54 | P&L: $    -215 | Avg: $    -4 | WR:  63.0%
+  [ 15min] Trades:  54 | P&L: $   -5890 | Avg: $  -109 | WR:  51.9%
+  [ 60min] Trades:  54 | P&L: $    5210 | Avg: $    96 | WR:  51.9%
+  [120min] Trades:  54 | P&L: $   10335 | Avg: $   191 | WR:  57.4%
+  [180min] Trades:  54 | P&L: $   13450 | Avg: $   249 | WR:  57.4%
+  [240min] Trades:  54 | P&L: $   18510 | Avg: $   343 | WR:  57.4%
+  [300min] Trades:  54 | P&L: $   21100 | Avg: $   391 | WR:  57.4%
+  [360min] Trades:  54 | P&L: $   37980 | Avg: $   703 | WR:  57.4%
+  [480min] Trades:  54 | P&L: $   40285 | Avg: $   746 | WR:  57.4%
+  [   EOD] Trades:  54 | P&L: $   41415 | Avg: $   767 | WR:  57.4%
+
+[INFO] Procesando 20251028...
+[INFO] Señales detectadas: 67
+  [  1min] Trades:  67 | P&L: $   -3190 | Avg: $   -48 | WR:  26.9%
+  [  5min] Trades:  67 | P&L: $   -7365 | Avg: $  -110 | WR:  32.8%
+  [ 15min] Trades:  67 | P&L: $  -10750 | Avg: $  -160 | WR:  23.9%
+  [ 60min] Trades:  67 | P&L: $    3365 | Avg: $    50 | WR:  55.2%
+  [120min] Trades:  67 | P&L: $    -795 | Avg: $   -12 | WR:  34.3%
+  [180min] Trades:  67 | P&L: $   20225 | Avg: $   302 | WR:  53.7%
+  [240min] Trades:  67 | P&L: $    5680 | Avg: $    85 | WR:  58.2%
+  [300min] Trades:  67 | P&L: $   16565 | Avg: $   247 | WR:  52.2%
+  [360min] Trades:  67 | P&L: $   32925 | Avg: $   491 | WR:  52.2%
+  [480min] Trades:  67 | P&L: $   21570 | Avg: $   322 | WR:  52.2%
+  [   EOD] Trades:  67 | P&L: $   21175 | Avg: $   316 | WR:  52.2%
+
+[INFO] Procesando 20251029...
+[INFO] Señales detectadas: 135
+  [  1min] Trades: 135 | P&L: $   -8045 | Avg: $   -60 | WR:  37.0%
+  [  5min] Trades: 135 | P&L: $  -39040 | Avg: $  -289 | WR:  30.4%
+  [ 15min] Trades: 135 | P&L: $  -67180 | Avg: $  -498 | WR:  18.5%
+  [ 60min] Trades: 135 | P&L: $  -48755 | Avg: $  -361 | WR:  32.6%
+  [120min] Trades: 135 | P&L: $ -110800 | Avg: $  -821 | WR:  15.6%
+  [180min] Trades: 135 | P&L: $  -63020 | Avg: $  -467 | WR:  32.6%
+  [240min] Trades: 135 | P&L: $  -59325 | Avg: $  -439 | WR:  34.1%
+  [300min] Trades: 135 | P&L: $  -78150 | Avg: $  -579 | WR:  32.6%
+  [360min] Trades: 135 | P&L: $  -56390 | Avg: $  -418 | WR:  35.6%
+  [480min] Trades: 135 | P&L: $  -74060 | Avg: $  -549 | WR:  34.1%
+  [   EOD] Trades: 135 | P&L: $  -72055 | Avg: $  -534 | WR:  34.1%
+
+[INFO] Procesando 20251030...
+[INFO] Señales detectadas: 553
+  [  1min] Trades: 553 | P&L: $    5475 | Avg: $    10 | WR:  53.5%
+  [  5min] Trades: 553 | P&L: $    9365 | Avg: $    17 | WR:  51.5%
+  [ 15min] Trades: 553 | P&L: $  -12115 | Avg: $   -22 | WR:  49.4%
+  [ 60min] Trades: 553 | P&L: $  -56570 | Avg: $  -102 | WR:  40.3%
+  [120min] Trades: 553 | P&L: $ -296790 | Avg: $  -537 | WR:  35.4%
+  [180min] Trades: 553 | P&L: $ -229255 | Avg: $  -415 | WR:  40.9%
+  [240min] Trades: 553 | P&L: $ -247630 | Avg: $  -448 | WR:  42.7%
+  [300min] Trades: 553 | P&L: $ -217855 | Avg: $  -394 | WR:  40.0%
+  [360min] Trades: 553 | P&L: $ -203820 | Avg: $  -369 | WR:  45.6%
+  [480min] Trades: 553 | P&L: $ -413150 | Avg: $  -747 | WR:  44.5%
+  [   EOD] Trades: 553 | P&L: $ -505780 | Avg: $  -915 | WR:  40.7%
+
+[INFO] Procesando 20251031...
+[INFO] Señales detectadas: 362
+  [  1min] Trades: 362 | P&L: $    3545 | Avg: $    10 | WR:  52.8%
+  [  5min] Trades: 362 | P&L: $   18495 | Avg: $    51 | WR:  54.4%
+  [ 15min] Trades: 362 | P&L: $   39640 | Avg: $   110 | WR:  57.5%
+  [ 60min] Trades: 362 | P&L: $  -38040 | Avg: $  -105 | WR:  42.5%
+  [120min] Trades: 362 | P&L: $ -176140 | Avg: $  -487 | WR:  35.9%
+  [180min] Trades: 362 | P&L: $ -113480 | Avg: $  -313 | WR:  35.6%
+  [240min] Trades: 362 | P&L: $  -74770 | Avg: $  -207 | WR:  45.3%
+  [300min] Trades: 362 | P&L: $  -85160 | Avg: $  -235 | WR:  45.3%
+  [360min] Trades: 362 | P&L: $ -163690 | Avg: $  -452 | WR:  41.4%
+  [480min] Trades: 362 | P&L: $ -122540 | Avg: $  -339 | WR:  41.7%
+  [   EOD] Trades: 362 | P&L: $ -195715 | Avg: $  -541 | WR:  41.4%
+
+[INFO] Procesando 20251103...
+[ERROR] Error procesando 20251103: "Column(s) ['price'] do not exist"
+
+[INFO] Procesando 20251104...
+[ERROR] Error procesando 20251104: "Column(s) ['price'] do not exist"
+
+[INFO] Procesando 20251105...
+[ERROR] Error procesando 20251105: "Column(s) ['price'] do not exist"
+
+[INFO] Procesando 20251106...
+[ERROR] Error procesando 20251106: "Column(s) ['price'] do not exist"
+
+[INFO] Procesando 20251107...
+[ERROR] Error procesando 20251107: "Column(s) ['price'] do not exist"
+
+[INFO] Procesando 20251110...
+[ERROR] Error procesando 20251110: "Column(s) ['price'] do not exist"
+
+[INFO] Procesando 20251111...
+[ERROR] Error procesando 20251111: "Column(s) ['price'] do not exist"
+
+[INFO] Procesando 20251112...
+[ERROR] Error procesando 20251112: "Column(s) ['price'] do not exist"
+
+[INFO] Procesando 20251113...
+[ERROR] Error procesando 20251113: "Column(s) ['price'] do not exist"
+
+[INFO] Procesando 20251114...
+[ERROR] Error procesando 20251114: "Column(s) ['price'] do not exist"
+
+[INFO] Procesando 20251117...
+[ERROR] Error procesando 20251117: "Column(s) ['price'] do not exist"
+
+[INFO] Procesando 20251118...
+[ERROR] Error procesando 20251118: "Column(s) ['price'] do not exist"
+
+[INFO] Procesando 20251119...
+[ERROR] Error procesando 20251119: "Column(s) ['price'] do not exist"
+
+[INFO] Procesando 20251120...
+[ERROR] Error procesando 20251120: "Column(s) ['price'] do not exist"
+
+[INFO] Procesando 20251121...
+[ERROR] Error procesando 20251121: "Column(s) ['price'] do not exist"
+
+[INFO] Procesando 20251124...
+[ERROR] Error procesando 20251124: "Column(s) ['price'] do not exist"
+
+[INFO] Procesando 20251125...
+[ERROR] Error procesando 20251125: "Column(s) ['price'] do not exist"
+
+[INFO] Procesando 20251126...
+[ERROR] Error procesando 20251126: "Column(s) ['price'] do not exist"
+
+[INFO] Procesando 20251127...
+[ERROR] Error procesando 20251127: "Column(s) ['price'] do not exist"
+
+[INFO] Procesando 20251128...
+[ERROR] Error procesando 20251128: "Column(s) ['price'] do not exist"
+
+[INFO] Procesando 20251201...
+[ERROR] Error procesando 20251201: "Column(s) ['price'] do not exist"
+
+[INFO] Procesando 20251202...
+[ERROR] Error procesando 20251202: "Column(s) ['price'] do not exist"
+
+[INFO] Procesando 20251203...
+[ERROR] Error procesando 20251203: "Column(s) ['price'] do not exist"
+
+[INFO] Procesando 20251204...
+[ERROR] Error procesando 20251204: "Column(s) ['price'] do not exist"
+
+[INFO] Procesando 20251205...
+[ERROR] Error procesando 20251205: "Column(s) ['price'] do not exist"
+
+[INFO] Procesando 20251208...
+[ERROR] Error procesando 20251208: "Column(s) ['price'] do not exist"
+
+[INFO] Procesando 20251209...
+[ERROR] Error procesando 20251209: "Column(s) ['price'] do not exist"
+
+[INFO] Procesando 20251210...
+[INFO] Señales detectadas: 218
+  [  1min] Trades: 218 | P&L: $   -1350 | Avg: $    -6 | WR:  49.5%
+  [  5min] Trades: 218 | P&L: $  -14770 | Avg: $   -68 | WR:  41.3%
+  [ 15min] Trades: 218 | P&L: $  -37505 | Avg: $  -172 | WR:  36.2%
+  [ 60min] Trades: 218 | P&L: $  -93295 | Avg: $  -428 | WR:  28.4%
+  [120min] Trades: 218 | P&L: $ -154520 | Avg: $  -709 | WR:  23.4%
+  [180min] Trades: 218 | P&L: $  -71740 | Avg: $  -329 | WR:  34.9%
+  [240min] Trades: 218 | P&L: $  -22790 | Avg: $  -105 | WR:  42.2%
+  [300min] Trades: 218 | P&L: $  -98805 | Avg: $  -453 | WR:  41.3%
+  [360min] Trades: 218 | P&L: $  -97790 | Avg: $  -449 | WR:  39.9%
+  [480min] Trades: 218 | P&L: $  -58040 | Avg: $  -266 | WR:  46.8%
+  [   EOD] Trades: 218 | P&L: $ -115755 | Avg: $  -531 | WR:  39.4%
+
+[INFO] Procesando 20251211...
+[ERROR] Error procesando 20251211: "Column(s) ['price'] do not exist"
+
+[INFO] Procesando 20251212...
+[ERROR] Error procesando 20251212: "Column(s) ['price'] do not exist"
+
+================================================================================
+RESUMEN GLOBAL POR DURACIÓN
+================================================================================
+                total_trades  total_pnl_usd  ...  rr_ratio  rr_ratio_formatted
+duration_label                               ...                              
+120min                  5484       259710.0  ...       0.9               1:0.9
+15min                   5484        -5550.0  ...       1.1               1:1.1
+180min                  5484      1391915.0  ...       0.9               1:0.9
+1min                    5484        -8960.0  ...       1.0               1:1.0
+240min                  5484      1268430.0  ...       0.9               1:0.9
+300min                  5484      1348680.0  ...       0.9               1:0.9
+360min                  5484      1579480.0  ...       0.9               1:0.9
+480min                  5484      1513595.0  ...       0.8               1:0.8
+5min                    5484       -16965.0  ...       1.0               1:1.0
+60min                   5484        79850.0  ...       1.2               1:1.2
+EOD                     5484       419730.0  ...       0.8               1:0.8
+
+[11 rows x 10 columns]
+
+[OK] Resumen CSV guardado en: d:\PYTHON\ALGOS\factales_NQ\outputs\optimization\time_optimization_summary.csv
+[OK] Resumen HTML guardado en: d:\PYTHON\ALGOS\factales_NQ\outputs\optimization\time_optimization_summary.html
+
+================================================================================
+MEJOR DURACIÓN: 360min
+  Total P&L: $1,579,480
+  Avg P&L: $305.89
+  Win Rate: 50.5%
+Traceback (most recent call last):
+  File "d:\PYTHON\ALGOS\factales_NQ\optimize_time_in_market.py", line 670, in <module>
+    print(f"  Reward/Risk: {best_rr:.2f}:1")
+                           ^^^^^^^^^^^^^
+ValueError: Unknown format code 'f' for object of type 'str'

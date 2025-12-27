@@ -15,6 +15,7 @@ __pycache__/
 outputs/*.html
 outputs/charts/*.html
 outputs/trading/*.csv
+outputs/modelos_json/*.json
 
 # IDEs
 .vscode/

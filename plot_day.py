@@ -3,10 +3,47 @@ import plotly.graph_objects as go
 from plotly.subplots import make_subplots
 import os
 from pathlib import Path
-from config import START_DATE, END_DATE, FRACTALS_DIR, CHARTS_DIR, PLOT_MINOR_FRACTALS, PLOT_MAJOR_FRACTALS, PLOT_MINOR_DOTS, PLOT_MAJOR_DOTS, HIDE_FREQUENCY_INDICATOR, PLOT_VWAP, SHOW_FAST_VWAP, SHOW_SLOW_VWAP, VWAP_FAST, VWAP_SLOW, SHOW_REGRESSION_CHANNEL, PRICE_EJECTION_TRIGGER, OVER_PRICE_EJECTION_TRIGGER
+from datetime import datetime
+from config import START_DATE, END_DATE, FRACTALS_DIR, CHARTS_DIR, PLOT_MINOR_FRACTALS, PLOT_MAJOR_FRACTALS, PLOT_MINOR_DOTS, PLOT_MAJOR_DOTS, SHOW_FREQUENCY_INDICATOR, PLOT_VWAP, SHOW_FAST_VWAP, SHOW_SLOW_VWAP, VWAP_FAST, VWAP_SLOW, SHOW_REGRESSION_CHANNEL, PRICE_EJECTION_TRIGGER, OVER_PRICE_EJECTION_TRIGGER, OUTPUTS_DIR, VWAP_SLOPE_DEGREE_WINDOW, SHOW_SUBPLOT_VWAP_SLOPE_INDICATOR, VWAP_SLOPE_INDICATOR_HIGH_VALUE, VWAP_SLOPE_INDICATOR_LOW_VALUE
 from calculate_vwap import calculate_vwap
+import numpy as np
 
-def plot_range_chart(df, df_fractals_minor, df_fractals_major, start_date, end_date, symbol='NQ', rsi_levels=None, fibo_levels=None, divergences=None, channel_params=None, df_metrics=None):
+def calculate_vwap_slope_at_bar(df, bar_idx, window=10):
+    """
+    Calculate VWAP slope at a specific bar using linear regression over window bars.
+
+    Args:
+        df: DataFrame with 'vwap_fast' column
+        bar_idx: Index of the current bar
+        window: Number of bars to look back for slope calculation
+
+    Returns:
+        slope: VWAP slope (points per bar), 0 if insufficient data
+    """
+    # Get the position in the dataframe
+    bar_position = df.index.get_loc(bar_idx)
+
+    # Need at least window bars
+    if bar_position < window - 1:
+        return 0.0
+
+    # Get last 'window' bars including current bar
+    start_pos = bar_position - window + 1
+    end_pos = bar_position + 1
+
+    vwap_window = df.iloc[start_pos:end_pos]['vwap_fast'].values
+
+    # Check for NaN values
+    if pd.isna(vwap_window).any():
+        return 0.0
+
+    # Simple linear regression: slope = (y2 - y1) / (x2 - x1)
+    # Using first and last point for simplicity
+    slope = (vwap_window[-1] - vwap_window[0]) / (window - 1)
+
+    return slope
+
+def plot_range_chart(df, df_fractals_minor, df_fractals_major, start_date, end_date, symbol='NQ', rsi_levels=None, fibo_levels=None, divergences=None, channel_params=None, df_metrics=None, df_trades=None):
     """
     Crea un gráfico con línea de precio y fractales ZigZag para un rango de fechas.
 
@@ -34,27 +71,57 @@ def plot_range_chart(df, df_fractals_minor, df_fractals_major, start_date, end_d
     # Crear índice numérico para evitar huecos de fines de semana
     df = df.reset_index(drop=True)
     df['index'] = df.index
+    # Asegurar que 'timestamp' sea tipo datetime (necesario para mapear fractales y trades)
+    if not pd.api.types.is_datetime64_any_dtype(df['timestamp']):
+        df['timestamp'] = pd.to_datetime(df['timestamp'])
 
-    # Determinar si se necesita subplot para métricas
-    # Solo crear subplot si hay métricas Y no está oculto el indicador
+    # Configurar subplots según los indicadores habilitados
     has_metrics = df_metrics is not None and not df_metrics.empty
-    show_frequency_subplot = has_metrics and not HIDE_FREQUENCY_INDICATOR
+    show_frequency_subplot = has_metrics and SHOW_FREQUENCY_INDICATOR
+    show_slope_subplot = SHOW_SUBPLOT_VWAP_SLOPE_INDICATOR
 
-    if show_frequency_subplot:
-        # Crear figura con 2 subplots
+    if show_frequency_subplot and show_slope_subplot:
+        # Crear figura con 3 subplots: Price, Slope, Frequency
+        fig = make_subplots(
+            rows=3, cols=1,
+            shared_xaxes=True,
+            vertical_spacing=0.03,
+            row_heights=[0.6, 0.2, 0.2]
+        )
+        price_row = 1
+        slope_row = 2
+        metrics_row = 3
+    elif show_slope_subplot:
+        # Crear figura con 2 subplots: Price y Slope
         fig = make_subplots(
             rows=2, cols=1,
             shared_xaxes=True,
             vertical_spacing=0.05,
-            row_heights=[0.7, 0.3],
-            subplot_titles=(f'{symbol.upper()} - Price & Fractals', 'Frecuencia de Fractales (invertido: ↑ = consolidación)')
+            row_heights=[0.75, 0.25]
         )
         price_row = 1
+        slope_row = 2
+        metrics_row = None
+    elif show_frequency_subplot:
+        # Crear figura con 2 subplots: Price y Frequency
+        fig = make_subplots(
+            rows=2, cols=1,
+            shared_xaxes=True,
+            vertical_spacing=0.05,
+            row_heights=[0.75, 0.25]
+        )
+        price_row = 1
+        slope_row = None
         metrics_row = 2
     else:
-        # Crear figura simple
-        fig = go.Figure()
-        price_row = None
+        # Crear figura con 1 solo subplot: Price
+        fig = make_subplots(
+            rows=1, cols=1,
+            shared_xaxes=True
+        )
+        price_row = 1
+        slope_row = None
+        metrics_row = None
 
     # Añadir línea de precio original
     trace_price = go.Scatter(
@@ -66,10 +133,7 @@ def plot_range_chart(df, df_fractals_minor, df_fractals_major, start_date, end_d
         opacity=0.5,
         hoverinfo='skip'
     )
-    if show_frequency_subplot:
-        fig.add_trace(trace_price, row=price_row, col=1)
-    else:
-        fig.add_trace(trace_price)
+    fig.add_trace(trace_price, row=price_row, col=1)
 
     # Añadir indicador VWAP
     if PLOT_VWAP:
@@ -87,12 +151,95 @@ def plot_range_chart(df, df_fractals_minor, df_fractals_major, start_date, end_d
                 opacity=0.8,
                 hovertemplate='<b>VWAP Fast</b>: %{y:.2f}<extra></extra>'
             )
-            if show_frequency_subplot:
-                fig.add_trace(trace_vwap_fast, row=price_row, col=1)
-            else:
-                fig.add_trace(trace_vwap_fast)
+            fig.add_trace(trace_vwap_fast, row=price_row, col=1)
 
             print(f"[INFO] VWAP Fast({VWAP_FAST}) añadido al gráfico: {len(df_vwap_fast)} puntos válidos")
+
+        # Calculate VWAP Slope for all bars (in absolute value) only if slope subplot is enabled
+        # Note: For visualization, we apply a minimum value to avoid very small values in log scale
+        if show_slope_subplot:
+            # If vwap_slope already exists (from strategy), use it; otherwise calculate it
+            if 'vwap_slope' not in df.columns:
+                df['vwap_slope'] = [abs(calculate_vwap_slope_at_bar(df, idx, window=VWAP_SLOPE_DEGREE_WINDOW)) for idx in df.index]
+
+            # Create a copy for plotting with minimum value for log scale visualization
+            min_slope = 0.002
+            df_vwap_slope = df[df['vwap_slope'].notna()].copy()
+            df_vwap_slope['vwap_slope_plot'] = df_vwap_slope['vwap_slope'].apply(lambda x: max(x, min_slope))
+
+            if not df_vwap_slope.empty:
+                # Add horizontal solid line at low threshold
+                trace_slope_threshold_low = go.Scatter(
+                    x=[df['index'].min(), df['index'].max()],
+                    y=[VWAP_SLOPE_INDICATOR_LOW_VALUE, VWAP_SLOPE_INDICATOR_LOW_VALUE],
+                    mode='lines',
+                    name=f'Threshold {VWAP_SLOPE_INDICATOR_LOW_VALUE}',
+                    line=dict(color='orange', width=1),
+                    opacity=0.5,
+                    showlegend=False,
+                    hoverinfo='skip'
+                )
+                fig.add_trace(trace_slope_threshold_low, row=slope_row, col=1)
+
+                # Add VWAP Slope trace (sin fill) using the plot version with minimum
+                trace_vwap_slope = go.Scatter(
+                    x=df_vwap_slope['index'],
+                    y=df_vwap_slope['vwap_slope_plot'],
+                    mode='lines',
+                    name=f'|VWAP Slope| (W={VWAP_SLOPE_DEGREE_WINDOW})',
+                    line=dict(color='orange', width=1.5),
+                    opacity=0.7,
+                    hovertemplate='<b>|VWAP Slope|</b>: %{y:.4f}<extra></extra>'
+                )
+                fig.add_trace(trace_vwap_slope, row=slope_row, col=1)
+
+                # Add horizontal solid line at high threshold (PRIMERO antes del fill)
+                trace_slope_threshold_high = go.Scatter(
+                    x=[df['index'].min(), df['index'].max()],
+                    y=[VWAP_SLOPE_INDICATOR_HIGH_VALUE, VWAP_SLOPE_INDICATOR_HIGH_VALUE],
+                    mode='lines',
+                    name=f'Threshold {VWAP_SLOPE_INDICATOR_HIGH_VALUE}',
+                    line=dict(color='orange', width=1),
+                    opacity=0.5,
+                    showlegend=False,
+                    hoverinfo='skip'
+                )
+                fig.add_trace(trace_slope_threshold_high, row=slope_row, col=1)
+
+                # Crear área de fill SOLO cuando vwap_slope > high threshold
+                # Identificar segmentos continuos donde slope > 0.6
+                above_threshold = df_vwap_slope['vwap_slope_plot'] > VWAP_SLOPE_INDICATOR_HIGH_VALUE
+
+                # Encontrar los grupos de valores consecutivos que están por encima del threshold
+                groups = (above_threshold != above_threshold.shift()).cumsum()
+
+                # Iterar sobre cada grupo continuo que está por encima del threshold
+                for group_id in groups[above_threshold].unique():
+                    segment = df_vwap_slope[groups == group_id]
+
+                    if len(segment) > 0:
+                        # Crear x e y para este segmento
+                        # Agregar puntos en los bordes exactos donde cruza el threshold
+                        x_fill = segment['index'].tolist()
+                        y_fill = segment['vwap_slope_plot'].tolist()
+
+                        # Crear el polígono: threshold -> curva -> threshold
+                        x_polygon = x_fill + x_fill[::-1]
+                        y_polygon = [VWAP_SLOPE_INDICATOR_HIGH_VALUE] * len(x_fill) + y_fill[::-1]
+
+                        trace_fill_segment = go.Scatter(
+                            x=x_polygon,
+                            y=y_polygon,
+                            mode='lines',
+                            line=dict(width=0),
+                            fill='toself',
+                            fillcolor='rgba(255, 165, 0, 0.3)',  # Naranja translúcido
+                            showlegend=False,
+                            hoverinfo='skip'
+                        )
+                        fig.add_trace(trace_fill_segment, row=slope_row, col=1)
+
+                print(f"[INFO] VWAP Slope (Window={VWAP_SLOPE_DEGREE_WINDOW}) añadido al gráfico: {len(df_vwap_slope)} puntos válidos")
 
         # VWAP Lento (Slow - Verde)
         df['vwap_slow'] = calculate_vwap(df, period=VWAP_SLOW)
@@ -108,10 +255,7 @@ def plot_range_chart(df, df_fractals_minor, df_fractals_major, start_date, end_d
                 opacity=0.8,
                 hovertemplate='<b>VWAP Slow</b>: %{y:.2f}<extra></extra>'
             )
-            if show_frequency_subplot:
-                fig.add_trace(trace_vwap_slow, row=price_row, col=1)
-            else:
-                fig.add_trace(trace_vwap_slow)
+            fig.add_trace(trace_vwap_slow, row=price_row, col=1)
 
             print(f"[INFO] VWAP Slow({VWAP_SLOW}) añadido al gráfico: {len(df_vwap_slow)} puntos válidos")
 
@@ -137,10 +281,7 @@ def plot_range_chart(df, df_fractals_minor, df_fractals_major, start_date, end_d
                 hovertemplate='<b>Price Ejection</b><br>Price: %{y:.2f}<br>Distance: %{customdata:.2f}%<extra></extra>',
                 customdata=df_ejection['price_vwap_distance'] * 100
             )
-            if show_frequency_subplot:
-                fig.add_trace(trace_ejection, row=price_row, col=1)
-            else:
-                fig.add_trace(trace_ejection)
+            fig.add_trace(trace_ejection, row=price_row, col=1)
 
             print(f"[INFO] Price Ejection points detectados: {len(df_ejection)} (threshold: {PRICE_EJECTION_TRIGGER*100:.1f}%)")
         else:
@@ -165,10 +306,7 @@ def plot_range_chart(df, df_fractals_minor, df_fractals_major, start_date, end_d
                 hovertemplate='<b>OVER Price Ejection</b><br>Price: %{y:.2f}<br>Distance: %{customdata:.2f}%<extra></extra>',
                 customdata=df_over_ejection['price_vwap_distance'] * 100
             )
-            if show_frequency_subplot:
-                fig.add_trace(trace_over_ejection, row=price_row, col=1)
-            else:
-                fig.add_trace(trace_over_ejection)
+            fig.add_trace(trace_over_ejection, row=price_row, col=1)
 
             print(f"[INFO] OVER Price Ejection points detectados: {len(df_over_ejection)} (threshold: {OVER_PRICE_EJECTION_TRIGGER*100:.1f}%)")
         else:
@@ -192,10 +330,7 @@ def plot_range_chart(df, df_fractals_minor, df_fractals_major, start_date, end_d
             opacity=0.7,
             hoverinfo='skip'
         )
-        if show_frequency_subplot:
-            fig.add_trace(trace_minor_line, row=price_row, col=1)
-        else:
-            fig.add_trace(trace_minor_line)
+        fig.add_trace(trace_minor_line, row=price_row, col=1)
 
         if PLOT_MINOR_DOTS:
             trace_minor_dots = go.Scatter(
@@ -211,10 +346,7 @@ def plot_range_chart(df, df_fractals_minor, df_fractals_major, start_date, end_d
                 opacity=1,
                 hoverinfo='skip'
             )
-            if show_frequency_subplot:
-                fig.add_trace(trace_minor_dots, row=price_row, col=1)
-            else:
-                fig.add_trace(trace_minor_dots)
+            fig.add_trace(trace_minor_dots, row=price_row, col=1)
 
     # Añadir líneas ZigZag y marcadores de fractales MAJOR
     if PLOT_MAJOR_FRACTALS and df_fractals_major is not None and not df_fractals_major.empty:
@@ -233,10 +365,7 @@ def plot_range_chart(df, df_fractals_minor, df_fractals_major, start_date, end_d
             line=dict(color='blue', width=1),
             hoverinfo='skip'
         )
-        if show_frequency_subplot:
-            fig.add_trace(trace_major_line, row=price_row, col=1)
-        else:
-            fig.add_trace(trace_major_line)
+        fig.add_trace(trace_major_line, row=price_row, col=1)
 
     # Añadir Canal de Regresión
     if channel_params and SHOW_REGRESSION_CHANNEL:
@@ -255,20 +384,14 @@ def plot_range_chart(df, df_fractals_minor, df_fractals_major, start_date, end_d
             x=x_vals, y=y_high_vals, mode='lines', name='Channel Upper',
             line=dict(color='red', width=1), opacity=0.6, hoverinfo='skip'
         )
-        if show_frequency_subplot:
-            fig.add_trace(trace_upper, row=price_row, col=1)
-        else:
-            fig.add_trace(trace_upper)
+        fig.add_trace(trace_upper, row=price_row, col=1)
 
         # Canal Inferior
         trace_lower = go.Scatter(
             x=x_vals, y=y_low_vals, mode='lines', name='Channel Lower',
             line=dict(color='red', width=1), opacity=0.6, hoverinfo='skip'
         )
-        if show_frequency_subplot:
-            fig.add_trace(trace_lower, row=price_row, col=1)
-        else:
-            fig.add_trace(trace_lower)
+        fig.add_trace(trace_lower, row=price_row, col=1)
 
         # Canal Clonado (Green)
         if channel_params.get('intercept_clone') is not None:
@@ -282,10 +405,7 @@ def plot_range_chart(df, df_fractals_minor, df_fractals_major, start_date, end_d
                 line=dict(color='green', width=1), opacity=0.8,
                 fill='tonexty', fillcolor='rgba(0, 255, 0, 0.1)', hoverinfo='skip'
             )
-            if show_frequency_subplot:
-                fig.add_trace(trace_clone, row=price_row, col=1)
-            else:
-                fig.add_trace(trace_clone)
+            fig.add_trace(trace_clone, row=price_row, col=1)
 
     # Añadir PUNTOS NARANJAS en el gráfico de precio cuando hay trigger de consolidación
     # MANTENER los puntos naranjas incluso si el subplot está oculto
@@ -324,6 +444,121 @@ def plot_range_chart(df, df_fractals_minor, df_fractals_major, start_date, end_d
                     fig.add_trace(trace_triggers)
 
                 print(f"[DEBUG] Puntos de consolidación añadidos al gráfico: {len(df_triggers)}")
+
+    # --- Trades plotting: Entradas / Salidas / Líneas conectando ---
+    # df_trades puede pasarse como parámetro o ser cargado automáticamente desde outputs/trading
+    # Load trades ONLY from ENABLED strategies
+    if df_trades is None:
+        from config import ENABLE_VWAP_CROSSOVER_STRATEGY, ENABLE_VWAP_MOMENTUM_STRATEGY
+
+        date_range_str_local = start_date if start_date == end_date else f"{start_date}_{end_date}"
+        trades_list = []
+
+        # Try to load VWAP Crossover strategy trades (only if enabled)
+        if ENABLE_VWAP_CROSSOVER_STRATEGY:
+            crossover_path = OUTPUTS_DIR / "trading" / f"tracking_record_vwap_crossover_{date_range_str_local}.csv"
+            if crossover_path.exists():
+                try:
+                    df_crossover = pd.read_csv(crossover_path, sep=';', decimal=',', parse_dates=['entry_time', 'exit_time'])
+                    df_crossover['strategy'] = 'Crossover'  # Add strategy tag
+                    trades_list.append(df_crossover)
+                    print(f"[INFO] Crossover trades loaded: {len(df_crossover)} rows")
+                except Exception as e:
+                    print(f"[WARN] Could not load crossover trades: {e}")
+
+        # Try to load VWAP Momentum strategy trades (only if enabled)
+        if ENABLE_VWAP_MOMENTUM_STRATEGY:
+            momentum_path = OUTPUTS_DIR / "trading" / f"tracking_record_vwap_momentum_{date_range_str_local}.csv"
+            if momentum_path.exists():
+                try:
+                    df_momentum = pd.read_csv(momentum_path, sep=';', decimal=',', parse_dates=['entry_time', 'exit_time'])
+                    df_momentum['strategy'] = 'Momentum'  # Add strategy tag
+                    trades_list.append(df_momentum)
+                    print(f"[INFO] Momentum trades loaded: {len(df_momentum)} rows")
+                except Exception as e:
+                    print(f"[WARN] Could not load momentum trades: {e}")
+
+        # Combine all trades if any were loaded
+        if trades_list:
+            df_trades = pd.concat(trades_list, ignore_index=True)
+            print(f"[INFO] Total trades combined: {len(df_trades)} rows")
+
+    if df_trades is not None and not df_trades.empty:
+        # Asegurar datetime en columnas de trades
+        if 'entry_time' in df_trades.columns and not pd.api.types.is_datetime64_any_dtype(df_trades['entry_time']):
+            df_trades['entry_time'] = pd.to_datetime(df_trades['entry_time'])
+        if 'exit_time' in df_trades.columns and not pd.api.types.is_datetime64_any_dtype(df_trades['exit_time']):
+            df_trades['exit_time'] = pd.to_datetime(df_trades['exit_time'])
+
+        # Función para mapear timestamps de trades al índice del dataframe de precio
+        def _map_ts_to_index(ts):
+            if pd.isna(ts):
+                return None
+            match = df[df['timestamp'] == ts]
+            if len(match) > 0:
+                return int(match.index[0])
+            # fallback: nearest within 1 minute
+            delta = (df['timestamp'] - ts).abs()
+            min_idx = int(delta.idxmin())
+            if delta[min_idx] <= pd.Timedelta('1min'):
+                return min_idx
+            return None
+
+        df_trades['entry_index'] = df_trades['entry_time'].apply(_map_ts_to_index)
+        df_trades['exit_index'] = df_trades['exit_time'].apply(_map_ts_to_index)
+
+        mapped_entries = df_trades.dropna(subset=['entry_index']).copy()
+        mapped_exits = df_trades.dropna(subset=['exit_index']).copy()
+        print(f"[INFO] Trades mapeados: entradas {len(mapped_entries)}, salidas {len(mapped_exits)}")
+
+        # Entries markers (triangle up for BUY, triangle down for SELL)
+        if not mapped_entries.empty:
+            marker_symbols = ['triangle-up' if d == 'BUY' else 'triangle-down' for d in mapped_entries['direction']]
+            marker_colors = ['green' if d == 'BUY' else 'red' for d in mapped_entries['direction']]
+            trace_entries = go.Scatter(
+                x=mapped_entries['entry_index'],
+                y=mapped_entries['entry_price'],
+                mode='markers',
+                name='Entries',
+                marker=dict(symbol=marker_symbols, color=marker_colors, size=10, line=dict(color='rgba(0, 0, 0, 0.3)', width=1)),
+                customdata=mapped_entries[['direction','entry_time']].astype(str).values,
+                hovertemplate='Entry: %{y:.2f}<br>Dir: %{customdata[0]}<br>%{customdata[1]}<extra></extra>'
+            )
+            fig.add_trace(trace_entries, row=price_row, col=1)
+
+        # Exits markers (color by exit_reason: profit=green, stop=red)
+        if not mapped_exits.empty:
+            exit_colors = ['green' if r == 'profit' else ('red' if r == 'stop' else 'gray') for r in mapped_exits['exit_reason']]
+            trace_exits = go.Scatter(
+                x=mapped_exits['exit_index'],
+                y=mapped_exits['exit_price'],
+                mode='markers',
+                name='Exits',
+                marker=dict(
+                    symbol='x',                # diagonal cross
+                    color=exit_colors,
+                    size=8,                   # slightly smaller for a thinner look
+                    line=dict(width=0),       # remove black outline to avoid thickness
+                    opacity=0.9
+                ),
+                customdata=mapped_exits[['exit_reason','exit_time']].astype(str).values,
+                hovertemplate='Exit: %{y:.2f}<br>Reason: %{customdata[0]}<br>%{customdata[1]}<extra></extra>'
+            )
+            fig.add_trace(trace_exits, row=price_row, col=1)
+
+        # Lines connecting entry and exit for trades with both indices mapped
+        trades_with_both = df_trades.dropna(subset=['entry_index','exit_index']).copy()
+        for _, t in trades_with_both.iterrows():
+            xpair = [int(t['entry_index']), int(t['exit_index'])]
+            ypair = [t['entry_price'], t['exit_price']]
+            color = 'green' if t.get('exit_reason') == 'profit' else ('red' if t.get('exit_reason') == 'stop' else 'gray')
+            trace_line = go.Scatter(
+                x=xpair, y=ypair, mode='lines', line=dict(color=color, width=1), opacity=0.7,
+                hoverinfo='skip', showlegend=False
+            )
+            fig.add_trace(trace_line, row=price_row, col=1)
+
+    # --- END TRADES PLOTTING ---
 
     # Añadir subplot de métricas - SEGUNDOS entre fractales
     # Solo añadir si el subplot de frecuencia NO está oculto
@@ -434,61 +669,67 @@ def plot_range_chart(df, df_fractals_minor, df_fractals_major, start_date, end_d
     # Configurar layout
     # Título: mostrar solo una fecha si start_date == end_date
     if start_date == end_date:
-        title_text = f'{symbol.upper()} - {start_date}'
+        # Calculate day of week for single date
+        date_obj = datetime.strptime(start_date, "%Y%m%d")
+        day_of_week = date_obj.isoweekday()  # 1=Monday, 2=Tuesday, ..., 7=Sunday
+        day_names = {1: 'Monday', 2: 'Tuesday', 3: 'Wednesday', 4: 'Thursday', 5: 'Friday', 6: 'Saturday', 7: 'Sunday'}
+        day_name = day_names[day_of_week]
+        title_text = f'{symbol.upper()} - {start_date} ({day_name}, DoW={day_of_week})'
     else:
         title_text = f'{symbol.upper()} - {start_date} -> {end_date}'
 
-    if show_frequency_subplot:
-        fig.update_layout(
-            title=title_text,
-            template='plotly_white',
-            hovermode='closest',
-            plot_bgcolor='white',
-            paper_bgcolor='white',
-            font=dict(family="Arial", size=12, color="#333333"),
-            showlegend=True,
-            height=1000,
-            xaxis_title="",
-            yaxis_title=""
-        )
+    # Configurar layout general
+    # Calcular altura según subplots activos
+    if show_frequency_subplot and show_slope_subplot:
+        height = 1200
+    elif show_slope_subplot or show_frequency_subplot:
+        height = 900
     else:
-        fig.update_layout(
-            title=title_text,
-            template='plotly_white',
-            hovermode='closest',
-            plot_bgcolor='white',
-            paper_bgcolor='white',
-            font=dict(family="Arial", size=12, color="#333333"),
-            showlegend=True,
-            height=900,
-            xaxis_title="",
-            yaxis_title=""
+        height = 600
+
+    fig.update_layout(
+        title=title_text,
+        template='plotly_white',
+        hovermode='closest',
+        plot_bgcolor='white',
+        paper_bgcolor='white',
+        font=dict(family="Arial", size=12, color="#333333"),
+        showlegend=True,
+        height=height,
+        xaxis_title="",
+        yaxis_title=""
+    )
+
+    # Configurar ejes Y individuales
+    # Eje Y para precio (row 1) - con grid horizontal gris
+    fig.update_yaxes(
+        title='Price',
+        showgrid=True, gridcolor='#e0e0e0', gridwidth=0.5,
+        showline=True, linewidth=1, linecolor='#d3d3d3',
+        tickcolor='gray', tickfont=dict(color='gray'),
+        tickformat=',',
+        row=price_row, col=1
+    )
+
+    # Eje Y para VWAP Slope (row 2) - escala logarítmica SIN grid - solo si está habilitado
+    if show_slope_subplot:
+        fig.update_yaxes(
+            title=f'|VWAP Slope| (W={VWAP_SLOPE_DEGREE_WINDOW}) [Log]',
+            showgrid=False,
+            showline=True, linewidth=1, linecolor='#d3d3d3',
+            tickcolor='orange', tickfont=dict(color='orange'),
+            type='log',
+            row=slope_row, col=1
         )
 
-    # Configurar eje Y - horizontal grid enabled, marco izquierdo gris suave
+    # Eje Y para métricas (row 3 o row 2 si no hay slope) - solo si existe
     if show_frequency_subplot:
-        # Eje Y para precio (row 1) - con marco lateral izquierdo gris
-        fig.update_yaxes(
-            showgrid=True, gridcolor='#e0e0e0', gridwidth=0.5,
-            showline=True, linewidth=1, linecolor='#d3d3d3',
-            tickcolor='gray', tickfont=dict(color='gray'),
-            tickformat=',',
-            row=price_row, col=1
-        )
-        # Eje Y para métricas (row 2) - Frecuencia invertida con marco lateral izquierdo gris
         fig.update_yaxes(
             title='Frecuencia (↑ alta)',
             showgrid=True, gridcolor='#e0e0e0', gridwidth=0.5,
             showline=True, linewidth=1, linecolor='#d3d3d3',
             tickcolor='gray', tickfont=dict(color='gray'),
             row=metrics_row, col=1
-        )
-    else:
-        fig.update_yaxes(
-            showgrid=True, gridcolor='#e0e0e0', gridwidth=0.5,
-            showline=True, linewidth=1, linecolor='#d3d3d3',
-            tickformat=',',
-            tickcolor='gray', tickfont=dict(color='gray')
         )
 
     # Crear carpeta de salida si no existe
@@ -545,4 +786,14 @@ if __name__ == "__main__":
     if fractal_major_path.exists():
         df_fractals_major = pd.read_csv(fractal_major_path)
 
-    plot_range_chart(df, df_fractals_minor, df_fractals_major, START_DATE, END_DATE, symbol=symbol)
+    # Try to load trades file for this date range and pass it to the plotting function
+    df_trades = None
+    trades_path = OUTPUTS_DIR / "trading" / f"trading_vwap_momentum_{date_range_str}.csv"
+    if trades_path.exists():
+        try:
+            df_trades = pd.read_csv(trades_path, sep=';', decimal=',', parse_dates=['entry_time', 'exit_time'])
+            print(f"[INFO] Trades loaded from {trades_path} ({len(df_trades)} rows)")
+        except Exception as e:
+            print(f"[WARN] Could not load trades file {trades_path}: {e}")
+
+    plot_range_chart(df, df_fractals_minor, df_fractals_major, START_DATE, END_DATE, symbol=symbol, df_trades=df_trades)

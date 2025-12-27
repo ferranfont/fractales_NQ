@@ -1,8 +1,8 @@
 """
-VWAP Momentum Strategy
-Simple strategy based on price ejection from VWAP Fast:
-- BUY when price crosses above VWAP Fast (green dots)
-- SELL when price crosses below VWAP Fast (green dots)
+VWAP Crossover Strategy
+Simple strategy based on price crossover with VWAP Fast:
+- BUY when price crosses above VWAP Fast
+- SELL when price crosses below VWAP Fast
 - Fixed TP and SL from config
 """
 
@@ -11,11 +11,31 @@ from pathlib import Path
 from datetime import datetime, time
 from config import (
     DATE, START_DATE, END_DATE,
-    TP_POINTS, SL_POINTS, MAXIMUM_POSITIONS_OPEN,
-    START_TRADING_HOUR, END_TRADING_HOUR,
+    VWAP_CROSSOVER_TP_POINTS, VWAP_CROSSOVER_SL_POINTS, VWAP_CROSSOVER_MAX_POSITIONS,
+    VWAP_CROSSOVER_START_HOUR, VWAP_CROSSOVER_END_HOUR,
     VWAP_FAST, PRICE_EJECTION_TRIGGER,
-    DATA_DIR, OUTPUTS_DIR
+    DATA_DIR, OUTPUTS_DIR,
+    ENABLE_VWAP_CROSSOVER_STRATEGY
 )
+
+# Map to shorter names for compatibility
+TP_POINTS = VWAP_CROSSOVER_TP_POINTS
+SL_POINTS = VWAP_CROSSOVER_SL_POINTS
+MAXIMUM_POSITIONS_OPEN = VWAP_CROSSOVER_MAX_POSITIONS
+START_TRADING_HOUR = VWAP_CROSSOVER_START_HOUR
+END_TRADING_HOUR = VWAP_CROSSOVER_END_HOUR
+
+# ============================================================================
+# CHECK IF STRATEGY IS ENABLED
+# ============================================================================
+if not ENABLE_VWAP_CROSSOVER_STRATEGY:
+    print("\n" + "="*80)
+    print("VWAP CROSSOVER STRATEGY - DISABLED")
+    print("="*80)
+    print("\n[INFO] Strategy is disabled in config.py")
+    print("[INFO] Set ENABLE_VWAP_CROSSOVER_STRATEGY = True to enable")
+    print("="*80 + "\n")
+    exit(0)
 
 # ============================================================================
 # STRATEGY CONFIGURATION
@@ -23,7 +43,7 @@ from config import (
 TRADING_DIR = OUTPUTS_DIR / "trading"
 TRADING_DIR.mkdir(parents=True, exist_ok=True)
 
-OUTPUT_FILE = TRADING_DIR / f"trading_vwap_momentum_{DATE}.csv"
+OUTPUT_FILE = TRADING_DIR / f"tracking_record_vwap_crossover_{DATE}.csv"
 POINT_VALUE = 20.0  # USD value per point for NQ futures
 
 # Parse trading time range
@@ -31,7 +51,7 @@ start_time = datetime.strptime(START_TRADING_HOUR, "%H:%M:%S").time()
 end_time = datetime.strptime(END_TRADING_HOUR, "%H:%M:%S").time()
 
 print("="*80)
-print("VWAP MOMENTUM STRATEGY")
+print("VWAP CROSSOVER STRATEGY - ENABLED")
 print("="*80)
 print(f"\nConfiguration:")
 print(f"  - Date: {DATE}")
@@ -235,36 +255,359 @@ if len(trades) > 0:
     total_pnl = df_trades['pnl'].sum()
     total_pnl_usd = df_trades['pnl_usd'].sum()
 
-    print("\n" + "="*80)
-    print("STRATEGY STATISTICS")
-    print("="*80)
-    print(f"Total trades: {len(df_trades)}")
-    print(f"  - PROFIT exits: {len(profit_trades)} ({len(profit_trades)/len(df_trades)*100:.1f}%)")
-    print(f"  - STOP exits: {len(stop_trades)} ({len(stop_trades)/len(df_trades)*100:.1f}%)")
-    print(f"  - EOD exits: {len(eod_trades)} ({len(eod_trades)/len(df_trades)*100:.1f}%)")
+    # Formatted Test Results summary (compact table-style)
+    total_trades = len(df_trades)
+    profit_count = len(profit_trades)
+    stop_count = len(stop_trades)
+    eod_count = len(eod_trades)
+    denom = profit_count + stop_count
+    win_rate = (profit_count / denom * 100) if denom > 0 else 0.0
 
-    print(f"\nTotal P&L: {total_pnl:.2f} points (${total_pnl_usd:,.2f})")
-    print(f"Average P&L per trade: {total_pnl/len(df_trades):.2f} points (${total_pnl_usd/len(df_trades):,.2f})")
-
-    # Breakdown by direction
     buy_trades = df_trades[df_trades['direction'] == 'BUY']
     sell_trades = df_trades[df_trades['direction'] == 'SELL']
+    buy_count = len(buy_trades)
+    sell_count = len(sell_trades)
 
-    print(f"\nBUY trades: {len(buy_trades)}")
-    if len(buy_trades) > 0:
-        buy_pnl = buy_trades['pnl'].sum()
-        buy_pnl_usd = buy_trades['pnl_usd'].sum()
-        print(f"  - P&L: {buy_pnl:.2f} points (${buy_pnl_usd:,.2f})")
-        print(f"  - Profit exits: {len(buy_trades[buy_trades['exit_reason']=='profit'])}")
-        print(f"  - Stop exits: {len(buy_trades[buy_trades['exit_reason']=='stop'])}")
+    buy_pnl = buy_trades['pnl'].sum() if buy_count > 0 else 0.0
+    buy_pnl_usd = buy_trades['pnl_usd'].sum() if buy_count > 0 else 0.0
+    sell_pnl = sell_trades['pnl'].sum() if sell_count > 0 else 0.0
+    sell_pnl_usd = sell_trades['pnl_usd'].sum() if sell_count > 0 else 0.0
 
-    print(f"\nSELL trades: {len(sell_trades)}")
-    if len(sell_trades) > 0:
-        sell_pnl = sell_trades['pnl'].sum()
-        sell_pnl_usd = sell_trades['pnl_usd'].sum()
-        print(f"  - P&L: {sell_pnl:.2f} points (${sell_pnl_usd:,.2f})")
-        print(f"  - Profit exits: {len(sell_trades[sell_trades['exit_reason']=='profit'])}")
-        print(f"  - Stop exits: {len(sell_trades[sell_trades['exit_reason']=='stop'])}")
+    avg_points = total_pnl / total_trades if total_trades > 0 else 0.0
+    avg_usd = total_pnl_usd / total_trades if total_trades > 0 else 0.0
+
+    print("\n" + "Test Results (" + DATE + "):" )
+    print("Total trades: {:d}".format(total_trades))
+    print("Win rate: {0:.1f}% ({1} profits / {2} stops)".format(win_rate, profit_count, stop_count))
+    # Total P&L: show integer points and USD rounded
+    print("Total P&L: {0:+.0f} points (${1:,.0f})".format(total_pnl, total_pnl_usd))
+    print("Average per trade: {0:+.2f} points (${1:,.2f})".format(avg_points, avg_usd))
+    print("BUY trades: {0} (${1:,.0f})".format(buy_count, buy_pnl_usd))
+    print("SELL trades: {0} (${1:,.0f})".format(sell_count, sell_pnl_usd))
+
+    print("\nThe strategy is ready to use")
+
+    # Generate an HTML summary file and open it automatically
+    try:
+        import webbrowser
+        from datetime import timedelta
+
+        # Prepare metrics
+        df_trades_sorted = df_trades.sort_values('entry_time').copy()
+        start_period = df_trades_sorted['entry_time'].min()
+        end_period = df_trades_sorted['exit_time'].max()
+        exposure_days = (end_period.date() - start_period.date()).days + 1
+        trades_per_day = total_trades / exposure_days if exposure_days > 0 else 0
+
+        # Durations
+        durations = (pd.to_datetime(df_trades_sorted['exit_time']) - pd.to_datetime(df_trades_sorted['entry_time'])).dt.total_seconds()
+        avg_duration_min = durations.mean() / 60 if len(durations) > 0 else 0
+        median_duration_min = durations.median() / 60 if len(durations) > 0 else 0
+
+        # Performance metrics
+        median_profit_usd = df_trades['pnl_usd'].median()
+        std_profit_usd = df_trades['pnl_usd'].std()
+        gross_profit = df_trades[df_trades['pnl'] > 0]['pnl_usd'].sum()
+        gross_loss = df_trades[df_trades['pnl'] < 0]['pnl_usd'].sum()
+        profit_factor = (gross_profit / abs(gross_loss)) if gross_loss != 0 else float('inf')
+
+        # Win/Loss
+        winners = profit_count
+        losers = stop_count
+        avg_winner = df_trades[df_trades['pnl'] > 0]['pnl_usd'].mean() if winners > 0 else 0
+        avg_loser = df_trades[df_trades['pnl'] < 0]['pnl_usd'].mean() if losers > 0 else 0
+        largest_winner = df_trades['pnl_usd'].max()
+        largest_loser = df_trades['pnl_usd'].min()
+
+        # Risk metrics - max drawdown from cumulative pnl
+        cum_pnl = df_trades_sorted['pnl_usd'].cumsum()
+        running_max = cum_pnl.cummax()
+        drawdown = cum_pnl - running_max
+        max_drawdown = drawdown.min() if not drawdown.empty else 0
+
+        # Additional risk ratios: Sharpe (per-trade), Sortino, Ulcer Index
+        try:
+            import numpy as np
+            mean_return = df_trades['pnl_usd'].mean()
+            std_return = df_trades['pnl_usd'].std()
+            sharpe_ratio = (mean_return / std_return) if std_return and not np.isnan(std_return) else float('inf')
+
+            downside = df_trades[df_trades['pnl_usd'] < 0]['pnl_usd']
+            downside_std = downside.std() if len(downside) > 0 else 0
+            sortino_ratio = (mean_return / downside_std) if downside_std and not np.isnan(downside_std) else float('inf')
+
+            # Ulcer Index: use % drawdowns from running max of cumulative P&L
+            dd_pct = (running_max - cum_pnl) / running_max.replace(0, np.nan)
+            dd_pct = dd_pct.fillna(0)
+            ulcer_index = np.sqrt((dd_pct ** 2).mean()) * 100
+        except Exception:
+            sharpe_ratio = float('nan')
+            sortino_ratio = float('nan')
+            ulcer_index = float('nan')
+
+        # Signals
+        buy_trades = df_trades[df_trades['direction'] == 'BUY']
+        sell_trades = df_trades[df_trades['direction'] == 'SELL']
+        buy_profit_usd = buy_trades['pnl_usd'].sum() if len(buy_trades) > 0 else 0
+        sell_profit_usd = sell_trades['pnl_usd'].sum() if len(sell_trades) > 0 else 0
+
+        # Build cumulative P&L chart (Plotly)
+        try:
+            import plotly.graph_objects as go
+            import plotly.io as pio
+
+            x_vals = pd.to_datetime(df_trades_sorted['exit_time']).astype(str).tolist()
+            y_vals = cum_pnl.tolist()
+            chart_color = 'green' if len(y_vals) > 0 and y_vals[-1] >= 0 else 'red'
+            fill_color = 'rgba(0,200,0,0.15)' if chart_color == 'green' else 'rgba(200,0,0,0.15)'
+
+            fig = go.Figure()
+            fig.add_trace(go.Scatter(x=x_vals, y=y_vals, mode='lines', line=dict(color=chart_color, width=2), fill='tozeroy', fillcolor=fill_color, name='Cumulative P&L'))
+            fig.update_layout(margin=dict(l=20,r=20,t=10,b=20), height=270, showlegend=False, template='plotly_white')
+
+            # Make this chart HTML self-contained by inlining plotly.js so the summary file opens reliably offline
+            chart_div = pio.to_html(fig, include_plotlyjs=True, full_html=False)
+        except Exception as e:
+            chart_div = f"<div class='alert alert-warning'>Failed to generate chart: {e}</div>"
+
+        # Calculate LONG/SHORT breakdown
+        long_trades = df_trades[df_trades['direction'] == 'BUY']
+        short_trades = df_trades[df_trades['direction'] == 'SELL']
+
+        # LONG stats
+        long_total = len(long_trades)
+        long_winners = len(long_trades[long_trades['exit_reason'] == 'profit'])
+        long_losers = len(long_trades[long_trades['exit_reason'] == 'stop'])
+        long_win_rate = (long_winners / (long_winners + long_losers) * 100) if (long_winners + long_losers) > 0 else 0
+        long_pnl = long_trades['pnl_usd'].sum()
+        long_avg = long_trades['pnl_usd'].mean() if long_total > 0 else 0
+
+        # LONG ratio calculation
+        long_avg_winner = long_trades[long_trades['pnl_usd'] > 0]['pnl_usd'].mean() if long_winners > 0 else 0
+        long_avg_loser = long_trades[long_trades['pnl_usd'] < 0]['pnl_usd'].mean() if long_losers > 0 else 0
+        long_ratio = long_avg_winner / abs(long_avg_loser) if long_avg_loser != 0 else 0
+        long_ratio_str = f"1:{int(round(long_ratio))}" if long_ratio > 0 else "N/A"
+
+        # SHORT stats
+        short_total = len(short_trades)
+        short_winners = len(short_trades[short_trades['exit_reason'] == 'profit'])
+        short_losers = len(short_trades[short_trades['exit_reason'] == 'stop'])
+        short_win_rate = (short_winners / (short_winners + short_losers) * 100) if (short_winners + short_losers) > 0 else 0
+        short_pnl = short_trades['pnl_usd'].sum()
+        short_avg = short_trades['pnl_usd'].mean() if short_total > 0 else 0
+
+        # SHORT ratio calculation
+        short_avg_winner = short_trades[short_trades['pnl_usd'] > 0]['pnl_usd'].mean() if short_winners > 0 else 0
+        short_avg_loser = short_trades[short_trades['pnl_usd'] < 0]['pnl_usd'].mean() if short_losers > 0 else 0
+        short_ratio = short_avg_winner / abs(short_avg_loser) if short_avg_loser != 0 else 0
+        short_ratio_str = f"1:{int(round(short_ratio))}" if short_ratio > 0 else "N/A"
+
+        # Build HTML (Bootstrap 4 CDN)
+        html = f"""
+        <!doctype html>
+        <html lang="en">
+        <head>
+            <meta charset="utf-8">
+            <meta name="viewport" content="width=device-width, initial-scale=1">
+            <link href="https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/css/bootstrap.min.css" rel="stylesheet">
+            <title>Strategy Summary - {DATE}</title>
+            <style>
+                body {{ padding: 16px; background: #f7f7f7; font-family: Arial, Helvetica, sans-serif; }}
+                .card {{ margin-bottom: 8px; border-radius: 6px; }}
+                .card .value {{ font-weight: 700; font-size: 0.95rem; }}
+                .compact .card-body p {{ margin-bottom: 6px; font-size: 0.88rem; }}
+                .compact .card-header {{ padding: .35rem .65rem; font-size: .88rem; }}
+                .small-muted {{ font-size: .9rem; color: #555; margin-bottom: 6px; }}
+            </style>
+        </head>
+        <body>
+        <div class="container">
+            <h3 class="text-center" style="font-size:1.25rem; margin-bottom:4px;">STRATEGY VWAP CROSSOVER</h3>
+            <p class="text-center small-muted mb-2" style="margin-bottom:4px;"><strong>{DATE}</strong> &nbsp;|&nbsp; <strong>TP:</strong> {TP_POINTS} pts &nbsp;|&nbsp; <strong>SL:</strong> {SL_POINTS} pts</p>
+
+            <div class="row compact">
+                <div class="col-md-6">
+                    <div class="card compact">
+                        <div class="card-header bg-primary text-white">GENERAL</div>
+                        <div class="card-body">
+                            <p>Total Trades: <span class="value">{total_trades}</span></p>
+                            <p>Periodo: <span class="value">{start_period} - {end_period}</span></p>
+                            <p>Exposure Days: <span class="value">{exposure_days}</span></p>
+                            <p>Trades per Day: <span class="value">{trades_per_day:.2f}</span></p>
+                            <p>Avg Duration: <span class="value">{avg_duration_min:.2f} min</span></p>
+                            <p>Median Duration: <span class="value">{median_duration_min:.2f} min</span></p>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="col-md-6">
+                    <div class="card">
+                        <div class="card-header bg-info text-white">PERFORMANCE</div>
+                        <div class="card-body">
+                            <p>Total Profit: <span class="value">${total_pnl_usd:,.2f}</span></p>
+                            <p>Avg Profit: <span class="value">${(total_pnl_usd/total_trades if total_trades>0 else 0):,.2f}</span></p>
+                            <p>Median Profit: <span class="value">${median_profit_usd:,.2f}</span></p>
+                            <p>Std Profit: <span class="value">${std_profit_usd:,.2f}</span></p>
+                            <p>Profit Factor: <span class="value">{profit_factor:.2f}</span></p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="row">
+                <div class="col-md-6">
+                    <div class="card">
+                        <div class="card-header bg-success text-white">WIN/LOSS</div>
+                        <div class="card-body">
+                            <p>Win Rate: <span class="value">{win_rate:.1f}%</span></p>
+                            <p>Winners / Losers: <span class="value">{winners} / {losers}</span></p>
+                            <p>Gross Profit: <span class="value">${gross_profit:,.2f}</span></p>
+                            <p>Gross Loss: <span class="value">${gross_loss:,.2f}</span></p>
+                            <p>Avg Winner: <span class="value">${avg_winner:,.2f}</span></p>
+                            <p>Avg Loser: <span class="value">${avg_loser:,.2f}</span></p>
+                            <p>Largest Winner: <span class="value">${largest_winner:,.2f}</span></p>
+                            <p>Largest Loser: <span class="value">${largest_loser:,.2f}</span></p>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="col-md-6">
+                    <div class="card compact">
+                        <div class="card-header bg-danger text-white">RISK METRICS</div>
+                        <div class="card-body">
+                            <p>Max Drawdown: <span class="value">${max_drawdown:,.2f}</span></p>
+                            <p>Sharpe Ratio: <span class="value">{sharpe_ratio:.2f}</span></p>
+                            <p>Sortino Ratio: <span class="value">{sortino_ratio:.2f}</span></p>
+                            <p>Ulcer Index: <span class="value">{ulcer_index:.2f}</span></p>
+                        </div>
+                    </div>
+
+                    <div class="card compact mt-2">
+                        <div class="card-header bg-secondary text-white">TOP TRADES</div>
+                        <div class="card-body">
+                            <p>Largest Winner: <span class="value">${largest_winner:,.2f}</span></p>
+                            <p>Largest Loser: <span class="value">${largest_loser:,.2f}</span></p>
+                            <p>Avg Winner: <span class="value">${avg_winner:,.2f}</span></p>
+                            <p>Avg Loser: <span class="value">${avg_loser:,.2f}</span></p>
+                            <p>Winners: <span class="value">{winners}</span></p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="row">
+                <div class="col-md-6">
+                    <div class="card">
+                        <div class="card-header bg-warning text-dark">EXIT REASONS</div>
+                        <div class="card-body">
+                            <p>TARGET exits: <span class="value">{profit_count} ({(profit_count/total_trades*100 if total_trades>0 else 0):.1f}%)</span></p>
+                            <p>STOP exits: <span class="value">{stop_count} ({(stop_count/total_trades*100 if total_trades>0 else 0):.1f}%)</span></p>
+                            <p>EOD exits: <span class="value">{eod_count} ({(eod_count/total_trades*100 if total_trades>0 else 0):.1f}%)</span></p>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="col-md-6">
+                </div>
+            </div>
+
+            <div class="row mt-2 compact">
+                <div class="col-md-6">
+                    <div class="card compact">
+                        <div class="card-header" style="background: linear-gradient(135deg, #28a745 0%, #20c997 100%); color: white;">LONG ENTRIES (BUY)</div>
+                        <div class="card-body">
+                            <p>Total LONG: <span class="value">{long_total}</span></p>
+                            <p>Win Rate: <span class="value">{long_win_rate:.1f}%</span></p>
+                            <p>Winners / Losers: <span class="value">{long_winners} / {long_losers}</span> (Ratio: {long_ratio_str})</p>
+                            <p>Total P&L: <span class="value" style="color: {'green' if long_pnl >= 0 else 'red'}">${long_pnl:,.2f}</span></p>
+                            <p>Avg P&L: <span class="value" style="color: {'green' if long_avg >= 0 else 'red'}">${long_avg:,.2f}</span></p>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="col-md-6">
+                    <div class="card compact">
+                        <div class="card-header" style="background: linear-gradient(135deg, #dc3545 0%, #fd7e14 100%); color: white;">SHORT ENTRIES (SELL)</div>
+                        <div class="card-body">
+                            <p>Total SHORT: <span class="value">{short_total}</span></p>
+                            <p>Win Rate: <span class="value">{short_win_rate:.1f}%</span></p>
+                            <p>Winners / Losers: <span class="value">{short_winners} / {short_losers}</span> (Ratio: {short_ratio_str})</p>
+                            <p>Total P&L: <span class="value" style="color: {'green' if short_pnl >= 0 else 'red'}">${short_pnl:,.2f}</span></p>
+                            <p>Avg P&L: <span class="value" style="color: {'green' if short_avg >= 0 else 'red'}">${short_avg:,.2f}</span></p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="row mt-3 compact">
+                <div class="col-12">
+                    <div class="card compact" id="cum-pnl">
+                        <div class="card-header bg-secondary text-white">CUMULATIVE P&amp;L</div>
+                        <div class="card-body">{chart_div}</div>
+                    </div>
+                </div>
+            </div>
+
+        </div>
+        <script>try{{document.getElementById('cum-pnl').scrollIntoView({{behavior:'smooth',block:'center'}});}}catch(e){{}}</script>
+        </body>
+        </html>
+        """
+
+        # Save HTML (self-contained: inlines plotly.js so it opens reliably)
+        summary_path = TRADING_DIR / f"summary_vwap_crossover_{DATE}.html"
+        with open(summary_path, 'w', encoding='utf-8') as f:
+            f.write(html)
+        print(f"[INFO] Summary HTML saved to: {summary_path}")
+
+        # Try to open in Chrome first (executable / registered), otherwise fallback to default
+        try:
+            uri = summary_path.resolve().as_uri()
+            opened = False
+
+            # 1) Try common Chrome executables (Windows)
+            try:
+                import subprocess, shutil
+                from pathlib import Path as _Path
+                chrome_candidates = [r"C:\\Program Files\\Google\\Chrome\\Application\\chrome.exe",
+                                     r"C:\\Program Files (x86)\\Google\\Chrome\\Application\\chrome.exe"]
+                chrome_exe = None
+                for p in chrome_candidates:
+                    if _Path(p).exists():
+                        chrome_exe = p
+                        break
+                if not chrome_exe:
+                    chrome_exe = shutil.which("chrome") or shutil.which("google-chrome")
+                if chrome_exe:
+                    subprocess.Popen([chrome_exe, uri], stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
+                    opened = True
+                    print(f"[INFO] Opened summary in Chrome: {chrome_exe} -> {uri}")
+            except Exception as e_chrome:
+                print(f"[DEBUG] Chrome executable open attempt failed: {e_chrome}")
+
+            # 2) Try webbrowser registered handler 'chrome'
+            if not opened:
+                try:
+                    webbrowser.get('chrome').open(uri)
+                    opened = True
+                    print(f"[INFO] Opened summary using webbrowser 'chrome' handler -> {uri}")
+                except Exception as e_get:
+                    print(f"[DEBUG] webbrowser.get('chrome') failed: {e_get}")
+
+            # 3) Fallback to default browser
+            if not opened:
+                opened = webbrowser.open(uri)
+                print(f"[INFO] Attempted to open summary in default browser: {opened} -> {uri}")
+
+            if not opened:
+                print(f"[WARN] Browser did not open automatically. Please open the file manually: {summary_path.resolve()}")
+
+        except Exception as e:
+            print(f"[WARN] Could not open summary in browser: {e}")
+            print(f"[INFO] Please open the summary manually at: {summary_path.resolve()}")
+
+    except Exception as e:
+        print(f"[WARN] Failed to generate HTML summary: {e}")
 
 else:
     print("\n[WARN] No trades executed")

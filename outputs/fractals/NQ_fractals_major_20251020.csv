@@ -1,0 +1,9 @@
+timestamp,price,type,direction,tag
+2025-10-20 06:40:00,25085.0,VALLE,down,major
+2025-10-20 09:39:00,25152.5,PICO,up,major
+2025-10-20 13:00:00,25038.0,VALLE,down,major
+2025-10-20 15:30:00,25176.0,PICO,up,major
+2025-10-20 15:30:00,25114.75,VALLE,down,major
+2025-10-20 17:51:00,25345.5,PICO,up,major
+2025-10-20 18:36:00,25290.75,VALLE,down,major
+2025-10-20 19:42:00,25354.5,PICO,up,major

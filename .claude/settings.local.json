@@ -15,7 +15,31 @@
       "Bash(2025-04-25\"\n- Reduce price line width from 1 to 0.5 for cleaner appearance\n- Update fractal CSV output filenames to use dynamic symbol\n\n🤖 Generated with [Claude Code]\\(https://claude.com/claude-code\\)\n\nCo-Authored-By: Claude Sonnet 4.5 <noreply@anthropic.com>\nEOF\n\\)\")",
       "Bash(dir /b \"d:\\\\PYTHON\\\\ALGOS\\\\factales\\\\find_*.py\")",
       "Bash(20251104\"\n- Simplified all output filenames to use single date when start==end\n- Updated all console messages to show single date format\n- Files: nq_20251104.html, NQ_fractals_minor_20251104.csv, etc.\n\n🤖 Generated with [Claude Code]\\(https://claude.com/claude-code\\)\n\nCo-Authored-By: Claude Sonnet 4.5 <noreply@anthropic.com>\nEOF\n\\)\")",
-      "Bash(20251103\"\\)\n- Y-axis: Add tickformat='','' to display full numbers \\(e.g., \"26,250\" instead of \"26.25k\"\\)\n\n🤖 Generated with [Claude Code]\\(https://claude.com/claude-code\\)\n\nCo-Authored-By: Claude Sonnet 4.5 <noreply@anthropic.com>\nEOF\n\\)\")"
+      "Bash(20251103\"\\)\n- Y-axis: Add tickformat='','' to display full numbers \\(e.g., \"26,250\" instead of \"26.25k\"\\)\n\n🤖 Generated with [Claude Code]\\(https://claude.com/claude-code\\)\n\nCo-Authored-By: Claude Sonnet 4.5 <noreply@anthropic.com>\nEOF\n\\)\")",
+      "Bash(git reset:*)",
+      "Bash(git mv:*)",
+      "Bash(findstr:*)",
+      "Bash(cat:*)",
+      "Bash(dir:*)",
+      "Bash(move:*)",
+      "Bash(if [ -f outputs/channel_model_nq_20250915.json ])",
+      "Bash(then mv outputs/channel_model_*.json outputs/modelos_json/)",
+      "Bash(else echo \"No existing models found\")",
+      "Bash(fi)",
+      "Bash(tasklist:*)",
+      "Bash(Get-Process)",
+      "Bash(Where-Object {$_ProcessName -like \"*python*\"})",
+      "Bash(Select-Object Id,ProcessName,StartTime)",
+      "Bash(for f in time_and_sales_nq_*.csv)",
+      "Bash(do head -1 \"$f\")",
+      "Bash(echo:*)",
+      "Bash(done)",
+      "Bash(python iterate/iterate_all_days.py:*)",
+      "Bash(python main_quant.py:*)",
+      "Bash(grep:*)",
+      "Bash(python optimize_time_in_market.py:*)",
+      "Bash(ls -lh \"d:\\\\PYTHON\\\\ALGOS\\\\factales_NQ\\\\outputs\\\\optimization\"\" 2>/dev/null || dir \"d:PYTHONALGOSfactales_NQoutputsoptimization\"\")",
+      "Bash(dir \"d:\\\\PYTHON\\\\ALGOS\\\\factales_NQ\\\\outputs\\\\optimization\")"
     ]
   }
 }

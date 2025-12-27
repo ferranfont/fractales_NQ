@@ -1,0 +1,711 @@
+
+    <!DOCTYPE html>
+    <html>
+    <head>
+        <title>Trading Hours Analysis</title>
+        <style>
+            body {
+                font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+                margin: 20px;
+                background-color: #f5f5f5;
+            }
+            .header {
+                background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+                color: white;
+                padding: 30px;
+                border-radius: 10px;
+                margin-bottom: 20px;
+            }
+            .header h1 {
+                margin: 0;
+                font-size: 28px;
+            }
+            .header p {
+                margin: 5px 0 0 0;
+                opacity: 0.9;
+            }
+            .section {
+                background: white;
+                padding: 20px;
+                margin-bottom: 20px;
+                border-radius: 8px;
+                box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+            }
+            .section h2 {
+                margin-top: 0;
+                color: #667eea;
+                border-bottom: 2px solid #667eea;
+                padding-bottom: 10px;
+            }
+            .best-hours {
+                display: grid;
+                grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+                gap: 15px;
+                margin-bottom: 20px;
+            }
+            .hour-card {
+                background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+                color: white;
+                padding: 15px;
+                border-radius: 8px;
+            }
+            .hour-card h3 {
+                margin: 0 0 10px 0;
+                font-size: 14px;
+                opacity: 0.9;
+            }
+            .hour-card .value {
+                font-size: 24px;
+                font-weight: bold;
+            }
+            .hour-card .details {
+                font-size: 12px;
+                margin-top: 10px;
+                opacity: 0.9;
+            }
+            table {
+                width: 100%;
+                border-collapse: collapse;
+                margin-top: 15px;
+                font-size: 13px;
+            }
+            th, td {
+                padding: 10px;
+                text-align: right;
+                border-bottom: 1px solid #e0e0e0;
+            }
+            th {
+                background-color: #f8f9fa;
+                font-weight: 600;
+                color: #333;
+                position: sticky;
+                top: 0;
+            }
+            tr:hover {
+                background-color: #f8f9fa;
+            }
+            .positive {
+                color: #22c55e;
+                font-weight: 600;
+            }
+            .negative {
+                color: #ef4444;
+                font-weight: 600;
+            }
+            .info-box {
+                background: #e3f2fd;
+                border-left: 4px solid #2196f3;
+                padding: 15px;
+                margin: 15px 0;
+                border-radius: 4px;
+            }
+        </style>
+    </head>
+    <body>
+        <div class="header">
+            <h1>VWAP Momentum - Análisis de Horas de Trading</h1>
+            <p>Período: 20251001 → 20251212</p>
+            <p>Total Días: 53 | Total Trades: 425</p>
+            <p>TP: 125.0 pts | SL: 75.0 pts</p>
+        </div>
+
+        <div class="section">
+            <h2>Mejores Horas de Trading</h2>
+            <div class="info-box">
+                <strong>Recomendación:</strong> Analiza las horas con mejor Sharpe Ratio (riesgo-ajustado)
+                y suficiente volumen de trades para resultados estadísticamente significativos.
+            </div>
+            <div class="best-hours">
+                <div class="hour-card">
+                    <h3>🏆 MEJOR SHARPE RATIO</h3>
+                    <div class="value">11:00</div>
+                    <div class="details">
+                        Sharpe: 17.82<br>
+                        Total P&L: $11,000<br>
+                        Win Rate: 83.3%<br>
+                        Trades: 6
+                    </div>
+                </div>
+
+                <div class="hour-card">
+                    <h3>💰 MAYOR P&L TOTAL</h3>
+                    <div class="value">17:00</div>
+                    <div class="details">
+                        Total P&L: $35,660<br>
+                        Sharpe: 5.86<br>
+                        Win Rate: 56.8%<br>
+                        Trades: 51
+                    </div>
+                </div>
+
+                <div class="hour-card">
+                    <h3>🎯 MEJOR WIN RATE</h3>
+                    <div class="value">11:00</div>
+                    <div class="details">
+                        Win Rate: 83.3%<br>
+                        Total P&L: $11,000<br>
+                        Sharpe: 17.82<br>
+                        Trades: 6
+                    </div>
+                </div>
+
+                <div class="hour-card">
+                    <h3>📊 MÁS ACTIVA</h3>
+                    <div class="value">15:00</div>
+                    <div class="details">
+                        Trades: 61<br>
+                        Total P&L: $3,255<br>
+                        Win Rate: 39.0%<br>
+                        Sharpe: 0.44
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="section">
+            <h2>Gráficos Interactivos</h2>
+            <html>
+<head><meta charset="utf-8" /></head>
+<body>
+    <div>                        <script type="text/javascript">window.PlotlyConfig = {MathJaxConfig: 'local'};</script>
+        <script charset="utf-8" src="https://cdn.plot.ly/plotly-2.35.2.min.js"></script>                <div id="plotly_charts" class="plotly-graph-div" style="height:1200px; width:100%;"></div>            <script type="text/javascript">                                    window.PLOTLYENV=window.PLOTLYENV || {};                                    if (document.getElementById("plotly_charts")) {                    Plotly.newPlot(                        "plotly_charts",                        [{"marker":{"color":["green","green","red","red","green","red","green","green","red","red","green","green","green","green","red","green","green","green","green","red","green","green","green"]},"name":"Total P&L","showlegend":false,"x":["00:00","01:00","02:00","03:00","04:00","05:00","06:00","07:00","08:00","09:00","10:00","11:00","12:00","13:00","14:00","15:00","16:00","17:00","18:00","19:00","20:00","21:00","22:00"],"y":[0.0,10500.0,-7500.0,-5000.0,2000.0,-2000.0,9500.0,4500.0,-5500.0,-2000.0,14000.0,11000.0,7000.0,3000.0,-8305.0,3255.0,10810.0,35660.0,11875.0,-8130.0,2830.0,5555.0,3680.0],"type":"bar","xaxis":"x","yaxis":"y"},{"marker":{"color":"steelblue"},"name":"Trades","showlegend":false,"x":["00:00","01:00","02:00","03:00","04:00","05:00","06:00","07:00","08:00","09:00","10:00","11:00","12:00","13:00","14:00","15:00","16:00","17:00","18:00","19:00","20:00","21:00","22:00"],"y":[8,17,5,6,4,4,7,5,9,12,12,6,6,14,12,61,56,51,35,30,27,30,8],"type":"bar","xaxis":"x2","yaxis":"y2"},{"marker":{"color":"purple"},"name":"Win Rate","showlegend":false,"x":["00:00","01:00","02:00","03:00","04:00","05:00","06:00","07:00","08:00","09:00","10:00","11:00","12:00","13:00","14:00","15:00","16:00","17:00","18:00","19:00","20:00","21:00","22:00"],"y":[37.5,52.94117647058824,0.0,16.666666666666664,50.0,25.0,71.42857142857143,60.0,22.22222222222222,33.33333333333333,66.66666666666666,83.33333333333334,66.66666666666666,42.857142857142854,18.181818181818183,38.983050847457626,40.38461538461539,56.81818181818182,45.45454545454545,28.000000000000004,39.130434782608695,38.46153846153847,0.0],"type":"bar","xaxis":"x3","yaxis":"y3"},{"marker":{"color":["green","green","green","red","green","red","green","green","red","red","green","green","green","green","red","green","green","green","green","red","green","green","green"]},"name":"Sharpe","showlegend":false,"x":["00:00","01:00","02:00","03:00","04:00","05:00","06:00","07:00","08:00","09:00","10:00","11:00","12:00","13:00","14:00","15:00","16:00","17:00","18:00","19:00","20:00","21:00","22:00"],"y":[0.0,4.764297368108409,0.0,-8.100925873009826,3.4369317712168805,-3.968626966596886,11.038002536691138,6.521119535785247,-5.5,-1.3433865787627925,9.403706051339547,17.822036920621617,8.96608192021465,1.655955162436471,-7.00727994887677,0.4375544729205167,1.5853855314514664,5.86374530224303,2.740729329923899,-2.541428676371738,0.8994858828787674,1.9977746420163562,10.869467084489871],"type":"bar","xaxis":"x4","yaxis":"y4"},{"marker":{"color":["green","green","red","red","green","red","green","green","red","red","green","green","green","green","red","green","green","green","green","red","green","green","green"]},"name":"Avg P&L","showlegend":false,"x":["00:00","01:00","02:00","03:00","04:00","05:00","06:00","07:00","08:00","09:00","10:00","11:00","12:00","13:00","14:00","15:00","16:00","17:00","18:00","19:00","20:00","21:00","22:00"],"y":[0.0,617.6470588235294,-1500.0,-833.3333333333334,500.0,-500.0,1357.142857142857,900.0,-611.1111111111111,-166.66666666666666,1166.6666666666667,1833.3333333333333,1166.6666666666667,214.28571428571428,-692.0833333333334,53.36065573770492,193.03571428571428,699.2156862745098,339.2857142857143,-271.0,104.81481481481481,185.16666666666666,460.0],"type":"bar","xaxis":"x5","yaxis":"y5"},{"marker":{"color":"orange"},"name":"PF","showlegend":false,"x":["00:00","01:00","02:00","03:00","04:00","05:00","06:00","07:00","08:00","09:00","10:00","11:00","12:00","13:00","14:00","15:00","16:00","17:00","18:00","19:00","20:00","21:00","22:00"],"y":[1.0,1.875,0.0,0.3333333333333333,1.6666666666666667,0.5555555555555556,4.166666666666667,2.5,0.47619047619047616,0.8333333333333334,3.3333333333333335,8.333333333333334,3.3333333333333335,1.25,0.37037037037037035,1.0648148148148149,1.1290322580645162,2.192982456140351,1.3888888888888888,0.6481481481481481,1.0714285714285714,1.0416666666666667,0.0],"type":"bar","xaxis":"x6","yaxis":"y6"}],                        {"template":{"data":{"histogram2dcontour":[{"type":"histogram2dcontour","colorbar":{"outlinewidth":0,"ticks":""},"colorscale":[[0.0,"#0d0887"],[0.1111111111111111,"#46039f"],[0.2222222222222222,"#7201a8"],[0.3333333333333333,"#9c179e"],[0.4444444444444444,"#bd3786"],[0.5555555555555556,"#d8576b"],[0.6666666666666666,"#ed7953"],[0.7777777777777778,"#fb9f3a"],[0.8888888888888888,"#fdca26"],[1.0,"#f0f921"]]}],"choropleth":[{"type":"choropleth","colorbar":{"outlinewidth":0,"ticks":""}}],"histogram2d":[{"type":"histogram2d","colorbar":{"outlinewidth":0,"ticks":""},"colorscale":[[0.0,"#0d0887"],[0.1111111111111111,"#46039f"],[0.2222222222222222,"#7201a8"],[0.3333333333333333,"#9c179e"],[0.4444444444444444,"#bd3786"],[0.5555555555555556,"#d8576b"],[0.6666666666666666,"#ed7953"],[0.7777777777777778,"#fb9f3a"],[0.8888888888888888,"#fdca26"],[1.0,"#f0f921"]]}],"heatmap":[{"type":"heatmap","colorbar":{"outlinewidth":0,"ticks":""},"colorscale":[[0.0,"#0d0887"],[0.1111111111111111,"#46039f"],[0.2222222222222222,"#7201a8"],[0.3333333333333333,"#9c179e"],[0.4444444444444444,"#bd3786"],[0.5555555555555556,"#d8576b"],[0.6666666666666666,"#ed7953"],[0.7777777777777778,"#fb9f3a"],[0.8888888888888888,"#fdca26"],[1.0,"#f0f921"]]}],"heatmapgl":[{"type":"heatmapgl","colorbar":{"outlinewidth":0,"ticks":""},"colorscale":[[0.0,"#0d0887"],[0.1111111111111111,"#46039f"],[0.2222222222222222,"#7201a8"],[0.3333333333333333,"#9c179e"],[0.4444444444444444,"#bd3786"],[0.5555555555555556,"#d8576b"],[0.6666666666666666,"#ed7953"],[0.7777777777777778,"#fb9f3a"],[0.8888888888888888,"#fdca26"],[1.0,"#f0f921"]]}],"contourcarpet":[{"type":"contourcarpet","colorbar":{"outlinewidth":0,"ticks":""}}],"contour":[{"type":"contour","colorbar":{"outlinewidth":0,"ticks":""},"colorscale":[[0.0,"#0d0887"],[0.1111111111111111,"#46039f"],[0.2222222222222222,"#7201a8"],[0.3333333333333333,"#9c179e"],[0.4444444444444444,"#bd3786"],[0.5555555555555556,"#d8576b"],[0.6666666666666666,"#ed7953"],[0.7777777777777778,"#fb9f3a"],[0.8888888888888888,"#fdca26"],[1.0,"#f0f921"]]}],"surface":[{"type":"surface","colorbar":{"outlinewidth":0,"ticks":""},"colorscale":[[0.0,"#0d0887"],[0.1111111111111111,"#46039f"],[0.2222222222222222,"#7201a8"],[0.3333333333333333,"#9c179e"],[0.4444444444444444,"#bd3786"],[0.5555555555555556,"#d8576b"],[0.6666666666666666,"#ed7953"],[0.7777777777777778,"#fb9f3a"],[0.8888888888888888,"#fdca26"],[1.0,"#f0f921"]]}],"mesh3d":[{"type":"mesh3d","colorbar":{"outlinewidth":0,"ticks":""}}],"scatter":[{"fillpattern":{"fillmode":"overlay","size":10,"solidity":0.2},"type":"scatter"}],"parcoords":[{"type":"parcoords","line":{"colorbar":{"outlinewidth":0,"ticks":""}}}],"scatterpolargl":[{"type":"scatterpolargl","marker":{"colorbar":{"outlinewidth":0,"ticks":""}}}],"bar":[{"error_x":{"color":"#2a3f5f"},"error_y":{"color":"#2a3f5f"},"marker":{"line":{"color":"#E5ECF6","width":0.5},"pattern":{"fillmode":"overlay","size":10,"solidity":0.2}},"type":"bar"}],"scattergeo":[{"type":"scattergeo","marker":{"colorbar":{"outlinewidth":0,"ticks":""}}}],"scatterpolar":[{"type":"scatterpolar","marker":{"colorbar":{"outlinewidth":0,"ticks":""}}}],"histogram":[{"marker":{"pattern":{"fillmode":"overlay","size":10,"solidity":0.2}},"type":"histogram"}],"scattergl":[{"type":"scattergl","marker":{"colorbar":{"outlinewidth":0,"ticks":""}}}],"scatter3d":[{"type":"scatter3d","line":{"colorbar":{"outlinewidth":0,"ticks":""}},"marker":{"colorbar":{"outlinewidth":0,"ticks":""}}}],"scattermapbox":[{"type":"scattermapbox","marker":{"colorbar":{"outlinewidth":0,"ticks":""}}}],"scatterternary":[{"type":"scatterternary","marker":{"colorbar":{"outlinewidth":0,"ticks":""}}}],"scattercarpet":[{"type":"scattercarpet","marker":{"colorbar":{"outlinewidth":0,"ticks":""}}}],"carpet":[{"aaxis":{"endlinecolor":"#2a3f5f","gridcolor":"white","linecolor":"white","minorgridcolor":"white","startlinecolor":"#2a3f5f"},"baxis":{"endlinecolor":"#2a3f5f","gridcolor":"white","linecolor":"white","minorgridcolor":"white","startlinecolor":"#2a3f5f"},"type":"carpet"}],"table":[{"cells":{"fill":{"color":"#EBF0F8"},"line":{"color":"white"}},"header":{"fill":{"color":"#C8D4E3"},"line":{"color":"white"}},"type":"table"}],"barpolar":[{"marker":{"line":{"color":"#E5ECF6","width":0.5},"pattern":{"fillmode":"overlay","size":10,"solidity":0.2}},"type":"barpolar"}],"pie":[{"automargin":true,"type":"pie"}]},"layout":{"autotypenumbers":"strict","colorway":["#636efa","#EF553B","#00cc96","#ab63fa","#FFA15A","#19d3f3","#FF6692","#B6E880","#FF97FF","#FECB52"],"font":{"color":"#2a3f5f"},"hovermode":"closest","hoverlabel":{"align":"left"},"paper_bgcolor":"white","plot_bgcolor":"#E5ECF6","polar":{"bgcolor":"#E5ECF6","angularaxis":{"gridcolor":"white","linecolor":"white","ticks":""},"radialaxis":{"gridcolor":"white","linecolor":"white","ticks":""}},"ternary":{"bgcolor":"#E5ECF6","aaxis":{"gridcolor":"white","linecolor":"white","ticks":""},"baxis":{"gridcolor":"white","linecolor":"white","ticks":""},"caxis":{"gridcolor":"white","linecolor":"white","ticks":""}},"coloraxis":{"colorbar":{"outlinewidth":0,"ticks":""}},"colorscale":{"sequential":[[0.0,"#0d0887"],[0.1111111111111111,"#46039f"],[0.2222222222222222,"#7201a8"],[0.3333333333333333,"#9c179e"],[0.4444444444444444,"#bd3786"],[0.5555555555555556,"#d8576b"],[0.6666666666666666,"#ed7953"],[0.7777777777777778,"#fb9f3a"],[0.8888888888888888,"#fdca26"],[1.0,"#f0f921"]],"sequentialminus":[[0.0,"#0d0887"],[0.1111111111111111,"#46039f"],[0.2222222222222222,"#7201a8"],[0.3333333333333333,"#9c179e"],[0.4444444444444444,"#bd3786"],[0.5555555555555556,"#d8576b"],[0.6666666666666666,"#ed7953"],[0.7777777777777778,"#fb9f3a"],[0.8888888888888888,"#fdca26"],[1.0,"#f0f921"]],"diverging":[[0,"#8e0152"],[0.1,"#c51b7d"],[0.2,"#de77ae"],[0.3,"#f1b6da"],[0.4,"#fde0ef"],[0.5,"#f7f7f7"],[0.6,"#e6f5d0"],[0.7,"#b8e186"],[0.8,"#7fbc41"],[0.9,"#4d9221"],[1,"#276419"]]},"xaxis":{"gridcolor":"white","linecolor":"white","ticks":"","title":{"standoff":15},"zerolinecolor":"white","automargin":true,"zerolinewidth":2},"yaxis":{"gridcolor":"white","linecolor":"white","ticks":"","title":{"standoff":15},"zerolinecolor":"white","automargin":true,"zerolinewidth":2},"scene":{"xaxis":{"backgroundcolor":"#E5ECF6","gridcolor":"white","linecolor":"white","showbackground":true,"ticks":"","zerolinecolor":"white","gridwidth":2},"yaxis":{"backgroundcolor":"#E5ECF6","gridcolor":"white","linecolor":"white","showbackground":true,"ticks":"","zerolinecolor":"white","gridwidth":2},"zaxis":{"backgroundcolor":"#E5ECF6","gridcolor":"white","linecolor":"white","showbackground":true,"ticks":"","zerolinecolor":"white","gridwidth":2}},"shapedefaults":{"line":{"color":"#2a3f5f"}},"annotationdefaults":{"arrowcolor":"#2a3f5f","arrowhead":0,"arrowwidth":1},"geo":{"bgcolor":"white","landcolor":"#E5ECF6","subunitcolor":"white","showland":true,"showlakes":true,"lakecolor":"white"},"title":{"x":0.05},"mapbox":{"style":"light"}}},"xaxis":{"anchor":"y","domain":[0.0,0.44],"tickangle":45},"yaxis":{"anchor":"x","domain":[0.7466666666666667,1.0]},"xaxis2":{"anchor":"y2","domain":[0.56,1.0],"tickangle":45},"yaxis2":{"anchor":"x2","domain":[0.7466666666666667,1.0]},"xaxis3":{"anchor":"y3","domain":[0.0,0.44],"tickangle":45},"yaxis3":{"anchor":"x3","domain":[0.37333333333333335,0.6266666666666667]},"xaxis4":{"anchor":"y4","domain":[0.56,1.0],"tickangle":45},"yaxis4":{"anchor":"x4","domain":[0.37333333333333335,0.6266666666666667]},"xaxis5":{"anchor":"y5","domain":[0.0,0.44],"tickangle":45},"yaxis5":{"anchor":"x5","domain":[0.0,0.25333333333333335]},"xaxis6":{"anchor":"y6","domain":[0.56,1.0],"tickangle":45},"yaxis6":{"anchor":"x6","domain":[0.0,0.25333333333333335]},"annotations":[{"font":{"size":16},"showarrow":false,"text":"P&L por Hora","x":0.22,"xanchor":"center","xref":"paper","y":1.0,"yanchor":"bottom","yref":"paper"},{"font":{"size":16},"showarrow":false,"text":"Número de Trades por Hora","x":0.78,"xanchor":"center","xref":"paper","y":1.0,"yanchor":"bottom","yref":"paper"},{"font":{"size":16},"showarrow":false,"text":"Win Rate por Hora (%)","x":0.22,"xanchor":"center","xref":"paper","y":0.6266666666666667,"yanchor":"bottom","yref":"paper"},{"font":{"size":16},"showarrow":false,"text":"Sharpe Ratio por Hora","x":0.78,"xanchor":"center","xref":"paper","y":0.6266666666666667,"yanchor":"bottom","yref":"paper"},{"font":{"size":16},"showarrow":false,"text":"P&L Promedio por Trade","x":0.22,"xanchor":"center","xref":"paper","y":0.25333333333333335,"yanchor":"bottom","yref":"paper"},{"font":{"size":16},"showarrow":false,"text":"Profit Factor por Hora","x":0.78,"xanchor":"center","xref":"paper","y":0.25333333333333335,"yanchor":"bottom","yref":"paper"}],"title":{"text":"Análisis de Performance por Hora de Trading"},"height":1200,"showlegend":false},                        {"responsive": true}                    )                };                            </script>        </div>
+</body>
+</html>
+        </div>
+
+        <div class="section">
+            <h2>🏆 Ranking por Sharpe Ratio (Ordenado Descendente)</h2>
+            <div style="max-height: 600px; overflow-y: auto;">
+                <table>
+                    <thead>
+                        <tr>
+                            <th>Rank</th>
+                            <th>Hora</th>
+                            <th>Trades</th>
+                            <th>Win%</th>
+                            <th>Total P&L</th>
+                            <th>Avg P&L</th>
+                            <th>Sharpe</th>
+                            <th>PF</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+    
+                        <tr>
+                            <td><span class="rank">#1</span></td>
+                            <td><strong>11:00</strong></td>
+                            <td>6</td>
+                            <td>83.3%</td>
+                            <td class="positive">$11,000</td>
+                            <td class="positive">$1,833.33</td>
+                            <td><strong>17.82</strong></td>
+                            <td>8.33</td>
+                        </tr>
+        
+                        <tr>
+                            <td><span class="rank">#2</span></td>
+                            <td><strong>06:00</strong></td>
+                            <td>7</td>
+                            <td>71.4%</td>
+                            <td class="positive">$9,500</td>
+                            <td class="positive">$1,357.14</td>
+                            <td><strong>11.04</strong></td>
+                            <td>4.17</td>
+                        </tr>
+        
+                        <tr>
+                            <td><span class="rank">#3</span></td>
+                            <td><strong>22:00</strong></td>
+                            <td>8</td>
+                            <td>0.0%</td>
+                            <td class="positive">$3,680</td>
+                            <td class="positive">$460.00</td>
+                            <td><strong>10.87</strong></td>
+                            <td>0.00</td>
+                        </tr>
+        
+                        <tr>
+                            <td><span class="">#4</span></td>
+                            <td><strong>10:00</strong></td>
+                            <td>12</td>
+                            <td>66.7%</td>
+                            <td class="positive">$14,000</td>
+                            <td class="positive">$1,166.67</td>
+                            <td><strong>9.40</strong></td>
+                            <td>3.33</td>
+                        </tr>
+        
+                        <tr>
+                            <td><span class="">#5</span></td>
+                            <td><strong>12:00</strong></td>
+                            <td>6</td>
+                            <td>66.7%</td>
+                            <td class="positive">$7,000</td>
+                            <td class="positive">$1,166.67</td>
+                            <td><strong>8.97</strong></td>
+                            <td>3.33</td>
+                        </tr>
+        
+                        <tr>
+                            <td><span class="">#6</span></td>
+                            <td><strong>07:00</strong></td>
+                            <td>5</td>
+                            <td>60.0%</td>
+                            <td class="positive">$4,500</td>
+                            <td class="positive">$900.00</td>
+                            <td><strong>6.52</strong></td>
+                            <td>2.50</td>
+                        </tr>
+        
+                        <tr>
+                            <td><span class="">#7</span></td>
+                            <td><strong>17:00</strong></td>
+                            <td>51</td>
+                            <td>56.8%</td>
+                            <td class="positive">$35,660</td>
+                            <td class="positive">$699.22</td>
+                            <td><strong>5.86</strong></td>
+                            <td>2.19</td>
+                        </tr>
+        
+                        <tr>
+                            <td><span class="">#8</span></td>
+                            <td><strong>01:00</strong></td>
+                            <td>17</td>
+                            <td>52.9%</td>
+                            <td class="positive">$10,500</td>
+                            <td class="positive">$617.65</td>
+                            <td><strong>4.76</strong></td>
+                            <td>1.88</td>
+                        </tr>
+        
+                        <tr>
+                            <td><span class="">#9</span></td>
+                            <td><strong>04:00</strong></td>
+                            <td>4</td>
+                            <td>50.0%</td>
+                            <td class="positive">$2,000</td>
+                            <td class="positive">$500.00</td>
+                            <td><strong>3.44</strong></td>
+                            <td>1.67</td>
+                        </tr>
+        
+                        <tr>
+                            <td><span class="">#10</span></td>
+                            <td><strong>18:00</strong></td>
+                            <td>35</td>
+                            <td>45.5%</td>
+                            <td class="positive">$11,875</td>
+                            <td class="positive">$339.29</td>
+                            <td><strong>2.74</strong></td>
+                            <td>1.39</td>
+                        </tr>
+        
+                        <tr>
+                            <td><span class="">#11</span></td>
+                            <td><strong>21:00</strong></td>
+                            <td>30</td>
+                            <td>38.5%</td>
+                            <td class="positive">$5,555</td>
+                            <td class="positive">$185.17</td>
+                            <td><strong>2.00</strong></td>
+                            <td>1.04</td>
+                        </tr>
+        
+                        <tr>
+                            <td><span class="">#12</span></td>
+                            <td><strong>13:00</strong></td>
+                            <td>14</td>
+                            <td>42.9%</td>
+                            <td class="positive">$3,000</td>
+                            <td class="positive">$214.29</td>
+                            <td><strong>1.66</strong></td>
+                            <td>1.25</td>
+                        </tr>
+        
+                        <tr>
+                            <td><span class="">#13</span></td>
+                            <td><strong>16:00</strong></td>
+                            <td>56</td>
+                            <td>40.4%</td>
+                            <td class="positive">$10,810</td>
+                            <td class="positive">$193.04</td>
+                            <td><strong>1.59</strong></td>
+                            <td>1.13</td>
+                        </tr>
+        
+                        <tr>
+                            <td><span class="">#14</span></td>
+                            <td><strong>20:00</strong></td>
+                            <td>27</td>
+                            <td>39.1%</td>
+                            <td class="positive">$2,830</td>
+                            <td class="positive">$104.81</td>
+                            <td><strong>0.90</strong></td>
+                            <td>1.07</td>
+                        </tr>
+        
+                        <tr>
+                            <td><span class="">#15</span></td>
+                            <td><strong>15:00</strong></td>
+                            <td>61</td>
+                            <td>39.0%</td>
+                            <td class="positive">$3,255</td>
+                            <td class="positive">$53.36</td>
+                            <td><strong>0.44</strong></td>
+                            <td>1.06</td>
+                        </tr>
+        
+                        <tr>
+                            <td><span class="">#16</span></td>
+                            <td><strong>00:00</strong></td>
+                            <td>8</td>
+                            <td>37.5%</td>
+                            <td class="negative">$0</td>
+                            <td class="negative">$0.00</td>
+                            <td><strong>0.00</strong></td>
+                            <td>1.00</td>
+                        </tr>
+        
+                        <tr>
+                            <td><span class="">#17</span></td>
+                            <td><strong>02:00</strong></td>
+                            <td>5</td>
+                            <td>0.0%</td>
+                            <td class="negative">$-7,500</td>
+                            <td class="negative">$-1,500.00</td>
+                            <td><strong>0.00</strong></td>
+                            <td>0.00</td>
+                        </tr>
+        
+                        <tr>
+                            <td><span class="">#18</span></td>
+                            <td><strong>09:00</strong></td>
+                            <td>12</td>
+                            <td>33.3%</td>
+                            <td class="negative">$-2,000</td>
+                            <td class="negative">$-166.67</td>
+                            <td><strong>-1.34</strong></td>
+                            <td>0.83</td>
+                        </tr>
+        
+                        <tr>
+                            <td><span class="">#19</span></td>
+                            <td><strong>19:00</strong></td>
+                            <td>30</td>
+                            <td>28.0%</td>
+                            <td class="negative">$-8,130</td>
+                            <td class="negative">$-271.00</td>
+                            <td><strong>-2.54</strong></td>
+                            <td>0.65</td>
+                        </tr>
+        
+                        <tr>
+                            <td><span class="">#20</span></td>
+                            <td><strong>05:00</strong></td>
+                            <td>4</td>
+                            <td>25.0%</td>
+                            <td class="negative">$-2,000</td>
+                            <td class="negative">$-500.00</td>
+                            <td><strong>-3.97</strong></td>
+                            <td>0.56</td>
+                        </tr>
+        
+                        <tr>
+                            <td><span class="">#21</span></td>
+                            <td><strong>08:00</strong></td>
+                            <td>9</td>
+                            <td>22.2%</td>
+                            <td class="negative">$-5,500</td>
+                            <td class="negative">$-611.11</td>
+                            <td><strong>-5.50</strong></td>
+                            <td>0.48</td>
+                        </tr>
+        
+                        <tr>
+                            <td><span class="">#22</span></td>
+                            <td><strong>14:00</strong></td>
+                            <td>12</td>
+                            <td>18.2%</td>
+                            <td class="negative">$-8,305</td>
+                            <td class="negative">$-692.08</td>
+                            <td><strong>-7.01</strong></td>
+                            <td>0.37</td>
+                        </tr>
+        
+                        <tr>
+                            <td><span class="">#23</span></td>
+                            <td><strong>03:00</strong></td>
+                            <td>6</td>
+                            <td>16.7%</td>
+                            <td class="negative">$-5,000</td>
+                            <td class="negative">$-833.33</td>
+                            <td><strong>-8.10</strong></td>
+                            <td>0.33</td>
+                        </tr>
+        
+                    </tbody>
+                </table>
+            </div>
+        </div>
+
+        <div class="section">
+            <h2>🕐 Tabla Completa por Hora (Orden Cronológico)</h2>
+            <div style="max-height: 600px; overflow-y: auto;">
+                <table>
+                    <thead>
+                        <tr>
+                            <th>Hora</th>
+                            <th>Trades</th>
+                            <th>Win%</th>
+                            <th>Total P&L</th>
+                            <th>Avg P&L</th>
+                            <th>Sharpe</th>
+                            <th>PF</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+    
+                        <tr>
+                            <td><strong>00:00</strong></td>
+                            <td>8</td>
+                            <td>37.5%</td>
+                            <td class="negative">$0</td>
+                            <td class="negative">$0.00</td>
+                            <td><strong>0.00</strong></td>
+                            <td>1.00</td>
+                        </tr>
+        
+                        <tr>
+                            <td><strong>01:00</strong></td>
+                            <td>17</td>
+                            <td>52.9%</td>
+                            <td class="positive">$10,500</td>
+                            <td class="positive">$617.65</td>
+                            <td><strong>4.76</strong></td>
+                            <td>1.88</td>
+                        </tr>
+        
+                        <tr>
+                            <td><strong>02:00</strong></td>
+                            <td>5</td>
+                            <td>0.0%</td>
+                            <td class="negative">$-7,500</td>
+                            <td class="negative">$-1,500.00</td>
+                            <td><strong>0.00</strong></td>
+                            <td>0.00</td>
+                        </tr>
+        
+                        <tr>
+                            <td><strong>03:00</strong></td>
+                            <td>6</td>
+                            <td>16.7%</td>
+                            <td class="negative">$-5,000</td>
+                            <td class="negative">$-833.33</td>
+                            <td><strong>-8.10</strong></td>
+                            <td>0.33</td>
+                        </tr>
+        
+                        <tr>
+                            <td><strong>04:00</strong></td>
+                            <td>4</td>
+                            <td>50.0%</td>
+                            <td class="positive">$2,000</td>
+                            <td class="positive">$500.00</td>
+                            <td><strong>3.44</strong></td>
+                            <td>1.67</td>
+                        </tr>
+        
+                        <tr>
+                            <td><strong>05:00</strong></td>
+                            <td>4</td>
+                            <td>25.0%</td>
+                            <td class="negative">$-2,000</td>
+                            <td class="negative">$-500.00</td>
+                            <td><strong>-3.97</strong></td>
+                            <td>0.56</td>
+                        </tr>
+        
+                        <tr>
+                            <td><strong>06:00</strong></td>
+                            <td>7</td>
+                            <td>71.4%</td>
+                            <td class="positive">$9,500</td>
+                            <td class="positive">$1,357.14</td>
+                            <td><strong>11.04</strong></td>
+                            <td>4.17</td>
+                        </tr>
+        
+                        <tr>
+                            <td><strong>07:00</strong></td>
+                            <td>5</td>
+                            <td>60.0%</td>
+                            <td class="positive">$4,500</td>
+                            <td class="positive">$900.00</td>
+                            <td><strong>6.52</strong></td>
+                            <td>2.50</td>
+                        </tr>
+        
+                        <tr>
+                            <td><strong>08:00</strong></td>
+                            <td>9</td>
+                            <td>22.2%</td>
+                            <td class="negative">$-5,500</td>
+                            <td class="negative">$-611.11</td>
+                            <td><strong>-5.50</strong></td>
+                            <td>0.48</td>
+                        </tr>
+        
+                        <tr>
+                            <td><strong>09:00</strong></td>
+                            <td>12</td>
+                            <td>33.3%</td>
+                            <td class="negative">$-2,000</td>
+                            <td class="negative">$-166.67</td>
+                            <td><strong>-1.34</strong></td>
+                            <td>0.83</td>
+                        </tr>
+        
+                        <tr>
+                            <td><strong>10:00</strong></td>
+                            <td>12</td>
+                            <td>66.7%</td>
+                            <td class="positive">$14,000</td>
+                            <td class="positive">$1,166.67</td>
+                            <td><strong>9.40</strong></td>
+                            <td>3.33</td>
+                        </tr>
+        
+                        <tr>
+                            <td><strong>11:00</strong></td>
+                            <td>6</td>
+                            <td>83.3%</td>
+                            <td class="positive">$11,000</td>
+                            <td class="positive">$1,833.33</td>
+                            <td><strong>17.82</strong></td>
+                            <td>8.33</td>
+                        </tr>
+        
+                        <tr>
+                            <td><strong>12:00</strong></td>
+                            <td>6</td>
+                            <td>66.7%</td>
+                            <td class="positive">$7,000</td>
+                            <td class="positive">$1,166.67</td>
+                            <td><strong>8.97</strong></td>
+                            <td>3.33</td>
+                        </tr>
+        
+                        <tr>
+                            <td><strong>13:00</strong></td>
+                            <td>14</td>
+                            <td>42.9%</td>
+                            <td class="positive">$3,000</td>
+                            <td class="positive">$214.29</td>
+                            <td><strong>1.66</strong></td>
+                            <td>1.25</td>
+                        </tr>
+        
+                        <tr>
+                            <td><strong>14:00</strong></td>
+                            <td>12</td>
+                            <td>18.2%</td>
+                            <td class="negative">$-8,305</td>
+                            <td class="negative">$-692.08</td>
+                            <td><strong>-7.01</strong></td>
+                            <td>0.37</td>
+                        </tr>
+        
+                        <tr>
+                            <td><strong>15:00</strong></td>
+                            <td>61</td>
+                            <td>39.0%</td>
+                            <td class="positive">$3,255</td>
+                            <td class="positive">$53.36</td>
+                            <td><strong>0.44</strong></td>
+                            <td>1.06</td>
+                        </tr>
+        
+                        <tr>
+                            <td><strong>16:00</strong></td>
+                            <td>56</td>
+                            <td>40.4%</td>
+                            <td class="positive">$10,810</td>
+                            <td class="positive">$193.04</td>
+                            <td><strong>1.59</strong></td>
+                            <td>1.13</td>
+                        </tr>
+        
+                        <tr>
+                            <td><strong>17:00</strong></td>
+                            <td>51</td>
+                            <td>56.8%</td>
+                            <td class="positive">$35,660</td>
+                            <td class="positive">$699.22</td>
+                            <td><strong>5.86</strong></td>
+                            <td>2.19</td>
+                        </tr>
+        
+                        <tr>
+                            <td><strong>18:00</strong></td>
+                            <td>35</td>
+                            <td>45.5%</td>
+                            <td class="positive">$11,875</td>
+                            <td class="positive">$339.29</td>
+                            <td><strong>2.74</strong></td>
+                            <td>1.39</td>
+                        </tr>
+        
+                        <tr>
+                            <td><strong>19:00</strong></td>
+                            <td>30</td>
+                            <td>28.0%</td>
+                            <td class="negative">$-8,130</td>
+                            <td class="negative">$-271.00</td>
+                            <td><strong>-2.54</strong></td>
+                            <td>0.65</td>
+                        </tr>
+        
+                        <tr>
+                            <td><strong>20:00</strong></td>
+                            <td>27</td>
+                            <td>39.1%</td>
+                            <td class="positive">$2,830</td>
+                            <td class="positive">$104.81</td>
+                            <td><strong>0.90</strong></td>
+                            <td>1.07</td>
+                        </tr>
+        
+                        <tr>
+                            <td><strong>21:00</strong></td>
+                            <td>30</td>
+                            <td>38.5%</td>
+                            <td class="positive">$5,555</td>
+                            <td class="positive">$185.17</td>
+                            <td><strong>2.00</strong></td>
+                            <td>1.04</td>
+                        </tr>
+        
+                        <tr>
+                            <td><strong>22:00</strong></td>
+                            <td>8</td>
+                            <td>0.0%</td>
+                            <td class="positive">$3,680</td>
+                            <td class="positive">$460.00</td>
+                            <td><strong>10.87</strong></td>
+                            <td>0.00</td>
+                        </tr>
+        
+                    </tbody>
+                </table>
+            </div>
+        </div>
+
+        <div class="section">
+            <p style="text-align: center; color: #666;">
+                Generado el 2025-12-25 13:49:30
+            </p>
+        </div>
+    </body>
+    </html>
+    

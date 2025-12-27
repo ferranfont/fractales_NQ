@@ -277,13 +277,13 @@ def load_nq_tick_data(date_str: str) -> pd.DataFrame:
     """
     Carga datos de time_and_sales para NQ desde archivo CSV
     Formato: time_and_sales_nq_YYYYMMDD.csv
-    Columnas: Timestamp;Precio;Volumen;Lado;Bid;Ask
+    Columnas: Timestamp;Precio;Volumen;Lado;Bid;Ask (o minúsculas)
 
     Args:
         date_str: Fecha en formato YYYYMMDD
 
     Returns:
-        DataFrame con datos de ticks
+        DataFrame con datos de ticks (columnas normalizadas: Timestamp, Precio, Volumen)
     """
     csv_path = DATA_DIR / f"time_and_sales_nq_{date_str}.csv"
 
@@ -294,17 +294,38 @@ def load_nq_tick_data(date_str: str) -> pd.DataFrame:
     print(f"[INFO] Cargando datos de tick desde {csv_path}")
 
     try:
-        # Leer CSV con separador ; y coma decimal
+        # Leer CSV sin parse_dates para evitar errores
         df = pd.read_csv(
             csv_path,
             sep=';',
-            decimal=',',
-            parse_dates=['Timestamp']
+            decimal=','
         )
 
+        # Normalizar nombres de columnas a MINÚSCULAS (formato estándar Python)
+        column_mapping = {}
+        for col in df.columns:
+            col_lower = col.lower()
+            if col_lower == 'timestamp':
+                column_mapping[col] = 'timestamp'
+            elif col_lower == 'precio':
+                column_mapping[col] = 'precio'
+            elif col_lower in ('volumen', 'volume'):
+                column_mapping[col] = 'volume'
+            elif col_lower == 'lado':
+                column_mapping[col] = 'lado'
+            elif col_lower == 'bid':
+                column_mapping[col] = 'bid'
+            elif col_lower == 'ask':
+                column_mapping[col] = 'ask'
+
+        df.rename(columns=column_mapping, inplace=True)
+
+        # Convertir timestamp a datetime
+        df['timestamp'] = pd.to_datetime(df['timestamp'])
+
         print(f"[OK] Cargados {len(df):,} ticks")
-        print(f"[INFO] Rango temporal: {df['Timestamp'].min()} -> {df['Timestamp'].max()}")
-        print(f"[INFO] Rango de precios: {df['Precio'].min():.2f} -> {df['Precio'].max():.2f}")
+        print(f"[INFO] Rango temporal: {df['timestamp'].min()} -> {df['timestamp'].max()}")
+        print(f"[INFO] Rango de precios: {df['precio'].min():.2f} -> {df['precio'].max():.2f}")
 
         return df
 
@@ -318,7 +339,7 @@ def aggregate_ticks_to_ohlc(df_ticks: pd.DataFrame, timeframe: str = '1min') -> 
     Agrega datos de tick a barras OHLC
 
     Args:
-        df_ticks: DataFrame con datos de tick (columnas: Timestamp, Precio, Volumen)
+        df_ticks: DataFrame con datos de tick (columnas: timestamp, precio, volume)
         timeframe: Timeframe para agregación (ej: '1min', '5min', '1H')
 
     Returns:
@@ -326,13 +347,13 @@ def aggregate_ticks_to_ohlc(df_ticks: pd.DataFrame, timeframe: str = '1min') -> 
     """
     print(f"[INFO] Agregando ticks a barras OHLC ({timeframe})")
 
-    # Establecer Timestamp como índice
+    # Establecer timestamp como índice
     df_ticks = df_ticks.copy()
-    df_ticks.set_index('Timestamp', inplace=True)
+    df_ticks.set_index('timestamp', inplace=True)
 
     # Agregar a OHLC
-    ohlc = df_ticks['Precio'].resample(timeframe).ohlc()
-    volume = df_ticks['Volumen'].resample(timeframe).sum()
+    ohlc = df_ticks['precio'].resample(timeframe).ohlc()
+    volume = df_ticks['volume'].resample(timeframe).sum()
 
     # Combinar OHLC y volumen
     df_ohlc = pd.concat([ohlc, volume], axis=1)
@@ -340,7 +361,6 @@ def aggregate_ticks_to_ohlc(df_ticks: pd.DataFrame, timeframe: str = '1min') -> 
 
     # Reset index para tener timestamp como columna
     df_ohlc.reset_index(inplace=True)
-    df_ohlc.rename(columns={'Timestamp': 'timestamp'}, inplace=True)
 
     # Eliminar filas con NaN (periodos sin trades)
     df_ohlc = df_ohlc.dropna()
