@@ -5,6 +5,7 @@ Prueba diferentes duraciones de holding time para todas las señales de entrada
 
 import pandas as pd
 import numpy as np
+import json
 from pathlib import Path
 from datetime import datetime, timedelta
 from config import DATA_DIR, OUTPUTS_DIR, PRICE_EJECTION_TRIGGER, VWAP_FAST, POINT_VALUE
@@ -141,6 +142,96 @@ def get_exit_time(entry_time, duration_minutes, eod_time):
         return eod_time
 
     return exit_time
+
+def save_optimal_config_to_json(df_best_sharpe_per_hour, output_dir):
+    """
+    Guarda la configuración óptima de duración por hora en formato JSON
+
+    Args:
+        df_best_sharpe_per_hour: DataFrame con mejor Sharpe Ratio por hora
+        output_dir: Directorio de salida
+
+    Returns:
+        config_path: Path del archivo JSON guardado
+    """
+    # Crear estructura de configuración
+    config = {
+        "metadata": {
+            "generated_at": datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
+            "optimization_criteria": "best_sharpe_ratio",
+            "description": "Optimal time-in-market duration for each entry hour based on Sharpe Ratio"
+        },
+        "optimal_durations": {}
+    }
+
+    # Para cada hora, guardar la configuración óptima
+    for _, row in df_best_sharpe_per_hour.iterrows():
+        hour = int(row['entry_hour'])
+        hour_key = f"{hour:02d}"
+
+        # Extraer duración en minutos del label
+        duration_label = row['best_duration']
+        if duration_label == 'EOD':
+            duration_minutes = 'EOD'
+        else:
+            # Extraer número de minutos del label (ej: "120min (2h)" -> 120)
+            duration_minutes = int(duration_label.split('min')[0])
+
+        config["optimal_durations"][hour_key] = {
+            "entry_hour": hour,
+            "duration_label": duration_label,
+            "duration_minutes": duration_minutes,
+            "sharpe_ratio": float(row['sharpe_ratio']),
+            "total_pnl_usd": float(row['total_pnl_usd']),
+            "avg_pnl_usd": float(row.get('avg_pnl_usd', 0)),
+            "total_trades": int(row['total_trades']),
+            "win_rate": float(row['win_rate']),
+            "avg_win_usd": float(row['avg_win']),
+            "avg_loss_usd": float(row['avg_loss']),
+            "avg_mae_usd": float(row['avg_mae']),
+            "avg_mfe_usd": float(row['avg_mfe'])
+        }
+
+    # Guardar JSON
+    config_path = output_dir / "optimal_time_in_market_config.json"
+    with open(config_path, 'w', encoding='utf-8') as f:
+        json.dump(config, f, indent=2, ensure_ascii=False)
+
+    return config_path
+
+def load_optimal_duration(entry_hour, config_path=None):
+    """
+    Carga la duración óptima para una hora de entrada específica
+
+    Args:
+        entry_hour: Hora de entrada (0-23)
+        config_path: Path al archivo de configuración JSON (opcional)
+
+    Returns:
+        dict: Configuración óptima para esa hora con keys:
+            - duration_minutes: Duración en minutos o 'EOD'
+            - duration_label: Label formateado
+            - sharpe_ratio: Sharpe Ratio
+            - otros métricas...
+        None si no se encuentra configuración
+    """
+    if config_path is None:
+        config_path = OUTPUTS_DIR / "optimization" / "optimal_time_in_market_config.json"
+
+    if not Path(config_path).exists():
+        print(f"[WARN] No se encontró archivo de configuración: {config_path}")
+        return None
+
+    with open(config_path, 'r', encoding='utf-8') as f:
+        config = json.load(f)
+
+    hour_key = f"{int(entry_hour):02d}"
+
+    if hour_key in config["optimal_durations"]:
+        return config["optimal_durations"][hour_key]
+    else:
+        print(f"[WARN] No hay configuración óptima para la hora {entry_hour}")
+        return None
 
 def calculate_pnl_at_exit(df, entry_idx, exit_time, direction, entry_price):
     """
@@ -663,8 +754,11 @@ if __name__ == "__main__":
         best_rr = summary_by_duration.loc[best_duration, 'rr_ratio_formatted']
         best_sharpe = summary_by_duration.loc[best_duration, 'sharpe_ratio']
 
-        # Contar días analizados
+        # Contar días analizados (total de archivos procesados)
         total_days = len(dates)
+
+        # Contar días con trades (días donde hubo al menos un trade)
+        trading_days = df_all['date'].nunique()
 
         html_content += f"""
         <div class="metric-card">
@@ -686,6 +780,10 @@ if __name__ == "__main__":
         <div class="metric-card">
             <div class="metric-label">Total Trades</div>
             <div class="metric-value">{int(best_trades):,}</div>
+        </div>
+        <div class="metric-card">
+            <div class="metric-label">Total Trading Days</div>
+            <div class="metric-value">{trading_days}</div>
         </div>
         <div class="metric-card">
             <div class="metric-label">Days Analyzed</div>
@@ -904,6 +1002,98 @@ if __name__ == "__main__":
         </table>
     </div>
 """
+
+        # Crear tabla de mejor Sharpe Ratio por hora
+        best_sharpe_per_hour = []
+        for hour in range(24):
+            hour_data = summary_by_hour.loc[hour] if hour in summary_by_hour.index.get_level_values(0) else None
+            if hour_data is not None and not hour_data.empty:
+                best_idx = hour_data['sharpe_ratio'].idxmax()
+                best_sharpe_per_hour.append({
+                    'entry_hour': hour,
+                    'best_duration': best_idx,
+                    'sharpe_ratio': hour_data.loc[best_idx, 'sharpe_ratio'],
+                    'total_pnl_usd': hour_data.loc[best_idx, 'total_pnl_usd'],
+                    'avg_pnl_usd': hour_data.loc[best_idx, 'avg_pnl_usd'],
+                    'total_trades': hour_data.loc[best_idx, 'total_trades'],
+                    'win_rate': hour_data.loc[best_idx, 'win_rate'],
+                    'avg_win': hour_data.loc[best_idx, 'avg_win'],
+                    'avg_loss': hour_data.loc[best_idx, 'avg_loss'],
+                    'avg_mae': hour_data.loc[best_idx, 'avg_mae'],
+                    'avg_mfe': hour_data.loc[best_idx, 'avg_mfe']
+                })
+
+        df_best_sharpe_per_hour = pd.DataFrame(best_sharpe_per_hour)
+
+        # Generar HTML para tabla de mejor Sharpe Ratio
+        hourly_html += """
+    <div class="summary-box">
+        <h2>📈 BEST SHARPE RATIO BY ENTRY HOUR - COMPLETE SUMMARY</h2>
+        <p>For each entry hour, showing the time-in-market duration with the best Sharpe Ratio and all associated metrics</p>
+        <table>
+            <thead>
+                <tr>
+                    <th>Entry Hour</th>
+                    <th>Best Duration</th>
+                    <th>Sharpe Ratio</th>
+                    <th>Total P&L (USD)</th>
+                    <th>Avg P&L (USD)</th>
+                    <th>Total Trades</th>
+                    <th>Win Rate (%)</th>
+                    <th>Avg Win (USD)</th>
+                    <th>Avg Loss (USD)</th>
+                    <th>Avg MAE (USD)</th>
+                    <th>Avg MFE (USD)</th>
+                </tr>
+            </thead>
+            <tbody>
+"""
+
+        for _, row in df_best_sharpe_per_hour.iterrows():
+            pnl_class = 'positive' if row['total_pnl_usd'] > 0 else 'negative'
+            avg_pnl_class = 'positive' if row.get('avg_pnl_usd', 0) > 0 else 'negative'
+            sharpe_class = 'positive' if row['sharpe_ratio'] > 0 else 'negative'
+            mae_class = 'negative' if row['avg_mae'] < 0 else ''
+            mfe_class = 'positive' if row['avg_mfe'] > 0 else ''
+
+            hourly_html += f"""
+                <tr>
+                    <td>{int(row['entry_hour']):02d}:00</td>
+                    <td><strong>{row['best_duration']}</strong></td>
+                    <td class="{sharpe_class}"><strong>{row['sharpe_ratio']:.3f}</strong></td>
+                    <td class="{pnl_class}">${row['total_pnl_usd']:,.0f}</td>
+                    <td class="{avg_pnl_class}">${row.get('avg_pnl_usd', 0):,.2f}</td>
+                    <td>{int(row['total_trades']):,}</td>
+                    <td>{row['win_rate']:.1f}%</td>
+                    <td class="positive">${row['avg_win']:,.2f}</td>
+                    <td class="negative">${row['avg_loss']:,.2f}</td>
+                    <td class="{mae_class}">${row['avg_mae']:,.2f}</td>
+                    <td class="{mfe_class}">${row['avg_mfe']:,.2f}</td>
+                </tr>
+"""
+
+        hourly_html += """
+            </tbody>
+        </table>
+    </div>
+"""
+
+        # ====================================================================
+        # GUARDAR CONFIGURACIÓN ÓPTIMA EN JSON
+        # ====================================================================
+        print("\n" + "=" * 80)
+        print("GUARDANDO CONFIGURACIÓN ÓPTIMA EN JSON")
+        print("=" * 80)
+
+        json_config_path = save_optimal_config_to_json(df_best_sharpe_per_hour, output_dir)
+        print(f"[OK] Configuración óptima guardada en: {json_config_path}")
+
+        # Mostrar ejemplo de uso
+        print("\n[INFO] Ejemplo de uso en sistema de trading:")
+        print(">>> from optimize_time_in_market import load_optimal_duration")
+        print(">>> config = load_optimal_duration(entry_hour=14)")
+        print(">>> duration_minutes = config['duration_minutes']")
+        print(f">>> # Para hora 14:00 -> {df_best_sharpe_per_hour[df_best_sharpe_per_hour['entry_hour']==14]['best_duration'].values[0] if 14 in df_best_sharpe_per_hour['entry_hour'].values else 'N/A'}")
 
         # Generar tablas detalladas por cada hora
         for hour in range(24):

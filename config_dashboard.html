@@ -1,0 +1,607 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>NQ Trading Strategy - Configuration Dashboard</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            padding: 20px;
+            min-height: 100vh;
+        }
+
+        .container {
+            max-width: 1400px;
+            margin: 0 auto;
+            background: white;
+            border-radius: 20px;
+            box-shadow: 0 20px 60px rgba(0,0,0,0.3);
+            overflow: hidden;
+        }
+
+        .header {
+            background: linear-gradient(135deg, #1e3c72 0%, #2a5298 100%);
+            color: white;
+            padding: 30px;
+            text-align: center;
+        }
+
+        .header h1 {
+            font-size: 2.5em;
+            margin-bottom: 10px;
+        }
+
+        .header p {
+            font-size: 1.1em;
+            opacity: 0.9;
+        }
+
+        .content {
+            padding: 40px;
+        }
+
+        .section {
+            margin-bottom: 40px;
+            border: 2px solid #e0e0e0;
+            border-radius: 15px;
+            padding: 25px;
+            background: #fafafa;
+            transition: all 0.3s ease;
+        }
+
+        .section:hover {
+            box-shadow: 0 5px 15px rgba(0,0,0,0.1);
+            border-color: #667eea;
+        }
+
+        .section-title {
+            font-size: 1.8em;
+            color: #1e3c72;
+            margin-bottom: 20px;
+            padding-bottom: 10px;
+            border-bottom: 3px solid #667eea;
+        }
+
+        .config-item {
+            background: white;
+            padding: 20px;
+            margin: 15px 0;
+            border-radius: 10px;
+            border-left: 5px solid #667eea;
+            box-shadow: 0 2px 5px rgba(0,0,0,0.05);
+        }
+
+        .config-item.active {
+            border-left-color: #27ae60;
+            background: #e8f8f5;
+        }
+
+        .config-item.inactive {
+            border-left-color: #e74c3c;
+            background: #fadbd8;
+            opacity: 0.7;
+        }
+
+        .config-item.disabled {
+            border-left-color: #95a5a6;
+            background: #ecf0f1;
+            opacity: 0.5;
+        }
+
+        .config-name {
+            font-weight: bold;
+            font-size: 1.2em;
+            color: #2c3e50;
+            margin-bottom: 8px;
+        }
+
+        .config-value {
+            font-size: 1.1em;
+            color: #34495e;
+            margin: 5px 0;
+        }
+
+        .config-value span {
+            background: #667eea;
+            color: white;
+            padding: 3px 10px;
+            border-radius: 5px;
+            font-weight: bold;
+        }
+
+        .config-description {
+            color: #7f8c8d;
+            margin-top: 10px;
+            line-height: 1.6;
+        }
+
+        .dependency {
+            background: #fff3cd;
+            border-left: 4px solid #ffc107;
+            padding: 10px;
+            margin-top: 10px;
+            border-radius: 5px;
+        }
+
+        .dependency-title {
+            font-weight: bold;
+            color: #856404;
+            margin-bottom: 5px;
+        }
+
+        .dependency-text {
+            color: #856404;
+            font-size: 0.95em;
+        }
+
+        .flow-diagram {
+            background: white;
+            padding: 30px;
+            border-radius: 10px;
+            margin: 20px 0;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+        }
+
+        .flow-box {
+            background: #667eea;
+            color: white;
+            padding: 15px;
+            border-radius: 8px;
+            margin: 10px 0;
+            text-align: center;
+            font-weight: bold;
+        }
+
+        .flow-box.decision {
+            background: #f39c12;
+        }
+
+        .flow-box.action {
+            background: #27ae60;
+        }
+
+        .flow-box.disabled-action {
+            background: #95a5a6;
+        }
+
+        .flow-arrow {
+            text-align: center;
+            font-size: 2em;
+            color: #667eea;
+            margin: 5px 0;
+        }
+
+        .legend {
+            display: flex;
+            justify-content: center;
+            flex-wrap: wrap;
+            gap: 20px;
+            margin: 30px 0;
+            padding: 20px;
+            background: #f8f9fa;
+            border-radius: 10px;
+        }
+
+        .legend-item {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .legend-box {
+            width: 30px;
+            height: 30px;
+            border-radius: 5px;
+        }
+
+        .legend-box.active {
+            background: #27ae60;
+        }
+
+        .legend-box.inactive {
+            background: #e74c3c;
+        }
+
+        .legend-box.disabled {
+            background: #95a5a6;
+        }
+
+        .grid-2 {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 20px;
+        }
+
+        @media (max-width: 768px) {
+            .grid-2 {
+                grid-template-columns: 1fr;
+            }
+        }
+
+        .highlight {
+            background: #fff9c4;
+            padding: 2px 6px;
+            border-radius: 3px;
+            font-weight: bold;
+        }
+
+        .warning {
+            background: #ffebee;
+            border-left: 4px solid #f44336;
+            padding: 15px;
+            margin: 15px 0;
+            border-radius: 5px;
+        }
+
+        .warning-title {
+            font-weight: bold;
+            color: #c62828;
+            margin-bottom: 5px;
+        }
+
+        .info {
+            background: #e3f2fd;
+            border-left: 4px solid #2196f3;
+            padding: 15px;
+            margin: 15px 0;
+            border-radius: 5px;
+        }
+
+        .info-title {
+            font-weight: bold;
+            color: #1565c0;
+            margin-bottom: 5px;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>📊 NQ Trading Strategy Configuration Dashboard</h1>
+            <p>Visualización Completa de Parámetros y Dependencias</p>
+        </div>
+
+        <div class="content">
+            <!-- LEGEND -->
+            <div class="legend">
+                <div class="legend-item">
+                    <div class="legend-box active"></div>
+                    <span>Configuración Activa</span>
+                </div>
+                <div class="legend-item">
+                    <div class="legend-box inactive"></div>
+                    <span>Configuración Inactiva</span>
+                </div>
+                <div class="legend-item">
+                    <div class="legend-box disabled"></div>
+                    <span>Deshabilitado por Dependencia</span>
+                </div>
+            </div>
+
+            <!-- SECTION 1: STRATEGY SELECTION -->
+            <div class="section">
+                <div class="section-title">🎯 1. Selección de Estrategia</div>
+
+                <div class="config-item active">
+                    <div class="config-name">ENABLE_VWAP_MOMENTUM_STRATEGY</div>
+                    <div class="config-value">Valor: <span>True</span></div>
+                    <div class="config-description">
+                        Habilita la estrategia VWAP Momentum (Price Ejection - Puntos Verdes).
+                        Esta estrategia opera cuando el precio se aleja significativamente del VWAP.
+                    </div>
+                </div>
+
+                <div class="config-item inactive">
+                    <div class="config-name">ENABLE_VWAP_CROSSOVER_STRATEGY</div>
+                    <div class="config-value">Valor: <span>False</span></div>
+                    <div class="config-description">
+                        Estrategia de cruce de VWAP (actualmente deshabilitada).
+                    </div>
+                </div>
+            </div>
+
+            <!-- SECTION 2: EXIT MODE DECISION -->
+            <div class="section">
+                <div class="section-title">🚪 2. Modo de Salida (EXIT MODE) - Decisión Principal</div>
+
+                <div class="info">
+                    <div class="info-title">ℹ️ Información Importante</div>
+                    Esta es la decisión más importante: ¿Cómo salir de los trades?
+                    <br><strong>Opción A:</strong> Time-in-Market (por tiempo)
+                    <br><strong>Opción B:</strong> TP/SL tradicional
+                </div>
+
+                <div class="config-item active">
+                    <div class="config-name">USE_TIME_IN_MARKET</div>
+                    <div class="config-value">Valor: <span>True</span></div>
+                    <div class="config-description">
+                        <strong>MODO ACTIVO:</strong> Salida basada en tiempo.
+                        <br>El trade se cierra después de un tiempo determinado o al final del día (EOD).
+                    </div>
+
+                    <div class="dependency">
+                        <div class="dependency-title">⚠️ IMPORTANTE - Cuando TRUE:</div>
+                        <div class="dependency-text">
+                            ✓ TP (Take Profit) está <strong>DESHABILITADO</strong><br>
+                            ✓ SL (Stop Loss) está <strong>DESHABILITADO</strong> (excepto protective SL)<br>
+                            ✓ VWAP Slope Indicator está <strong>DESHABILITADO</strong><br>
+                            ✓ Trailing Stop está <strong>DESHABILITADO</strong><br>
+                            ✓ La salida es <strong>SOLO por tiempo o EOD</strong>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- FLOW DIAGRAM FOR TIME IN MARKET -->
+                <div class="flow-diagram">
+                    <h3 style="text-align: center; color: #1e3c72; margin-bottom: 20px;">
+                        📊 Flujo de Decisión: USE_TIME_IN_MARKET = True
+                    </h3>
+
+                    <div class="flow-box decision">
+                        USE_TIME_IN_MARKET_JSON_OPTIMIZATION_FILE = ?
+                    </div>
+                    <div class="flow-arrow">↓</div>
+
+                    <div class="grid-2">
+                        <div>
+                            <div class="flow-box action" style="background: #27ae60;">
+                                TRUE: Usar JSON
+                            </div>
+                            <div class="flow-arrow">↓</div>
+                            <div style="background: #d5f4e6; padding: 15px; border-radius: 8px;">
+                                <strong>Duración Dinámica por Hora:</strong><br>
+                                • Hora 01 → 360min (6h)<br>
+                                • Hora 07 → EOD<br>
+                                • Hora 14 → 480min (8h)<br>
+                                • Hora 18 → 180min (3h)<br>
+                                • etc.
+                            </div>
+                        </div>
+
+                        <div>
+                            <div class="flow-box action" style="background: #3498db;">
+                                FALSE: Usar Fijo
+                            </div>
+                            <div class="flow-arrow">↓</div>
+                            <div style="background: #ebf5fb; padding: 15px; border-radius: 8px;">
+                                <strong>Duración Fija:</strong><br>
+                                TIME_IN_MARKET_MINUTES<br>
+                                = 180 minutos (3 horas)
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="flow-arrow">↓</div>
+                    <div class="flow-box decision">
+                        USE_MAX_SL_ALLOWED_IN_TIME_IN_MARKET = ?
+                    </div>
+                    <div class="flow-arrow">↓</div>
+
+                    <div class="grid-2">
+                        <div>
+                            <div class="flow-box action" style="background: #e67e22;">
+                                TRUE: Aplicar SL Protector
+                            </div>
+                            <div style="background: #fdebd0; padding: 15px; border-radius: 8px; margin-top: 10px;">
+                                Stop Loss de 100 puntos<br>
+                                (Protección adicional)
+                            </div>
+                        </div>
+
+                        <div>
+                            <div class="flow-box disabled-action">
+                                FALSE: Sin SL
+                            </div>
+                            <div style="background: #ecf0f1; padding: 15px; border-radius: 8px; margin-top: 10px;">
+                                Sin protección de stop loss<br>
+                                (Solo salida por tiempo)
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- SECTION 3: TIME IN MARKET CONFIGURATION -->
+            <div class="section">
+                <div class="section-title">⏱️ 3. Configuración Time-in-Market</div>
+
+                <div class="config-item active">
+                    <div class="config-name">USE_TIME_IN_MARKET_JSON_OPTIMIZATION_FILE</div>
+                    <div class="config-value">Valor: <span>True</span></div>
+                    <div class="config-description">
+                        <strong>JSON ACTIVO:</strong> Usa duración óptima por hora desde archivo JSON.
+                        <br>Cada hora del día tiene su duración óptima calculada mediante Sharpe Ratio.
+                    </div>
+
+                    <div class="dependency">
+                        <div class="dependency-title">📁 Archivo JSON:</div>
+                        <div class="dependency-text">
+                            Ubicación: <code>outputs/optimization/optimal_time_in_market_config.json</code><br>
+                            Generado por: <code>optimize_time_in_market.py</code><br>
+                            Criterio: Best Sharpe Ratio por hora de entrada
+                        </div>
+                    </div>
+
+                    <div class="info" style="margin-top: 15px;">
+                        <div class="info-title">📊 Ejemplos de Duraciones Óptimas:</div>
+                        • Hora 08:00 → EOD (Sharpe: 319.33) - Excelente<br>
+                        • Hora 03:00 → 480min / 8h (Sharpe: 18.64) - Muy bueno<br>
+                        • Hora 10:00 → 300min / 5h (Sharpe: 11.85) - Bueno<br>
+                        • Hora 11:00 → 1min (Sharpe: -0.23) - Negativo
+                    </div>
+                </div>
+
+                <div class="config-item disabled">
+                    <div class="config-name">TIME_IN_MARKET_MINUTES (Fallback)</div>
+                    <div class="config-value">Valor: <span>180</span> minutos (3 horas)</div>
+                    <div class="config-description">
+                        Duración fija cuando JSON está deshabilitado o no se encuentra.
+                        <br><strong>Estado actual:</strong> Modo fallback (solo se usa si JSON falla)
+                    </div>
+                </div>
+
+                <div class="config-item inactive">
+                    <div class="config-name">USE_MAX_SL_ALLOWED_IN_TIME_IN_MARKET</div>
+                    <div class="config-value">Valor: <span>False</span></div>
+                    <div class="config-description">
+                        Stop loss protector durante time-in-market (actualmente deshabilitado).
+                        <br>Si estuviera en True, aplicaría SL de 100 puntos como protección.
+                    </div>
+                </div>
+
+                <div class="config-item disabled">
+                    <div class="config-name">MAX_SL_ALLOWED_IN_TIME_IN_MARKET</div>
+                    <div class="config-value">Valor: <span>100</span> puntos ($2,000)</div>
+                    <div class="config-description">
+                        Máximo stop loss permitido cuando USE_MAX_SL_ALLOWED_IN_TIME_IN_MARKET = True.
+                        <br><strong>Estado actual:</strong> No se aplica (variable anterior en False)
+                    </div>
+                </div>
+            </div>
+
+            <!-- SECTION 4: TRADITIONAL TP/SL (DISABLED) -->
+            <div class="section">
+                <div class="section-title">🎯 4. TP/SL Tradicional (Deshabilitado por Time-in-Market)</div>
+
+                <div class="warning">
+                    <div class="warning-title">⚠️ SECCIÓN DESHABILITADA</div>
+                    Estas configuraciones están deshabilitadas porque USE_TIME_IN_MARKET = True.
+                    <br>Para activarlas, cambiar USE_TIME_IN_MARKET = False
+                </div>
+
+                <div class="config-item disabled">
+                    <div class="config-name">VWAP_MOMENTUM_TP_POINTS</div>
+                    <div class="config-value">Valor: <span>125.0</span> puntos ($2,500)</div>
+                    <div class="config-description">
+                        Take Profit - No se usa cuando USE_TIME_IN_MARKET = True
+                    </div>
+                </div>
+
+                <div class="config-item disabled">
+                    <div class="config-name">VWAP_MOMENTUM_SL_POINTS</div>
+                    <div class="config-value">Valor: <span>75.0</span> puntos ($1,500)</div>
+                    <div class="config-description">
+                        Stop Loss - No se usa cuando USE_TIME_IN_MARKET = True
+                    </div>
+                </div>
+
+                <div class="config-item disabled">
+                    <div class="config-name">USE_VWAP_SLOPE_INDICATOR_STOP_LOSS</div>
+                    <div class="config-value">Valor: <span>False</span></div>
+                    <div class="config-description">
+                        VWAP Slope Indicator como stop loss - Deshabilitado por Time-in-Market
+                    </div>
+                </div>
+
+                <div class="config-item disabled">
+                    <div class="config-name">USE_TRAIL_CASH</div>
+                    <div class="config-value">Valor: <span>False</span></div>
+                    <div class="config-description">
+                        Trailing Stop (Break-Even) - Deshabilitado por Time-in-Market
+                    </div>
+                </div>
+            </div>
+
+            <!-- SECTION 5: GENERAL PARAMETERS -->
+            <div class="section">
+                <div class="section-title">⚙️ 5. Parámetros Generales (Siempre Activos)</div>
+
+                <div class="config-item active">
+                    <div class="config-name">VWAP_MOMENTUM_MAX_POSITIONS</div>
+                    <div class="config-value">Valor: <span>1</span></div>
+                    <div class="config-description">
+                        Máximo número de posiciones abiertas simultáneamente.
+                    </div>
+                </div>
+
+                <div class="config-item active">
+                    <div class="config-name">VWAP_FAST</div>
+                    <div class="config-value">Valor: <span>50</span> períodos</div>
+                    <div class="config-description">
+                        Período para el cálculo del VWAP rápido (magenta).
+                    </div>
+                </div>
+
+                <div class="config-item active">
+                    <div class="config-name">PRICE_EJECTION_TRIGGER</div>
+                    <div class="config-value">Valor: <span>0.001</span> (0.1%)</div>
+                    <div class="config-description">
+                        Distancia mínima entre precio y VWAP para generar señal (puntos verdes).
+                    </div>
+                </div>
+
+                <div class="config-item active">
+                    <div class="config-name">VWAP_MOMENTUM_STRAT_START_HOUR</div>
+                    <div class="config-value">Valor: <span>00:00:00</span></div>
+                    <div class="config-description">
+                        Hora de inicio del trading (incluye overnight).
+                    </div>
+                </div>
+
+                <div class="config-item active">
+                    <div class="config-name">VWAP_MOMENTUM_STRAT_END_HOUR</div>
+                    <div class="config-value">Valor: <span>22:59:59</span></div>
+                    <div class="config-description">
+                        Hora de fin del trading.
+                    </div>
+                </div>
+
+                <div class="config-item active">
+                    <div class="config-name">POINT_VALUE</div>
+                    <div class="config-value">Valor: <span>$20</span> por punto</div>
+                    <div class="config-description">
+                        Valor en USD de cada punto para NQ Futures.
+                    </div>
+                </div>
+            </div>
+
+            <!-- SECTION 6: SUMMARY -->
+            <div class="section">
+                <div class="section-title">📋 6. Resumen de Configuración Actual</div>
+
+                <div class="info">
+                    <div class="info-title">✅ Configuración Activa</div>
+                    <strong>Estrategia:</strong> VWAP Momentum (Price Ejection)<br>
+                    <strong>Modo de Salida:</strong> Time-in-Market con JSON Optimizado<br>
+                    <strong>Duración:</strong> Variable según hora de entrada (cargada desde JSON)<br>
+                    <strong>Stop Loss Protector:</strong> Deshabilitado<br>
+                    <strong>TP/SL Tradicional:</strong> Deshabilitado<br>
+                    <strong>Max Posiciones:</strong> 1<br>
+                    <strong>Horario Trading:</strong> 00:00:00 - 22:59:59
+                </div>
+
+                <div style="background: #e8f5e9; padding: 20px; border-radius: 10px; margin-top: 20px;">
+                    <h3 style="color: #2e7d32; margin-bottom: 15px;">🎯 Flujo de Operación:</h3>
+                    <ol style="line-height: 2; color: #1b5e20;">
+                        <li><strong>Entrada:</strong> Señal de Price Ejection (punto verde)</li>
+                        <li><strong>Hora:</strong> Sistema detecta hora de entrada (ej: 14:00)</li>
+                        <li><strong>JSON:</strong> Carga duración óptima para esa hora (ej: 480min = 8h)</li>
+                        <li><strong>Salida:</strong> Cierra trade después de 8 horas (o cuando llegue a EOD)</li>
+                        <li><strong>Resultado:</strong> Registra P&L y métricas</li>
+                    </ol>
+                </div>
+
+                <div style="background: #fff3e0; padding: 20px; border-radius: 10px; margin-top: 20px;">
+                    <h3 style="color: #e65100; margin-bottom: 15px;">📁 Archivos Relevantes:</h3>
+                    <ul style="line-height: 2; color: #bf360c;">
+                        <li><code>config.py</code> - Configuración principal</li>
+                        <li><code>strat_vwap_momentum.py</code> - Estrategia de trading</li>
+                        <li><code>optimize_time_in_market.py</code> - Generador de JSON</li>
+                        <li><code>outputs/optimization/optimal_time_in_market_config.json</code> - Config óptima</li>
+                        <li><code>show_optimal_durations.py</code> - Visualizador de duraciones</li>
+                        <li><code>iterate_all_days.py</code> - Backtesting múltiples días</li>
+                    </ul>
+                </div>
+            </div>
+        </div>
+    </div>
+</body>
+</html>

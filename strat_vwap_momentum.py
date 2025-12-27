@@ -8,23 +8,28 @@ Simple strategy based on price ejection from VWAP Fast:
 
 import pandas as pd
 from pathlib import Path
-from datetime import datetime, time
+from datetime import datetime, time, timedelta
 from config import (
     DATE, START_DATE, END_DATE,
     VWAP_MOMENTUM_TP_POINTS, VWAP_MOMENTUM_SL_POINTS, VWAP_MOMENTUM_MAX_POSITIONS,
-    VWAP_MOMENTUM_START_HOUR, VWAP_MOMENTUM_END_HOUR,
+    VWAP_MOMENTUM_STRAT_START_HOUR, VWAP_MOMENTUM_STRAT_END_HOUR,
     VWAP_FAST, PRICE_EJECTION_TRIGGER, VWAP_SLOPE_DEGREE_WINDOW,
     DATA_DIR, OUTPUTS_DIR,
     ENABLE_VWAP_MOMENTUM_STRATEGY,
-    USE_VWAP_SLOPE_INDICATOR_STOP_LOSS, VWAP_SLOPE_INDICATOR_LOW_VALUE
+    USE_VWAP_SLOPE_INDICATOR_STOP_LOSS, VWAP_SLOPE_INDICATOR_LOW_VALUE,
+    USE_TIME_IN_MARKET, TIME_IN_MARKET_MINUTES,
+    USE_TIME_IN_MARKET_JSON_OPTIMIZATION_FILE,
+    USE_MAX_SL_ALLOWED_IN_TIME_IN_MARKET, MAX_SL_ALLOWED_IN_TIME_IN_MARKET,
+    USE_TRAIL_CASH, TRAIL_CASH_TRIGGER_POINTS, TRAIL_CASH_BREAK_EVEN_POINTS_PROFIT
 )
+from optimize_time_in_market import load_optimal_duration
 
 # Map to shorter names for compatibility
 TP_POINTS = VWAP_MOMENTUM_TP_POINTS
 SL_POINTS = VWAP_MOMENTUM_SL_POINTS
 MAXIMUM_POSITIONS_OPEN = VWAP_MOMENTUM_MAX_POSITIONS
-START_TRADING_HOUR = VWAP_MOMENTUM_START_HOUR
-END_TRADING_HOUR = VWAP_MOMENTUM_END_HOUR
+START_TRADING_HOUR = VWAP_MOMENTUM_STRAT_START_HOUR
+END_TRADING_HOUR = VWAP_MOMENTUM_STRAT_END_HOUR
 
 # ============================================================================
 # CHECK IF STRATEGY IS ENABLED
@@ -62,8 +67,28 @@ print("VWAP MOMENTUM STRATEGY - ENABLED")
 print("="*80)
 print(f"\nConfiguration:")
 print(f"  - Date: {DATE} ({day_name}, DoW={day_of_week})")
-print(f"  - Take Profit: {TP_POINTS} points (${TP_POINTS * POINT_VALUE:.0f})")
-print(f"  - Stop Loss: {SL_POINTS} points (${SL_POINTS * POINT_VALUE:.0f})")
+if USE_TIME_IN_MARKET:
+    if USE_TIME_IN_MARKET_JSON_OPTIMIZATION_FILE:
+        print(f"  - Exit Mode: TIME-BASED (JSON OPTIMIZED by entry hour)")
+        print(f"  - Duration Source: optimal_time_in_market_config.json")
+    else:
+        time_label = "EOD" if TIME_IN_MARKET_MINUTES >= 9999 else f"{TIME_IN_MARKET_MINUTES} minutes"
+        print(f"  - Exit Mode: TIME-BASED (FIXED: {time_label})")
+
+    if USE_MAX_SL_ALLOWED_IN_TIME_IN_MARKET:
+        print(f"  - Protective Stop Loss: {MAX_SL_ALLOWED_IN_TIME_IN_MARKET} points (${MAX_SL_ALLOWED_IN_TIME_IN_MARKET * POINT_VALUE:.0f})")
+    else:
+        print(f"  - Protective Stop Loss: DISABLED")
+    print(f"  - TP/SL/VWAP Slope Exits: DISABLED (using time-based exit only)")
+else:
+    print(f"  - Take Profit: {TP_POINTS} points (${TP_POINTS * POINT_VALUE:.0f})")
+    print(f"  - Stop Loss: {SL_POINTS} points (${SL_POINTS * POINT_VALUE:.0f})")
+    if USE_VWAP_SLOPE_INDICATOR_STOP_LOSS:
+        print(f"  - VWAP Slope Indicator Stop Loss: ENABLED")
+    if USE_TRAIL_CASH:
+        print(f"  - Trailing Stop (Break-Even): ENABLED")
+        print(f"    * Trigger: {TRAIL_CASH_TRIGGER_POINTS} points profit")
+        print(f"    * Move SL to: Entry + {TRAIL_CASH_BREAK_EVEN_POINTS_PROFIT} points")
 print(f"  - Max Positions: {MAXIMUM_POSITIONS_OPEN}")
 print(f"  - VWAP Fast Period: {VWAP_FAST}")
 print(f"  - Price Ejection Trigger: {PRICE_EJECTION_TRIGGER*100:.1f}%")
@@ -185,48 +210,111 @@ for idx, bar in df.iterrows():
         exit_reason = None
         exit_price = None
 
-        # PRIORITY 1: Check regular TP/SL first (highest priority)
-        if direction == 'BUY':
-            # LONG position: TP when price goes up, SL when price goes down
-            if bar['high'] >= tp_price:
-                exit_reason = 'tp_exit'
-                exit_price = tp_price
-            elif bar['low'] <= sl_price:
-                exit_reason = 'sl_exit'
-                exit_price = sl_price
-        else:  # SELL
-            # SHORT position: TP when price goes down, SL when price goes up
-            if bar['low'] <= tp_price:
-                exit_reason = 'tp_exit'
-                exit_price = tp_price
-            elif bar['high'] >= sl_price:
-                exit_reason = 'sl_exit'
-                exit_price = sl_price
+        # ========================================================================
+        # TIME-IN-MARKET EXIT MODE
+        # ========================================================================
+        if USE_TIME_IN_MARKET:
+            # Calculate exit time based on entry time + duration
+            entry_time = open_position['entry_time']
 
-        # PRIORITY 2: Check VWAP Slope Indicator Stop Loss (if enabled)
-        # ONLY triggers if:
-        # 1. No TP/SL has been hit yet
-        # 2. Position is currently in LOSS (not profit)
-        # 3. VWAP slope crosses below threshold
-        if exit_reason is None and USE_VWAP_SLOPE_INDICATOR_STOP_LOSS and not pd.isna(bar['vwap_slope']):
-            # Calculate current P&L to check if we're in loss
+            # Get the duration for THIS specific trade (could be from JSON or fixed)
+            trade_duration_minutes = open_position.get('time_in_market_minutes', TIME_IN_MARKET_MINUTES)
+
+            # Determine exit time
+            if trade_duration_minutes == 'EOD' or trade_duration_minutes >= 9999:
+                # EOD exit: use last bar of the day
+                target_exit_time = df.iloc[-1]['timestamp']
+            else:
+                # Time-based exit: entry time + duration
+                target_exit_time = entry_time + timedelta(minutes=trade_duration_minutes)
+
+            # Check if we've reached the exit time
+            if bar['timestamp'] >= target_exit_time:
+                exit_reason = 'time_exit'
+                exit_price = bar['close']
+
+            # OPTIONAL: Check protective stop loss if enabled
+            if exit_reason is None and USE_MAX_SL_ALLOWED_IN_TIME_IN_MARKET:
+                protective_sl = MAX_SL_ALLOWED_IN_TIME_IN_MARKET
+
+                if direction == 'BUY':
+                    protective_sl_price = entry_price - protective_sl
+                    if bar['low'] <= protective_sl_price:
+                        exit_reason = 'protective_sl_exit'
+                        exit_price = protective_sl_price
+                else:  # SELL
+                    protective_sl_price = entry_price + protective_sl
+                    if bar['high'] >= protective_sl_price:
+                        exit_reason = 'protective_sl_exit'
+                        exit_price = protective_sl_price
+
+        # ========================================================================
+        # TRADITIONAL TP/SL EXIT MODE
+        # ========================================================================
+        else:
+            # TRAILING STOP LOGIC (if enabled)
+            # Check if we should activate trailing stop to break-even
+            if USE_TRAIL_CASH and not open_position.get('trailing_activated', False):
+                # Calculate current profit in points
+                if direction == 'BUY':
+                    current_profit = bar['high'] - entry_price
+                else:  # SELL
+                    current_profit = entry_price - bar['low']
+
+                # If profit reaches trigger level, move SL to break-even + profit offset
+                if current_profit >= TRAIL_CASH_TRIGGER_POINTS:
+                    if direction == 'BUY':
+                        new_sl = entry_price + TRAIL_CASH_BREAK_EVEN_POINTS_PROFIT
+                    else:  # SELL
+                        new_sl = entry_price - TRAIL_CASH_BREAK_EVEN_POINTS_PROFIT
+
+                    # Update stop loss and mark trailing as activated
+                    open_position['sl_price'] = new_sl
+                    open_position['trailing_activated'] = True
+                    sl_price = new_sl  # Update local variable
+
+            # PRIORITY 1: Check regular TP/SL first (highest priority)
             if direction == 'BUY':
-                current_pnl = bar['close'] - entry_price
+                # LONG position: TP when price goes up, SL when price goes down
+                if bar['high'] >= tp_price:
+                    exit_reason = 'tp_exit'
+                    exit_price = tp_price
+                elif bar['low'] <= sl_price:
+                    exit_reason = 'sl_exit'
+                    exit_price = sl_price
             else:  # SELL
-                current_pnl = entry_price - bar['close']
+                # SHORT position: TP when price goes down, SL when price goes up
+                if bar['low'] <= tp_price:
+                    exit_reason = 'tp_exit'
+                    exit_price = tp_price
+                elif bar['high'] >= sl_price:
+                    exit_reason = 'sl_exit'
+                    exit_price = sl_price
 
-            # Only apply slope exit if position is in LOSS
-            if current_pnl < 0:
-                # Get previous bar's vwap_slope to detect crossing
-                if idx > 0:
-                    prev_idx = df.index[df.index.get_loc(idx) - 1]
-                    prev_slope = df.loc[prev_idx, 'vwap_slope']
+            # PRIORITY 2: Check VWAP Slope Indicator Stop Loss (if enabled)
+            # ONLY triggers if:
+            # 1. No TP/SL has been hit yet
+            # 2. Position is currently in LOSS (not profit)
+            # 3. VWAP slope crosses below threshold
+            if exit_reason is None and USE_VWAP_SLOPE_INDICATOR_STOP_LOSS and not pd.isna(bar['vwap_slope']):
+                # Calculate current P&L to check if we're in loss
+                if direction == 'BUY':
+                    current_pnl = bar['close'] - entry_price
+                else:  # SELL
+                    current_pnl = entry_price - bar['close']
 
-                    # Check if VWAP slope crossed BELOW the low threshold
-                    if not pd.isna(prev_slope):
-                        if prev_slope >= VWAP_SLOPE_INDICATOR_LOW_VALUE and bar['vwap_slope'] < VWAP_SLOPE_INDICATOR_LOW_VALUE:
-                            exit_reason = 'slope_exit'
-                            exit_price = bar['close']
+                # Only apply slope exit if position is in LOSS
+                if current_pnl < 0:
+                    # Get previous bar's vwap_slope to detect crossing
+                    if idx > 0:
+                        prev_idx = df.index[df.index.get_loc(idx) - 1]
+                        prev_slope = df.loc[prev_idx, 'vwap_slope']
+
+                        # Check if VWAP slope crossed BELOW the low threshold
+                        if not pd.isna(prev_slope):
+                            if prev_slope >= VWAP_SLOPE_INDICATOR_LOW_VALUE and bar['vwap_slope'] < VWAP_SLOPE_INDICATOR_LOW_VALUE:
+                                exit_reason = 'slope_exit'
+                                exit_price = bar['close']
 
         # Close position if exit triggered
         if exit_reason:
@@ -276,6 +364,21 @@ for idx, bar in df.iterrows():
             # Calculate VWAP slope at entry
             vwap_slope_entry = calculate_vwap_slope_at_bar(df, idx, VWAP_SLOPE_DEGREE_WINDOW)
 
+            # Determine time-in-market duration if using time-based exit
+            time_in_market_minutes = None
+            if USE_TIME_IN_MARKET and USE_TIME_IN_MARKET_JSON_OPTIMIZATION_FILE:
+                # Load optimal duration from JSON based on entry hour
+                entry_hour = bar['timestamp'].hour
+                config = load_optimal_duration(entry_hour)
+                if config:
+                    time_in_market_minutes = config['duration_minutes']
+                else:
+                    # Fallback to fixed duration if JSON not found
+                    time_in_market_minutes = TIME_IN_MARKET_MINUTES
+            elif USE_TIME_IN_MARKET:
+                # Use fixed duration from config
+                time_in_market_minutes = TIME_IN_MARKET_MINUTES
+
             open_position = {
                 'direction': 'BUY',
                 'entry_time': bar['timestamp'],
@@ -283,7 +386,9 @@ for idx, bar in df.iterrows():
                 'entry_vwap': bar['vwap_fast'],
                 'tp_price': tp_price,
                 'sl_price': sl_price,
-                'vwap_slope_entry': vwap_slope_entry
+                'vwap_slope_entry': vwap_slope_entry,
+                'trailing_activated': False,
+                'time_in_market_minutes': time_in_market_minutes  # Store duration for this specific trade
             }
 
         # SHORT signal: Price ejection (green dot) below VWAP
@@ -295,6 +400,21 @@ for idx, bar in df.iterrows():
             # Calculate VWAP slope at entry
             vwap_slope_entry = calculate_vwap_slope_at_bar(df, idx, VWAP_SLOPE_DEGREE_WINDOW)
 
+            # Determine time-in-market duration if using time-based exit
+            time_in_market_minutes = None
+            if USE_TIME_IN_MARKET and USE_TIME_IN_MARKET_JSON_OPTIMIZATION_FILE:
+                # Load optimal duration from JSON based on entry hour
+                entry_hour = bar['timestamp'].hour
+                config = load_optimal_duration(entry_hour)
+                if config:
+                    time_in_market_minutes = config['duration_minutes']
+                else:
+                    # Fallback to fixed duration if JSON not found
+                    time_in_market_minutes = TIME_IN_MARKET_MINUTES
+            elif USE_TIME_IN_MARKET:
+                # Use fixed duration from config
+                time_in_market_minutes = TIME_IN_MARKET_MINUTES
+
             open_position = {
                 'direction': 'SELL',
                 'entry_time': bar['timestamp'],
@@ -302,7 +422,9 @@ for idx, bar in df.iterrows():
                 'entry_vwap': bar['vwap_fast'],
                 'tp_price': tp_price,
                 'sl_price': sl_price,
-                'vwap_slope_entry': vwap_slope_entry
+                'vwap_slope_entry': vwap_slope_entry,
+                'trailing_activated': False,
+                'time_in_market_minutes': time_in_market_minutes  # Store duration for this specific trade
             }
 
 # Close any remaining open position at end of day
