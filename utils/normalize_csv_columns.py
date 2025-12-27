@@ -28,25 +28,30 @@ def normalize_csv_columns(file_path, dry_run=True):
         for col in df.columns:
             col_lower = col.lower()
 
-            # Si la columna ya está en minúsculas, no necesita cambio
-            if col == col_lower:
+            # Determinar nombre normalizado (minúsculas + inglés)
+            normalized_name = None
+
+            if col_lower == 'timestamp':
+                normalized_name = 'timestamp'
+            elif col_lower in ('precio', 'price'):
+                normalized_name = 'price'  # Siempre a inglés
+            elif col_lower in ('volumen', 'volume'):
+                normalized_name = 'volume'
+            elif col_lower == 'lado':
+                normalized_name = 'lado'
+            elif col_lower == 'bid':
+                normalized_name = 'bid'
+            elif col_lower == 'ask':
+                normalized_name = 'ask'
+
+            # Si la columna ya está normalizada, no necesita cambio
+            if col == normalized_name:
                 continue
 
-            needs_normalization = True
-
-            # Normalizar a minúsculas
-            if col_lower == 'timestamp':
-                column_mapping[col] = 'timestamp'
-            elif col_lower == 'precio':
-                column_mapping[col] = 'precio'
-            elif col_lower in ('volumen', 'volume'):
-                column_mapping[col] = 'volume'
-            elif col_lower == 'lado':
-                column_mapping[col] = 'lado'
-            elif col_lower == 'bid':
-                column_mapping[col] = 'bid'
-            elif col_lower == 'ask':
-                column_mapping[col] = 'ask'
+            # Si llegamos aquí, necesita normalización
+            if normalized_name:
+                needs_normalization = True
+                column_mapping[col] = normalized_name
 
         if not needs_normalization:
             return False
@@ -65,7 +70,7 @@ def normalize_csv_columns(file_path, dry_run=True):
         # Guardar archivo con formato normalizado
         df_full.to_csv(file_path, index=False, sep=';', decimal=',')
 
-        print(f"  ✓ Normalizado: {file_path.name}")
+        print(f"  [OK] Normalizado: {file_path.name}")
         print(f"    Cambios: {column_mapping}")
 
         return True
@@ -124,14 +129,14 @@ def normalize_all_csv_in_directory(directory='data', pattern='time_and_sales_nq_
     print(f"RESUMEN")
     print(f"{'='*70}")
     print(f"Total archivos procesados: {len(csv_files)}")
-    print(f"  ✓ Normalizados: {normalized_count}")
-    print(f"  - Ya normalizados: {already_normalized_count}")
-    print(f"  ✗ Errores: {error_count}")
+    print(f"  [OK] Normalizados: {normalized_count}")
+    print(f"  [-] Ya normalizados: {already_normalized_count}")
+    print(f"  [X] Errores: {error_count}")
 
     if dry_run and normalized_count > 0:
-        print(f"\n⚠️  MODO DRY-RUN ACTIVO")
-        print(f"   No se modificaron archivos. Para aplicar cambios ejecuta:")
-        print(f"   python utils/normalize_csv_columns.py --apply")
+        print(f"\n[!] MODO DRY-RUN ACTIVO")
+        print(f"    No se modificaron archivos. Para aplicar cambios ejecuta:")
+        print(f"    python utils/normalize_csv_columns.py --apply")
 
 
 if __name__ == "__main__":
@@ -141,7 +146,7 @@ if __name__ == "__main__":
     if len(sys.argv) > 1:
         if sys.argv[1] in ('--apply', '-a'):
             dry_run = False
-            print("⚠️  MODO APLICAR CAMBIOS - Los archivos serán modificados\n")
+            print("[!] MODO APLICAR CAMBIOS - Los archivos seran modificados\n")
         elif sys.argv[1] in ('--help', '-h'):
             print("Uso:")
             print("  python utils/normalize_csv_columns.py           # Modo dry-run (solo muestra cambios)")

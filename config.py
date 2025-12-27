@@ -30,8 +30,8 @@ ENABLE_VWAP_MOMENTUM_STRATEGY = True        # True = ejecutar estrategia, False 
 VWAP_MOMENTUM_TP_POINTS = 125.0             # Take profit in points
 VWAP_MOMENTUM_SL_POINTS = 75.0              # Stop loss in points
 VWAP_MOMENTUM_MAX_POSITIONS = 1             # Maximum number of positions open simultaneously
-VWAP_MOMENTUM_START_HOUR = "00:00:00"       # Hora de inicio de trading
-VWAP_MOMENTUM_END_HOUR = "22:59:59"         # Hora de fin de trading
+VWAP_MOMENTUM_STRAT_START_HOUR = "00:00:00" # Hora de inicio de trading
+VWAP_MOMENTUM_STRAT_END_HOUR = "22:59:59"   # Hora de fin de trading
 USE_VWAP_SLOPE_INDICATOR_STOP_LOSS = True   # True = cerrar posición cuando VWAP slope cruza por debajo del threshold bajo, False = usar solo SL en puntos
 
 # ============================================================================

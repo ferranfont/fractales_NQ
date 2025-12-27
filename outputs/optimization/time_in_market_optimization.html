@@ -1,0 +1,348 @@
+
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="UTF-8">
+    <title>Time Optimization Summary</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            margin: 20px;
+            background-color: #f5f5f5;
+        }
+        h1 {
+            color: #2c3e50;
+            text-align: center;
+        }
+        .summary-box {
+            background: white;
+            padding: 20px;
+            margin: 20px auto;
+            max-width: 1200px;
+            border-radius: 8px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin: 20px 0;
+        }
+        th {
+            background-color: #3498db;
+            color: white;
+            padding: 12px;
+            text-align: right;
+            font-weight: bold;
+        }
+        th:first-child {
+            text-align: left;
+        }
+        td {
+            padding: 10px;
+            border-bottom: 1px solid #ddd;
+            text-align: right;
+        }
+        td:first-child {
+            text-align: left;
+            font-weight: bold;
+        }
+        tr:hover {
+            background-color: #f5f5f5;
+        }
+        .positive {
+            color: #27ae60;
+            font-weight: bold;
+        }
+        .negative {
+            color: #e74c3c;
+            font-weight: bold;
+        }
+        .best-row {
+            background-color: #d5f4e6 !important;
+            font-weight: bold;
+        }
+        .metric-card {
+            display: inline-block;
+            background: #ecf0f1;
+            padding: 15px;
+            margin: 10px;
+            border-radius: 5px;
+            min-width: 200px;
+        }
+        .metric-label {
+            font-size: 12px;
+            color: #7f8c8d;
+        }
+        .metric-value {
+            font-size: 24px;
+            font-weight: bold;
+            color: #2c3e50;
+        }
+    </style>
+</head>
+<body>
+    <h1>⏱️ TIME IN MARKET OPTIMIZATION SUMMARY</h1>
+
+    <div class="summary-box">
+        <h2>🎯 Best Duration</h2>
+
+        <div class="metric-card">
+            <div class="metric-label">Duration</div>
+            <div class="metric-value">180min (3h)</div>
+        </div>
+        <div class="metric-card">
+            <div class="metric-label">Total P&L</div>
+            <div class="metric-value positive">$2,547,470</div>
+        </div>
+        <div class="metric-card">
+            <div class="metric-label">Avg P&L</div>
+            <div class="metric-value">$142.53</div>
+        </div>
+        <div class="metric-card">
+            <div class="metric-label">Win Rate</div>
+            <div class="metric-value">53.2%</div>
+        </div>
+        <div class="metric-card">
+            <div class="metric-label">Total Trades</div>
+            <div class="metric-value">14,158</div>
+        </div>
+        <div class="metric-card">
+            <div class="metric-label">Days Analyzed</div>
+            <div class="metric-value">53</div>
+        </div>
+        <div class="metric-card">
+            <div class="metric-label">Avg Win</div>
+            <div class="metric-value positive">$1,626.92</div>
+        </div>
+        <div class="metric-card">
+            <div class="metric-label">Avg Loss</div>
+            <div class="metric-value negative">$-1,841.28</div>
+        </div>
+        <div class="metric-card">
+            <div class="metric-label">Risk/Reward</div>
+            <div class="metric-value">1:0.9</div>
+        </div>
+        <div class="metric-card">
+            <div class="metric-label">Sharpe Ratio</div>
+            <div class="metric-value">0.01</div>
+        </div>
+    </div>
+
+    <div class="summary-box">
+        <h2>📊 All Durations Summary</h2>
+        <table>
+            <thead>
+                <tr>
+                    <th>Duration</th>
+                    <th>Total Trades</th>
+                    <th>Total P&L (USD)</th>
+                    <th>Avg P&L (USD)</th>
+                    <th>Win Rate (%)</th>
+                    <th>Avg Win (USD)</th>
+                    <th>Avg Loss (USD)</th>
+                    <th>Risk/Reward</th>
+                    <th>Sharpe Ratio</th>
+                    <th>Avg MAE (USD)</th>
+                    <th>Avg MFE (USD)</th>
+                    <th>Max Win (USD)</th>
+                    <th>Max Loss (USD)</th>
+                </tr>
+            </thead>
+            <tbody>
+
+                <tr class="best-row">
+                    <td>180min (3h)</td>
+                    <td>14,158</td>
+                    <td class="positive">$2,547,470</td>
+                    <td>$142.53</td>
+                    <td>53.2%</td>
+                    <td class="positive">$1,626.92</td>
+                    <td class="negative">$-1,841.28</td>
+                    <td>1:0.9</td>
+                    <td class="positive">0.01</td>
+                    <td class="negative">$-1,668.48</td>
+                    <td class="positive">$1,730.17</td>
+                    <td class="positive">$19,035</td>
+                    <td class="negative">$-19,570</td>
+                </tr>
+
+                <tr class="">
+                    <td>240min (4h)</td>
+                    <td>14,158</td>
+                    <td class="positive">$2,004,140</td>
+                    <td>$158.08</td>
+                    <td>53.3%</td>
+                    <td class="positive">$1,866.83</td>
+                    <td class="negative">$-2,104.77</td>
+                    <td>1:0.9</td>
+                    <td class="positive">0.02</td>
+                    <td class="negative">$-1,851.74</td>
+                    <td class="positive">$1,943.79</td>
+                    <td class="positive">$19,330</td>
+                    <td class="negative">$-20,850</td>
+                </tr>
+
+                <tr class="">
+                    <td>120min (2h)</td>
+                    <td>14,158</td>
+                    <td class="positive">$2,002,975</td>
+                    <td>$64.22</td>
+                    <td>50.7%</td>
+                    <td class="positive">$1,381.44</td>
+                    <td class="negative">$-1,490.68</td>
+                    <td>1:0.9</td>
+                    <td class="negative">-0.02</td>
+                    <td class="negative">$-1,419.33</td>
+                    <td class="positive">$1,477.35</td>
+                    <td class="positive">$17,120</td>
+                    <td class="negative">$-19,205</td>
+                </tr>
+
+                <tr class="">
+                    <td>300min (5h)</td>
+                    <td>14,158</td>
+                    <td class="positive">$1,557,925</td>
+                    <td>$129.19</td>
+                    <td>51.8%</td>
+                    <td class="positive">$1,972.36</td>
+                    <td class="negative">$-2,264.98</td>
+                    <td>1:0.9</td>
+                    <td class="negative">-0.02</td>
+                    <td class="negative">$-1,991.90</td>
+                    <td class="positive">$2,096.92</td>
+                    <td class="positive">$21,285</td>
+                    <td class="negative">$-22,790</td>
+                </tr>
+
+                <tr class="">
+                    <td>60min (1h)</td>
+                    <td>14,158</td>
+                    <td class="positive">$1,522,465</td>
+                    <td>$74.51</td>
+                    <td>51.4%</td>
+                    <td class="positive">$1,033.89</td>
+                    <td class="negative">$-977.30</td>
+                    <td>1:1.1</td>
+                    <td class="positive">0.03</td>
+                    <td class="negative">$-1,063.45</td>
+                    <td class="positive">$1,105.87</td>
+                    <td class="positive">$12,235</td>
+                    <td class="negative">$-11,105</td>
+                </tr>
+
+                <tr class="">
+                    <td>480min (8h)</td>
+                    <td>14,158</td>
+                    <td class="positive">$1,249,745</td>
+                    <td>$143.31</td>
+                    <td>50.0%</td>
+                    <td class="positive">$2,220.29</td>
+                    <td class="negative">$-2,769.38</td>
+                    <td>1:0.8</td>
+                    <td class="negative">-0.07</td>
+                    <td class="negative">$-2,290.45</td>
+                    <td class="positive">$2,440.82</td>
+                    <td class="positive">$22,790</td>
+                    <td class="negative">$-24,680</td>
+                </tr>
+
+                <tr class="">
+                    <td>360min (6h)</td>
+                    <td>14,158</td>
+                    <td class="positive">$924,540</td>
+                    <td>$137.55</td>
+                    <td>50.9%</td>
+                    <td class="positive">$2,098.53</td>
+                    <td class="negative">$-2,486.05</td>
+                    <td>1:0.8</td>
+                    <td class="negative">-0.04</td>
+                    <td class="negative">$-2,129.29</td>
+                    <td class="positive">$2,260.62</td>
+                    <td class="positive">$22,415</td>
+                    <td class="negative">$-23,965</td>
+                </tr>
+
+                <tr class="">
+                    <td>15min</td>
+                    <td>14,158</td>
+                    <td class="positive">$391,755</td>
+                    <td>$-12.92</td>
+                    <td>46.7%</td>
+                    <td class="positive">$546.72</td>
+                    <td class="negative">$-528.21</td>
+                    <td>1:1.0</td>
+                    <td class="negative">-0.06</td>
+                    <td class="negative">$-613.62</td>
+                    <td class="positive">$576.45</td>
+                    <td class="positive">$6,135</td>
+                    <td class="negative">$-5,380</td>
+                </tr>
+
+                <tr class="">
+                    <td>5min</td>
+                    <td>14,158</td>
+                    <td class="positive">$121,745</td>
+                    <td>$-10.45</td>
+                    <td>47.2%</td>
+                    <td class="positive">$334.48</td>
+                    <td class="negative">$-325.19</td>
+                    <td>1:1.0</td>
+                    <td class="negative">-0.04</td>
+                    <td class="negative">$-394.47</td>
+                    <td class="positive">$360.60</td>
+                    <td class="positive">$4,845</td>
+                    <td class="negative">$-3,435</td>
+                </tr>
+
+                <tr class="">
+                    <td>EOD</td>
+                    <td>14,158</td>
+                    <td class="positive">$19,035</td>
+                    <td>$119.15</td>
+                    <td>50.5%</td>
+                    <td class="positive">$2,471.75</td>
+                    <td class="negative">$-3,246.81</td>
+                    <td>1:0.8</td>
+                    <td class="negative">-0.08</td>
+                    <td class="negative">$-2,648.71</td>
+                    <td class="positive">$2,736.02</td>
+                    <td class="positive">$22,790</td>
+                    <td class="negative">$-24,680</td>
+                </tr>
+
+                <tr class="">
+                    <td>1min</td>
+                    <td>14,158</td>
+                    <td class="positive">$9,900</td>
+                    <td>$-4.30</td>
+                    <td>48.1%</td>
+                    <td class="positive">$154.62</td>
+                    <td class="negative">$-152.75</td>
+                    <td>1:1.0</td>
+                    <td class="negative">-0.03</td>
+                    <td class="negative">$-244.44</td>
+                    <td class="positive">$199.51</td>
+                    <td class="positive">$1,835</td>
+                    <td class="negative">$-2,465</td>
+                </tr>
+
+            </tbody>
+        </table>
+    </div>
+
+    <div class="summary-box">
+        <h3>📝 Notes</h3>
+        <ul>
+            <li>Analysis based on all entry signals (green dots) generated by Price Ejection trigger</li>
+            <li>No stop loss or take profit applied - pure time-based exits</li>
+            <li>EOD = Exit at end of day (last bar)</li>
+            <li>Risk/Reward = Avg Win / |Avg Loss|</li>
+            <li>MAE = Maximum Adverse Excursion (worst unrealized drawdown during trade)</li>
+            <li>MFE = Maximum Favorable Excursion (best unrealized profit during trade)</li>
+            <li>Sharpe Ratio = Mean return / Standard deviation of returns</li>
+            <li>Table sorted by Total P&L (descending) - best durations appear first</li>
+        </ul>
+    </div>
+<!-- HOURLY_TABLES_PLACEHOLDER -->
+</body>
+</html>

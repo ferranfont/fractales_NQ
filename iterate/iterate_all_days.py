@@ -20,7 +20,7 @@ from config import (
     DATA_DIR, OUTPUTS_DIR, ENABLE_VWAP_MOMENTUM_STRATEGY,
     USE_ALL_DAYS_AVAILABLE, ALL_DAYS_SEGMENT_START, ALL_DAYS_SEGMENT_END,
     SHOW_CHART_DURING_ITERATION,
-    VWAP_MOMENTUM_START_HOUR, VWAP_MOMENTUM_END_HOUR,
+    VWAP_MOMENTUM_STRAT_START_HOUR, VWAP_MOMENTUM_STRAT_END_HOUR,
     VWAP_MOMENTUM_TP_POINTS, VWAP_MOMENTUM_SL_POINTS
 )
 
@@ -688,7 +688,7 @@ html_content = f"""<!DOCTYPE html>
     <div class="container">
         <h1>VWAP Momentum Strategy - Iteration Summary</h1>
         <p><strong>Date Range:</strong> {first_date} to {last_date}</p>
-        <p><strong>Trading Hours:</strong> {VWAP_MOMENTUM_START_HOUR} to {VWAP_MOMENTUM_END_HOUR}</p>
+        <p><strong>Trading Hours:</strong> {VWAP_MOMENTUM_STRAT_START_HOUR} to {VWAP_MOMENTUM_STRAT_END_HOUR}</p>
         <p><strong>TP/SL:</strong> {VWAP_MOMENTUM_TP_POINTS:.0f} / {VWAP_MOMENTUM_SL_POINTS:.0f} points</p>
         <p><strong>Total Days Processed:</strong> {len(available_dates)}</p>
         <p><strong>Generated:</strong> {datetime.now().strftime("%Y-%m-%d %H:%M:%S")}</p>

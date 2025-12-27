@@ -29,15 +29,8 @@ def load_nq_data(start_date, end_date):
     if not file_path.exists():
         return None
 
-    # Leer datos de tick (columnas en español)
+    # Leer datos de tick (columnas ya normalizadas: timestamp, price, volume)
     df_ticks = pd.read_csv(file_path, sep=';', decimal=',')
-
-    # Renombrar columnas
-    df_ticks.rename(columns={
-        'Timestamp': 'timestamp',
-        'Precio': 'price',
-        'Volumen': 'volume'
-    }, inplace=True)
 
     # Convertir timestamp a datetime
     df_ticks['timestamp'] = pd.to_datetime(df_ticks['timestamp'])
@@ -81,6 +74,51 @@ ENTRY_HOURS = list(range(0, 24))  # De 0 a 23 horas
 # FUNCIONES AUXILIARES
 # ============================================================================
 
+def calculate_sharpe_ratio(returns, risk_free_rate=0.0):
+    """
+    Calcula el Sharpe Ratio
+
+    Args:
+        returns: Series o array de retornos
+        risk_free_rate: Tasa libre de riesgo (default 0.0)
+
+    Returns:
+        float: Sharpe Ratio
+    """
+    if len(returns) == 0:
+        return 0.0
+
+    mean_return = returns.mean()
+    std_return = returns.std()
+
+    if std_return == 0 or pd.isna(std_return):
+        return 0.0
+
+    sharpe = (mean_return - risk_free_rate) / std_return
+    return sharpe
+
+def format_duration_label(duration):
+    """
+    Formatea la duración con equivalente en horas
+
+    Args:
+        duration: Duración en minutos o 'EOD'
+
+    Returns:
+        str: Label formateado (ej: "120min (2h)" o "EOD")
+    """
+    if duration == 'EOD':
+        return 'EOD'
+
+    hours = duration / 60
+    if hours >= 1:
+        if hours == int(hours):
+            return f"{duration}min ({int(hours)}h)"
+        else:
+            return f"{duration}min ({hours:.1f}h)"
+    else:
+        return f"{duration}min"
+
 def get_exit_time(entry_time, duration_minutes, eod_time):
     """
     Calcula el tiempo de salida según la duración
@@ -106,7 +144,7 @@ def get_exit_time(entry_time, duration_minutes, eod_time):
 
 def calculate_pnl_at_exit(df, entry_idx, exit_time, direction, entry_price):
     """
-    Calcula P&L a la salida según el tiempo
+    Calcula P&L, MAE y MFE a la salida según el tiempo
 
     Args:
         df: DataFrame con datos OHLC
@@ -119,25 +157,37 @@ def calculate_pnl_at_exit(df, entry_idx, exit_time, direction, entry_price):
         pnl: P&L en puntos
         exit_price: Precio de salida
         actual_exit_time: Timestamp real de salida
+        mae: Maximum Adverse Excursion en puntos
+        mfe: Maximum Favorable Excursion en puntos
     """
     # Buscar la barra más cercana al exit_time
     exit_bars = df[df['timestamp'] >= exit_time]
 
     if exit_bars.empty:
         # No hay barra de salida disponible (fuera de horario)
-        return None, None, None
+        return None, None, None, None, None
 
     exit_bar = exit_bars.iloc[0]
     exit_price = exit_bar['close']
     actual_exit_time = exit_bar['timestamp']
 
-    # Calcular P&L
+    # Obtener todas las barras durante el trade
+    entry_time = df.loc[entry_idx, 'timestamp']
+    trade_bars = df[(df['timestamp'] >= entry_time) & (df['timestamp'] <= actual_exit_time)]
+
+    # Calcular MAE y MFE
     if direction == 'BUY':
+        # Para LONG: MFE = máxima ganancia no realizada, MAE = máxima pérdida no realizada
+        mfe = (trade_bars['high'].max() - entry_price)  # Mejor momento
+        mae = (trade_bars['low'].min() - entry_price)   # Peor momento (negativo)
         pnl = exit_price - entry_price
     else:  # SELL
+        # Para SHORT: MFE = máxima ganancia no realizada, MAE = máxima pérdida no realizada
+        mfe = (entry_price - trade_bars['low'].min())   # Mejor momento
+        mae = (entry_price - trade_bars['high'].max())  # Peor momento (negativo)
         pnl = entry_price - exit_price
 
-    return pnl, exit_price, actual_exit_time
+    return pnl, exit_price, actual_exit_time, mae, mfe
 
 def detect_entry_signals(df):
     """
@@ -201,7 +251,7 @@ def optimize_single_day(date_str):
 
     # Probar cada duración de tiempo
     for duration in TIME_EXITS:
-        duration_label = f"{duration}min" if duration != 'EOD' else 'EOD'
+        duration_label = format_duration_label(duration)
 
         trades = []
 
@@ -220,8 +270,8 @@ def optimize_single_day(date_str):
                 exit_time = get_exit_time(entry_time, duration, eod_time)
                 duration_minutes = duration
 
-            # Calcular P&L
-            pnl, exit_price, actual_exit_time = calculate_pnl_at_exit(
+            # Calcular P&L, MAE y MFE
+            pnl, exit_price, actual_exit_time, mae, mfe = calculate_pnl_at_exit(
                 df, idx, exit_time, direction, entry_price
             )
 
@@ -229,6 +279,8 @@ def optimize_single_day(date_str):
                 continue
 
             pnl_usd = pnl * POINT_VALUE
+            mae_usd = mae * POINT_VALUE
+            mfe_usd = mfe * POINT_VALUE
 
             trades.append({
                 'date': date_str,
@@ -240,6 +292,10 @@ def optimize_single_day(date_str):
                 'exit_price': exit_price,
                 'pnl': pnl,
                 'pnl_usd': pnl_usd,
+                'mae': mae,
+                'mae_usd': mae_usd,
+                'mfe': mfe,
+                'mfe_usd': mfe_usd,
                 'duration_minutes': duration_minutes,
                 'duration_label': duration_label
             })
@@ -263,6 +319,15 @@ def optimize_single_day(date_str):
             max_win = df_trades['pnl_usd'].max()
             max_loss = df_trades['pnl_usd'].min()
 
+            # Calcular estadísticas MAE/MFE
+            avg_mae = df_trades['mae_usd'].mean()
+            avg_mfe = df_trades['mfe_usd'].mean()
+            max_mae = df_trades['mae_usd'].min()  # Más negativo = peor drawdown
+            max_mfe = df_trades['mfe_usd'].max()  # Más positivo = mejor unrealized profit
+
+            # Calcular Sharpe Ratio
+            sharpe_ratio = calculate_sharpe_ratio(df_trades['pnl_usd'])
+
             results.append({
                 'date': date_str,
                 'duration_label': duration_label,
@@ -275,6 +340,11 @@ def optimize_single_day(date_str):
                 'avg_loss': avg_loss,
                 'max_win': max_win,
                 'max_loss': max_loss,
+                'avg_mae': avg_mae,
+                'avg_mfe': avg_mfe,
+                'max_mae': max_mae,
+                'max_mfe': max_mfe,
+                'sharpe_ratio': sharpe_ratio,
                 'trades': df_trades
             })
 
@@ -328,7 +398,7 @@ def optimize_by_entry_hour(date_str):
 
         # Probar cada duración
         for duration in TIME_EXITS:
-            duration_label = f"{duration}min" if duration != 'EOD' else 'EOD'
+            duration_label = format_duration_label(duration)
 
             trades = []
 
@@ -346,8 +416,8 @@ def optimize_by_entry_hour(date_str):
                     if exit_time > eod_time:
                         continue
 
-                # Calcular P&L
-                pnl, exit_price, actual_exit_time = calculate_pnl_at_exit(
+                # Calcular P&L, MAE y MFE
+                pnl, exit_price, actual_exit_time, mae, mfe = calculate_pnl_at_exit(
                     df, idx, exit_time, direction, entry_price
                 )
 
@@ -355,10 +425,14 @@ def optimize_by_entry_hour(date_str):
                     continue
 
                 pnl_usd = pnl * POINT_VALUE
+                mae_usd = mae * POINT_VALUE
+                mfe_usd = mfe * POINT_VALUE
 
                 trades.append({
                     'pnl_usd': pnl_usd,
-                    'pnl': pnl
+                    'pnl': pnl,
+                    'mae_usd': mae_usd,
+                    'mfe_usd': mfe_usd
                 })
 
             if trades:
@@ -369,13 +443,28 @@ def optimize_by_entry_hour(date_str):
                 avg_pnl = df_trades['pnl_usd'].mean()
                 win_rate = (df_trades['pnl'] > 0).sum() / total_trades * 100
 
+                # Calcular estadísticas adicionales
+                winning_trades = df_trades[df_trades['pnl'] > 0]
+                losing_trades = df_trades[df_trades['pnl'] <= 0]
+
+                avg_win = winning_trades['pnl_usd'].mean() if len(winning_trades) > 0 else 0
+                avg_loss = losing_trades['pnl_usd'].mean() if len(losing_trades) > 0 else 0
+                avg_mae = df_trades['mae_usd'].mean()
+                avg_mfe = df_trades['mfe_usd'].mean()
+                sharpe_ratio = calculate_sharpe_ratio(df_trades['pnl_usd'])
+
                 hour_results.append({
                     'entry_hour': entry_hour,
                     'duration_label': duration_label,
                     'total_trades': total_trades,
                     'total_pnl_usd': total_pnl,
                     'avg_pnl_usd': avg_pnl,
-                    'win_rate': win_rate
+                    'win_rate': win_rate,
+                    'avg_win': avg_win,
+                    'avg_loss': avg_loss,
+                    'avg_mae': avg_mae,
+                    'avg_mfe': avg_mfe,
+                    'sharpe_ratio': sharpe_ratio
                 })
 
                 print(f"    [{duration_label:>6}] Trades: {total_trades:2d} | Avg: ${avg_pnl:>6.0f} | WR: {win_rate:5.1f}%")
@@ -439,7 +528,12 @@ if __name__ == "__main__":
             'avg_win': 'mean',
             'avg_loss': 'mean',
             'max_win': 'max',
-            'max_loss': 'min'
+            'max_loss': 'min',
+            'avg_mae': 'mean',
+            'avg_mfe': 'mean',
+            'max_mae': 'min',
+            'max_mfe': 'max',
+            'sharpe_ratio': 'mean'
         }).round(2)
 
         # Calcular ratio recompensa/riesgo (avg_win / |avg_loss|)
@@ -452,6 +546,9 @@ if __name__ == "__main__":
             lambda x: f"1:{x:.1f}" if not pd.isna(x) and x != float('inf') else "N/A"
         )
 
+        # Ordenar por Total P&L descendente
+        summary_by_duration = summary_by_duration.sort_values('total_pnl_usd', ascending=False)
+
         print(summary_by_duration)
 
         # Guardar resumen
@@ -459,12 +556,12 @@ if __name__ == "__main__":
         output_dir.mkdir(parents=True, exist_ok=True)
 
         # Guardar CSV
-        summary_path = output_dir / "time_optimization_summary.csv"
+        summary_path = output_dir / "time_in_market_optimization.csv"
         summary_by_duration.to_csv(summary_path, sep=';', decimal=',')
         print(f"\n[OK] Resumen CSV guardado en: {summary_path}")
 
         # Guardar HTML
-        html_path = output_dir / "time_optimization_summary.html"
+        html_path = output_dir / "time_in_market_optimization.html"
 
         html_content = f"""
 <!DOCTYPE html>
@@ -564,6 +661,10 @@ if __name__ == "__main__":
         best_avg_win = summary_by_duration.loc[best_duration, 'avg_win']
         best_avg_loss = summary_by_duration.loc[best_duration, 'avg_loss']
         best_rr = summary_by_duration.loc[best_duration, 'rr_ratio_formatted']
+        best_sharpe = summary_by_duration.loc[best_duration, 'sharpe_ratio']
+
+        # Contar días analizados
+        total_days = len(dates)
 
         html_content += f"""
         <div class="metric-card">
@@ -587,6 +688,10 @@ if __name__ == "__main__":
             <div class="metric-value">{int(best_trades):,}</div>
         </div>
         <div class="metric-card">
+            <div class="metric-label">Days Analyzed</div>
+            <div class="metric-value">{total_days}</div>
+        </div>
+        <div class="metric-card">
             <div class="metric-label">Avg Win</div>
             <div class="metric-value positive">${best_avg_win:,.2f}</div>
         </div>
@@ -597,6 +702,10 @@ if __name__ == "__main__":
         <div class="metric-card">
             <div class="metric-label">Risk/Reward</div>
             <div class="metric-value">{best_rr}</div>
+        </div>
+        <div class="metric-card">
+            <div class="metric-label">Sharpe Ratio</div>
+            <div class="metric-value">{best_sharpe:.2f}</div>
         </div>
     </div>
 
@@ -613,6 +722,9 @@ if __name__ == "__main__":
                     <th>Avg Win (USD)</th>
                     <th>Avg Loss (USD)</th>
                     <th>Risk/Reward</th>
+                    <th>Sharpe Ratio</th>
+                    <th>Avg MAE (USD)</th>
+                    <th>Avg MFE (USD)</th>
                     <th>Max Win (USD)</th>
                     <th>Max Loss (USD)</th>
                 </tr>
@@ -624,6 +736,10 @@ if __name__ == "__main__":
             row_class = 'best-row' if idx == best_duration else ''
             pnl_class = 'positive' if row['total_pnl_usd'] > 0 else 'negative'
 
+            mae_class = 'negative' if row['avg_mae'] < 0 else ''
+            mfe_class = 'positive' if row['avg_mfe'] > 0 else ''
+            sharpe_class = 'positive' if row['sharpe_ratio'] > 0 else 'negative'
+
             html_content += f"""
                 <tr class="{row_class}">
                     <td>{idx}</td>
@@ -634,6 +750,9 @@ if __name__ == "__main__":
                     <td class="positive">${row['avg_win']:,.2f}</td>
                     <td class="negative">${row['avg_loss']:,.2f}</td>
                     <td>{row['rr_ratio_formatted']}</td>
+                    <td class="{sharpe_class}">{row['sharpe_ratio']:.2f}</td>
+                    <td class="{mae_class}">${row['avg_mae']:,.2f}</td>
+                    <td class="{mfe_class}">${row['avg_mfe']:,.2f}</td>
                     <td class="positive">${row['max_win']:,.0f}</td>
                     <td class="negative">${row['max_loss']:,.0f}</td>
                 </tr>
@@ -650,13 +769,25 @@ if __name__ == "__main__":
             <li>Analysis based on all entry signals (green dots) generated by Price Ejection trigger</li>
             <li>No stop loss or take profit applied - pure time-based exits</li>
             <li>EOD = Exit at end of day (last bar)</li>
-            <li>Reward/Risk = Max Win / |Max Loss|</li>
+            <li>Risk/Reward = Avg Win / |Avg Loss|</li>
+            <li>MAE = Maximum Adverse Excursion (worst unrealized drawdown during trade)</li>
+            <li>MFE = Maximum Favorable Excursion (best unrealized profit during trade)</li>
+            <li>Sharpe Ratio = Mean return / Standard deviation of returns</li>
+            <li>Table sorted by Total P&L (descending) - best durations appear first</li>
         </ul>
     </div>
+"""
+
+        # Marcar donde insertar tablas por hora (se hará después)
+        hourly_tables_placeholder = "<!-- HOURLY_TABLES_PLACEHOLDER -->"
+        html_content += hourly_tables_placeholder
+
+        html_content += """
 </body>
 </html>
 """
 
+        # Guardar HTML temporal sin tablas por hora
         with open(html_path, 'w', encoding='utf-8') as f:
             f.write(html_content)
 
@@ -681,7 +812,7 @@ if __name__ == "__main__":
 
     all_hour_results = []
 
-    for date_str in dates[:10]:  # Limitar a 10 días para no saturar
+    for date_str in dates:  # Procesar TODOS los días
         hour_results = optimize_by_entry_hour(date_str)
 
         for hour, results in hour_results.items():
@@ -695,31 +826,150 @@ if __name__ == "__main__":
             'total_trades': 'sum',
             'total_pnl_usd': 'sum',
             'avg_pnl_usd': 'mean',
-            'win_rate': 'mean'
+            'win_rate': 'mean',
+            'avg_win': 'mean',
+            'avg_loss': 'mean',
+            'avg_mae': 'mean',
+            'avg_mfe': 'mean',
+            'sharpe_ratio': 'mean'
         }).round(2)
 
         print("\n" + "=" * 80)
         print("RESUMEN POR HORA DE ENTRADA Y DURACIÓN")
         print("=" * 80)
-        print(summary_by_hour)
+        print(summary_by_hour.head(20))
 
-        # Guardar
-        hour_summary_path = output_dir / "time_optimization_by_hour.csv"
+        # Guardar CSV
+        hour_summary_path = output_dir / "time_in_market_by_hour.csv"
         summary_by_hour.to_csv(hour_summary_path, sep=';', decimal=',')
         print(f"\n[OK] Resumen por hora guardado en: {hour_summary_path}")
 
-        # Encontrar mejor combinación hora-duración
-        best_combo_idx = summary_by_hour['total_pnl_usd'].idxmax()
-        best_hour, best_dur = best_combo_idx
-        best_combo_pnl = summary_by_hour.loc[best_combo_idx, 'total_pnl_usd']
-        best_combo_avg = summary_by_hour.loc[best_combo_idx, 'avg_pnl_usd']
-        best_combo_wr = summary_by_hour.loc[best_combo_idx, 'win_rate']
+        # ====================================================================
+        # GENERAR TABLAS HTML POR HORA
+        # ====================================================================
 
-        print("\n" + "=" * 80)
-        print(f"MEJOR COMBINACIÓN: Hora {best_hour:02d}:00 + Duración {best_dur}")
-        print(f"  Total P&L: ${best_combo_pnl:,.0f}")
-        print(f"  Avg P&L: ${best_combo_avg:,.2f}")
-        print(f"  Win Rate: {best_combo_wr:.1f}%")
-        print("=" * 80)
+        # Crear tabla resumen de mejor duración por hora
+        best_per_hour = []
+        for hour in range(24):
+            hour_data = summary_by_hour.loc[hour] if hour in summary_by_hour.index.get_level_values(0) else None
+            if hour_data is not None and not hour_data.empty:
+                best_idx = hour_data['total_pnl_usd'].idxmax()
+                best_per_hour.append({
+                    'entry_hour': hour,
+                    'best_duration': best_idx,
+                    'total_pnl_usd': hour_data.loc[best_idx, 'total_pnl_usd'],
+                    'total_trades': hour_data.loc[best_idx, 'total_trades'],
+                    'win_rate': hour_data.loc[best_idx, 'win_rate'],
+                    'sharpe_ratio': hour_data.loc[best_idx, 'sharpe_ratio']
+                })
+
+        df_best_per_hour = pd.DataFrame(best_per_hour)
+
+        # Generar HTML con tablas por hora
+        hourly_html = """
+    <div class="summary-box">
+        <h2>⏰ BEST DURATION BY ENTRY HOUR</h2>
+        <p>Summary of optimal holding duration for each hour of entry</p>
+        <table>
+            <thead>
+                <tr>
+                    <th>Entry Hour</th>
+                    <th>Best Duration</th>
+                    <th>Total Trades</th>
+                    <th>Total P&L (USD)</th>
+                    <th>Win Rate (%)</th>
+                    <th>Sharpe Ratio</th>
+                </tr>
+            </thead>
+            <tbody>
+"""
+
+        for _, row in df_best_per_hour.iterrows():
+            pnl_class = 'positive' if row['total_pnl_usd'] > 0 else 'negative'
+            sharpe_class = 'positive' if row['sharpe_ratio'] > 0 else 'negative'
+
+            hourly_html += f"""
+                <tr>
+                    <td>{int(row['entry_hour']):02d}:00</td>
+                    <td>{row['best_duration']}</td>
+                    <td>{int(row['total_trades']):,}</td>
+                    <td class="{pnl_class}">${row['total_pnl_usd']:,.0f}</td>
+                    <td>{row['win_rate']:.1f}%</td>
+                    <td class="{sharpe_class}">{row['sharpe_ratio']:.2f}</td>
+                </tr>
+"""
+
+        hourly_html += """
+            </tbody>
+        </table>
+    </div>
+"""
+
+        # Generar tablas detalladas por cada hora
+        for hour in range(24):
+            hour_data = summary_by_hour.loc[hour] if hour in summary_by_hour.index.get_level_values(0) else None
+
+            if hour_data is not None and not hour_data.empty:
+                # Ordenar por Total P&L
+                hour_data_sorted = hour_data.sort_values('total_pnl_usd', ascending=False)
+
+                hourly_html += f"""
+    <div class="summary-box">
+        <h3>🕐 Entry Hour: {hour:02d}:00</h3>
+        <table>
+            <thead>
+                <tr>
+                    <th>Duration</th>
+                    <th>Total Trades</th>
+                    <th>Total P&L (USD)</th>
+                    <th>Avg P&L (USD)</th>
+                    <th>Win Rate (%)</th>
+                    <th>Avg Win (USD)</th>
+                    <th>Avg Loss (USD)</th>
+                    <th>Sharpe Ratio</th>
+                    <th>Avg MAE (USD)</th>
+                    <th>Avg MFE (USD)</th>
+                </tr>
+            </thead>
+            <tbody>
+"""
+
+                for duration_label, row in hour_data_sorted.iterrows():
+                    pnl_class = 'positive' if row['total_pnl_usd'] > 0 else 'negative'
+                    sharpe_class = 'positive' if row['sharpe_ratio'] > 0 else 'negative'
+                    mae_class = 'negative' if row['avg_mae'] < 0 else ''
+                    mfe_class = 'positive' if row['avg_mfe'] > 0 else ''
+
+                    hourly_html += f"""
+                <tr>
+                    <td>{duration_label}</td>
+                    <td>{int(row['total_trades']):,}</td>
+                    <td class="{pnl_class}">${row['total_pnl_usd']:,.0f}</td>
+                    <td>${row['avg_pnl_usd']:,.2f}</td>
+                    <td>{row['win_rate']:.1f}%</td>
+                    <td class="positive">${row['avg_win']:,.2f}</td>
+                    <td class="negative">${row['avg_loss']:,.2f}</td>
+                    <td class="{sharpe_class}">{row['sharpe_ratio']:.2f}</td>
+                    <td class="{mae_class}">${row['avg_mae']:,.2f}</td>
+                    <td class="{mfe_class}">${row['avg_mfe']:,.2f}</td>
+                </tr>
+"""
+
+                hourly_html += """
+            </tbody>
+        </table>
+    </div>
+"""
+
+        # Actualizar HTML insertando las tablas por hora
+        with open(html_path, 'r', encoding='utf-8') as f:
+            html_content_full = f.read()
+
+        html_content_full = html_content_full.replace(hourly_tables_placeholder, hourly_html)
+
+        with open(html_path, 'w', encoding='utf-8') as f:
+            f.write(html_content_full)
+
+        print(f"[OK] HTML actualizado con tablas por hora: {html_path}")
 
     print("\n[SUCCESS] Optimización completada!")

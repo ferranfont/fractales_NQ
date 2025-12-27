@@ -13,7 +13,7 @@ import re
 # Import configuration
 from config import (
     VWAP_MOMENTUM_MAX_POSITIONS,
-    VWAP_MOMENTUM_START_HOUR, VWAP_MOMENTUM_END_HOUR,
+    VWAP_MOMENTUM_STRAT_START_HOUR, VWAP_MOMENTUM_STRAT_END_HOUR,
     VWAP_FAST, PRICE_EJECTION_TRIGGER, VWAP_SLOPE_DEGREE_WINDOW,
     DATA_DIR, OUTPUTS_DIR
 )
@@ -339,8 +339,8 @@ def optimize_parameters_multiday(
                     tp_points=tp,
                     sl_points=sl,
                     max_positions=VWAP_MOMENTUM_MAX_POSITIONS,
-                    start_hour=VWAP_MOMENTUM_START_HOUR,
-                    end_hour=VWAP_MOMENTUM_END_HOUR
+                    start_hour=VWAP_MOMENTUM_STRAT_START_HOUR,
+                    end_hour=VWAP_MOMENTUM_STRAT_END_HOUR
                 )
 
                 if df_trades is not None and len(df_trades) > 0:

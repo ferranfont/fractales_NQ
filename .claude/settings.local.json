@@ -39,7 +39,9 @@
       "Bash(grep:*)",
       "Bash(python optimize_time_in_market.py:*)",
       "Bash(ls -lh \"d:\\\\PYTHON\\\\ALGOS\\\\factales_NQ\\\\outputs\\\\optimization\"\" 2>/dev/null || dir \"d:PYTHONALGOSfactales_NQoutputsoptimization\"\")",
-      "Bash(dir \"d:\\\\PYTHON\\\\ALGOS\\\\factales_NQ\\\\outputs\\\\optimization\")"
+      "Bash(dir \"d:\\\\PYTHON\\\\ALGOS\\\\factales_NQ\\\\outputs\\\\optimization\")",
+      "Bash(git commit -m \"$\\(cat <<''EOF''\nAdd time-in-market optimization analysis with comprehensive metrics\n\n- Created optimize_time_in_market.py for analyzing optimal holding durations\n- Tests 11 different time exits: 1min, 5min, 15min, 60min, 120min, 180min, 240min, 300min, 360min, 480min, EOD\n- Analyzes 5,484 total trades across 32 trading days \\(Oct 1-31, Nov 10, 2025\\)\n- Added comprehensive metrics to summary reports:\n  * Win Rate \\(%\\)\n  * Average Win and Average Loss \\(USD\\)\n  * Risk/Reward ratio in format 1:X.X\n  * Total P&L, Max Win/Loss\n- Best duration found: 360 minutes \\(6 hours\\) with $1,579,480 total P&L\n- Generates CSV and HTML reports in outputs/optimization/\n- Added error handling for problematic data files \\(continues processing on errors\\)\n- Reports include color-coded tables and metric cards for best duration\n\nKey findings:\n- 360min duration: 50.5% WR, Avg Win $1,892, Avg Loss $-,192, RR 1:0.9\n- Short durations \\(1-15min\\): Low profitability, high volatility\n- Long durations \\(180-480min\\): Capture intraday trends effectively\n- EOD: High profit potential but inconsistent\n\n🤖 Generated with Claude Code \\(https://claude.com/claude-code\\)\n\nCo-Authored-By: Claude Sonnet 4.5 <noreply@anthropic.com>\nEOF\n\\)\")",
+      "Bash(start \"d:\\\\PYTHON\\\\ALGOS\\\\factales_NQ\\\\outputs\\\\optimization\\\\time_in_market_optimization.html\")"
     ]
   }
 }
