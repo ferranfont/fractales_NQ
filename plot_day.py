@@ -349,9 +349,9 @@ def plot_range_chart(df, df_fractals_minor, df_fractals_major, start_date, end_d
                 name=f'VWAP Slope Crossover (>{VWAP_SLOPE_INDICATOR_HIGH_VALUE})',
                 marker=dict(
                     color='orange',
-                    size=8,
+                    size=5,
                     symbol='circle',
-                    line=dict(color='darkorange', width=1)
+                    line=dict(color='darkorange', width=0.5)
                 ),
                 hovertemplate='<b>VWAP Slope Crossover</b><br>Price: %{y:.2f}<br>Slope: %{customdata:.4f}<extra></extra>',
                 customdata=df_crossover_points['vwap_slope']
