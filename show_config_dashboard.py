@@ -1,0 +1,726 @@
+"""
+Generador automático de dashboard de configuración
+Lee config.py y genera config_dashboard.html con valores actualizados
+"""
+
+import importlib.util
+from pathlib import Path
+from datetime import datetime
+
+def load_config_module():
+    """Carga el módulo config.py dinámicamente"""
+    config_path = Path(__file__).parent / "config.py"
+    spec = importlib.util.spec_from_file_location("config", config_path)
+    config = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(config)
+    return config
+
+def get_config_value(config, name, default="N/A"):
+    """Obtiene valor de configuración con fallback"""
+    return getattr(config, name, default)
+
+def generate_dashboard_html(config):
+    """Genera el HTML del dashboard con valores actuales"""
+
+    # Extraer valores del config
+    enable_vwap_momentum = get_config_value(config, 'ENABLE_VWAP_MOMENTUM_STRATEGY', False)
+    use_time_in_market = get_config_value(config, 'USE_TIME_IN_MARKET', False)
+    use_json_optimization = get_config_value(config, 'USE_TIME_IN_MARKET_JSON_OPTIMIZATION_FILE', False)
+    use_max_sl = get_config_value(config, 'USE_MAX_SL_ALLOWED_IN_TIME_IN_MARKET', False)
+
+    time_in_market_minutes = get_config_value(config, 'TIME_IN_MARKET_MINUTES', 180)
+    use_tp_in_time = get_config_value(config, 'USE_TP_ALLOWED_IN_TIME_IN_MARKET', True)
+    tp_in_time_points = get_config_value(config, 'TP_IN_TIME_IN_MARKET', 125)
+    max_sl_points = get_config_value(config, 'MAX_SL_ALLOWED_IN_TIME_IN_MARKET', 120)
+
+    tp_points = get_config_value(config, 'VWAP_MOMENTUM_TP_POINTS', 125.0)
+    sl_points = get_config_value(config, 'VWAP_MOMENTUM_SL_POINTS', 75.0)
+    max_positions = get_config_value(config, 'VWAP_MOMENTUM_MAX_POSITIONS', 1)
+    start_hour = get_config_value(config, 'VWAP_MOMENTUM_STRAT_START_HOUR', '00:00:00')
+    end_hour = get_config_value(config, 'VWAP_MOMENTUM_STRAT_END_HOUR', '22:59:59')
+
+    # Entry filters
+    use_selected_allowed_hours = get_config_value(config, 'USE_SELECTED_ALLOWED_HOURS', False)
+    allowed_hours = get_config_value(config, 'VWAP_MOMENTUM_ALLOWED_HOURS', [])
+    long_allowed = get_config_value(config, 'VWAP_MOMENTUM_LONG_ALLOWED', True)
+    short_allowed = get_config_value(config, 'VWAP_MOMENTUM_SHORT_ALLOWED', True)
+    use_vwap_slow_trend_filter = get_config_value(config, 'USE_VWAP_SLOW_TREND_FILTER', False)
+    vwap_slow = get_config_value(config, 'VWAP_SLOW', 200)
+
+    use_vwap_slope_sl = get_config_value(config, 'USE_VWAP_SLOPE_INDICATOR_STOP_LOSS', False)
+    use_trail_cash = get_config_value(config, 'USE_TRAIL_CASH', False)
+    trail_cash_trigger = get_config_value(config, 'TRAIL_CASH_TRIGGER_POINTS', 100)
+    trail_cash_profit = get_config_value(config, 'TRAIL_CASH_BREAK_EVEN_POINTS_PROFIT', 0)
+
+    vwap_fast = get_config_value(config, 'VWAP_FAST', 50)
+    vwap_slope_window = get_config_value(config, 'VWAP_SLOPE_DEGREE_WINDOW', 10)
+    show_vwap_slope_subplot = get_config_value(config, 'SHOW_SUBPLOT_VWAP_SLOPE_INDICATOR', True)
+    vwap_slope_high = get_config_value(config, 'VWAP_SLOPE_INDICATOR_HIGH_VALUE', 0.6)
+    vwap_slope_low = get_config_value(config, 'VWAP_SLOPE_INDICATOR_LOW_VALUE', 0.01)
+    price_ejection = get_config_value(config, 'PRICE_EJECTION_TRIGGER', 0.001)
+    point_value = get_config_value(config, 'POINT_VALUE', 20.0)
+
+    # Determinar estados
+    strategy_name = "VWAP Momentum" if enable_vwap_momentum else "Deshabilitada"
+    exit_mode = "Time-in-Market" if use_time_in_market else "TP/SL Tradicional"
+    duration_source = "JSON Optimizado" if use_json_optimization else "Duración Fija"
+    sl_protector_status = "Habilitado" if use_max_sl else "Deshabilitado"
+
+    # CSS para estados
+    strategy_class = "active" if enable_vwap_momentum else "inactive"
+    exit_mode_class = "active" if use_time_in_market else "inactive"
+    json_class = "active" if use_json_optimization else "inactive"
+    sl_protector_class = "active" if use_max_sl else "inactive"
+
+    # Generar timestamp
+    generated_at = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+
+    html_content = f'''<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>NQ Trading Strategy - Configuration Dashboard</title>
+    <style>
+        * {{
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }}
+
+        body {{
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: #f0f2f5;
+            padding: 20px;
+            line-height: 1.6;
+        }}
+
+        .container {{
+            max-width: 1200px;
+            margin: 0 auto;
+        }}
+
+        .header {{
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 40px;
+            border-radius: 15px;
+            margin-bottom: 30px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.2);
+        }}
+
+        .header h1 {{
+            font-size: 2.2em;
+            margin-bottom: 10px;
+            font-weight: 600;
+        }}
+
+        .header p {{
+            font-size: 1.1em;
+            opacity: 0.95;
+        }}
+
+        .timestamp {{
+            text-align: right;
+            color: #64748b;
+            font-size: 0.9em;
+            margin-bottom: 20px;
+            font-style: italic;
+        }}
+
+        /* TARJETAS DE ESTADO */
+        .status-cards {{
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+            gap: 20px;
+            margin-bottom: 30px;
+        }}
+
+        .status-card {{
+            background: white;
+            padding: 25px;
+            border-radius: 12px;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.07);
+            border-left: 5px solid #667eea;
+        }}
+
+        .status-card.active {{
+            border-left-color: #10b981;
+            background: linear-gradient(135deg, #d1fae5 0%, #ffffff 100%);
+        }}
+
+        .status-card.inactive {{
+            border-left-color: #ef4444;
+            background: linear-gradient(135deg, #fee2e2 0%, #ffffff 100%);
+        }}
+
+        .status-card h3 {{
+            font-size: 0.9em;
+            color: #64748b;
+            margin-bottom: 8px;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }}
+
+        .status-card .value {{
+            font-size: 1.8em;
+            font-weight: 700;
+            color: #1e293b;
+        }}
+
+        .status-card .description {{
+            font-size: 0.85em;
+            color: #64748b;
+            margin-top: 8px;
+        }}
+
+        /* SECCIONES PRINCIPALES */
+        .section {{
+            background: white;
+            border-radius: 15px;
+            padding: 30px;
+            margin-bottom: 25px;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.07);
+        }}
+
+        .section-header {{
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            margin-bottom: 25px;
+            padding-bottom: 15px;
+            border-bottom: 2px solid #e2e8f0;
+        }}
+
+        .section-header h2 {{
+            font-size: 1.5em;
+            color: #1e293b;
+            font-weight: 600;
+        }}
+
+        .section-icon {{
+            font-size: 1.8em;
+        }}
+
+        /* FLUJO DE DECISIÓN */
+        .decision-flow {{
+            background: #f8fafc;
+            padding: 25px;
+            border-radius: 12px;
+            margin: 20px 0;
+        }}
+
+        .flow-step {{
+            background: white;
+            padding: 20px;
+            margin: 15px 0;
+            border-radius: 10px;
+            border-left: 4px solid #667eea;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.05);
+        }}
+
+        .flow-step.active {{
+            border-left-color: #10b981;
+            background: #ecfdf5;
+        }}
+
+        .flow-step.inactive {{
+            border-left-color: #94a3b8;
+            background: #f1f5f9;
+            opacity: 0.7;
+        }}
+
+        .flow-step-title {{
+            font-size: 1.1em;
+            font-weight: 600;
+            color: #1e293b;
+            margin-bottom: 8px;
+        }}
+
+        .flow-step-value {{
+            display: inline-block;
+            background: #667eea;
+            color: white;
+            padding: 4px 12px;
+            border-radius: 6px;
+            font-weight: 600;
+            font-size: 0.95em;
+        }}
+
+        .flow-step.active .flow-step-value {{
+            background: #10b981;
+        }}
+
+        .flow-step.inactive .flow-step-value {{
+            background: #94a3b8;
+        }}
+
+        .flow-arrow {{
+            text-align: center;
+            color: #cbd5e1;
+            font-size: 2em;
+            margin: 5px 0;
+        }}
+
+        /* TABLA DE PARÁMETROS */
+        .params-table {{
+            width: 100%;
+            border-collapse: separate;
+            border-spacing: 0 8px;
+        }}
+
+        .params-table tr {{
+            background: white;
+        }}
+
+        .params-table td {{
+            padding: 15px;
+            border-top: 1px solid #e2e8f0;
+            border-bottom: 1px solid #e2e8f0;
+        }}
+
+        .params-table td:first-child {{
+            border-left: 1px solid #e2e8f0;
+            border-radius: 8px 0 0 8px;
+            font-weight: 600;
+            color: #334155;
+            width: 40%;
+        }}
+
+        .params-table td:last-child {{
+            border-right: 1px solid #e2e8f0;
+            border-radius: 0 8px 8px 0;
+        }}
+
+        .param-value {{
+            display: inline-block;
+            background: #ddd6fe;
+            color: #5b21b6;
+            padding: 5px 12px;
+            border-radius: 6px;
+            font-weight: 600;
+        }}
+
+        .param-value.true {{
+            background: #d1fae5;
+            color: #065f46;
+        }}
+
+        .param-value.inactive {{
+            background: #f1f5f9;
+            color: #94a3b8;
+            border: 1px dashed #cbd5e1;
+        }}
+
+        .param-value.false {{
+            background: #fee2e2;
+            color: #991b1b;
+        }}
+
+        /* ALERTAS */
+        .alert {{
+            padding: 18px;
+            border-radius: 10px;
+            margin: 20px 0;
+            display: flex;
+            align-items: flex-start;
+            gap: 12px;
+        }}
+
+        .alert-icon {{
+            font-size: 1.5em;
+            flex-shrink: 0;
+        }}
+
+        .alert.info {{
+            background: #dbeafe;
+            border-left: 4px solid #3b82f6;
+            color: #1e40af;
+        }}
+
+        .alert.warning {{
+            background: #fef3c7;
+            border-left: 4px solid #f59e0b;
+            color: #92400e;
+        }}
+
+        .alert.success {{
+            background: #d1fae5;
+            border-left: 4px solid #10b981;
+            color: #065f46;
+        }}
+
+        .alert-title {{
+            font-weight: 700;
+            margin-bottom: 5px;
+            font-size: 1.05em;
+        }}
+
+        .grid-2 {{
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 20px;
+            margin: 20px 0;
+        }}
+
+        @media (max-width: 768px) {{
+            .grid-2 {{
+                grid-template-columns: 1fr;
+            }}
+        }}
+
+        code {{
+            background: #f1f5f9;
+            padding: 2px 6px;
+            border-radius: 4px;
+            font-family: 'Courier New', monospace;
+            color: #7c3aed;
+            font-size: 0.9em;
+        }}
+
+        .feature-list {{
+            list-style: none;
+            padding: 0;
+        }}
+
+        .feature-list li {{
+            padding: 10px 0;
+            padding-left: 30px;
+            position: relative;
+        }}
+
+        .feature-list li:before {{
+            content: "✓";
+            position: absolute;
+            left: 0;
+            color: #10b981;
+            font-weight: bold;
+            font-size: 1.2em;
+        }}
+
+        .summary-box {{
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 30px;
+            border-radius: 15px;
+            margin: 30px 0;
+        }}
+
+        .summary-box h3 {{
+            margin-bottom: 15px;
+            font-size: 1.4em;
+        }}
+
+        .summary-box .summary-item {{
+            padding: 8px 0;
+            border-bottom: 1px solid rgba(255,255,255,0.2);
+        }}
+
+        .summary-box .summary-item:last-child {{
+            border-bottom: none;
+        }}
+
+        .summary-box strong {{
+            color: #fde68a;
+        }}
+    </style>
+</head>
+<body>
+    <div class="container">
+        <!-- HEADER -->
+        <div class="header">
+            <h1>📊 NQ Trading Strategy Configuration</h1>
+            <p>Panel de Control de Parámetros y Dependencias</p>
+        </div>
+
+        <div class="timestamp">
+            🕒 Última actualización: {generated_at}
+        </div>
+
+        <!-- STATUS CARDS -->
+        <div class="status-cards">
+            <div class="status-card {strategy_class}">
+                <h3>Estrategia Activa</h3>
+                <div class="value">{strategy_name}</div>
+                <div class="description">Price Ejection Strategy</div>
+            </div>
+
+            <div class="status-card {exit_mode_class if use_time_in_market else 'inactive'}">
+                <h3>Modo de Salida</h3>
+                <div class="value">{exit_mode}</div>
+                <div class="description">{"Basado en tiempo" if use_time_in_market else "Basado en TP/SL"}</div>
+            </div>
+
+            <div class="status-card {json_class if use_json_optimization else 'inactive'}">
+                <h3>Fuente de Duración</h3>
+                <div class="value">{duration_source}</div>
+                <div class="description">{"Por hora de entrada" if use_json_optimization else f"{time_in_market_minutes} minutos fijos"}</div>
+            </div>
+
+            <div class="status-card {sl_protector_class if use_max_sl else 'inactive'}">
+                <h3>Stop Loss Protector</h3>
+                <div class="value">{sl_protector_status}</div>
+                <div class="description">{"Protección activa" if use_max_sl else "Sin protección SL"}</div>
+            </div>
+        </div>
+
+        <!-- SECCIÓN 1: CONFIGURACIÓN PRINCIPAL -->
+        <div class="section">
+            <div class="section-header">
+                <span class="section-icon">⚙️</span>
+                <h2>Configuración Principal del Sistema</h2>
+            </div>
+
+            <div class="decision-flow">
+                <div class="flow-step {'active' if use_time_in_market else 'inactive'}">
+                    <div class="flow-step-title">USE_TIME_IN_MARKET</div>
+                    <div class="flow-step-value">{str(use_time_in_market)}</div>
+                    <p style="margin-top: 10px; color: #64748b;">
+                        {"✅ Modo time-in-market ACTIVO - Las salidas son por tiempo o EOD" if use_time_in_market else "❌ Modo TP/SL tradicional activo → Parámetros de abajo NO SE USAN"}
+                    </p>
+                </div>
+
+                <div class="flow-arrow" style="{'opacity: 1;' if use_time_in_market else 'opacity: 0.3;'}">↓</div>
+
+                <div class="flow-step {'inactive' if not use_time_in_market else ('active' if use_json_optimization else 'inactive')}" style="{'opacity: 0.5; background: #f8fafc;' if not use_time_in_market else ''}">
+                    <div class="flow-step-title">USE_TIME_IN_MARKET_JSON_OPTIMIZATION_FILE</div>
+                    <div class="flow-step-value">{str(use_json_optimization)}</div>
+                    <p style="margin-top: 10px; color: {'#94a3b8' if not use_time_in_market else '#64748b'};">
+                        {("⚠️ NO SE USA (filtro superior deshabilitado)" if not use_time_in_market else ("✅ Duración dinámica cargada desde JSON según hora de entrada" if use_json_optimization else f"✗ Usando duración fija de {time_in_market_minutes} minutos"))}
+                    </p>
+                </div>
+
+                <div class="flow-arrow" style="{'opacity: 1;' if use_time_in_market else 'opacity: 0.3;'}">↓</div>
+
+                <div class="flow-step {'inactive' if not use_time_in_market else ('active' if use_max_sl else 'inactive')}" style="{'opacity: 0.5; background: #f8fafc;' if not use_time_in_market else ''}">
+                    <div class="flow-step-title">USE_MAX_SL_ALLOWED_IN_TIME_IN_MARKET</div>
+                    <div class="flow-step-value">{str(use_max_sl)}</div>
+                    <p style="margin-top: 10px; color: {'#94a3b8' if not use_time_in_market else '#64748b'};">
+                        {("⚠️ NO SE USA (filtro superior deshabilitado)" if not use_time_in_market else ("✅ Stop loss protector de " + str(max_sl_points) + " puntos activo" if use_max_sl else "✗ Stop loss protector deshabilitado"))}
+                    </p>
+                </div>
+            </div>
+
+            {f'''<div class="alert warning">
+                <span class="alert-icon">⚠️</span>
+                <div>
+                    <div class="alert-title">Importante: Configuraciones Deshabilitadas</div>
+                    Cuando <code>USE_TIME_IN_MARKET = True</code>, las siguientes funciones están <strong>DESHABILITADAS</strong>:
+                    <ul style="margin-top: 8px; margin-left: 20px;">
+                        <li>Take Profit (TP)</li>
+                        <li>Stop Loss (SL) - excepto protective SL si está habilitado</li>
+                        <li>VWAP Slope Indicator Stop Loss</li>
+                        <li>Trailing Stop (Break-Even)</li>
+                    </ul>
+                </div>
+            </div>''' if use_time_in_market else ''}
+        </div>
+
+        <!-- SECCIÓN 2: PARÁMETROS COMPLETOS -->
+        <div class="section">
+            <div class="section-header">
+                <span class="section-icon">📝</span>
+                <h2>Parámetros Completos del Sistema</h2>
+            </div>
+
+            <h3 style="margin: 20px 0 15px 0; color: #1e293b;">{"✅ Time-in-Market (ACTIVO)" if use_time_in_market else "❌ Time-in-Market (DESHABILITADO - parámetros no se usan)"}</h3>
+            <table class="params-table" style="{'opacity: 1;' if use_time_in_market else 'opacity: 0.5; background: #f8fafc;'}">
+                <tr>
+                    <td>USE_TIME_IN_MARKET</td>
+                    <td><span class="param-value {'true' if use_time_in_market else 'false'}">{str(use_time_in_market)}</span> - <strong>{"✅ Modo activo" if use_time_in_market else "❌ Modo INACTIVO → Todos los parámetros de abajo NO SE USAN"}</strong></td>
+                </tr>
+                <tr style="{'opacity: 1;' if use_time_in_market else 'opacity: 0.6;'}">
+                    <td>USE_TIME_IN_MARKET_JSON_OPTIMIZATION_FILE</td>
+                    <td><span class="param-value {'inactive' if not use_time_in_market else ('true' if use_json_optimization else 'false')}">{str(use_json_optimization)}</span> - {("⚠️ NO SE USA (USE_TIME_IN_MARKET=False)" if not use_time_in_market else ("Carga desde JSON" if use_json_optimization else "Usa duración fija"))}</td>
+                </tr>
+                <tr style="{'opacity: 1;' if use_time_in_market else 'opacity: 0.6;'}">
+                    <td>TIME_IN_MARKET_MINUTES</td>
+                    <td><span class="param-value {'inactive' if not use_time_in_market else ''}">{time_in_market_minutes} min</span> - {("⚠️ NO SE USA (USE_TIME_IN_MARKET=False)" if not use_time_in_market else ("Fallback (solo si JSON falla)" if use_json_optimization else "Duración fija activa"))}</td>
+                </tr>
+                <tr style="{'opacity: 1;' if use_time_in_market else 'opacity: 0.6;'}">
+                    <td>USE_TP_ALLOWED_IN_TIME_IN_MARKET</td>
+                    <td><span class="param-value {'inactive' if not use_time_in_market else ('true' if use_tp_in_time else 'false')}">{str(use_tp_in_time)}</span> - {("⚠️ NO SE USA (USE_TIME_IN_MARKET=False)" if not use_time_in_market else ("TP opcional habilitado (cierra si alcanza antes del tiempo)" if use_tp_in_time else "TP deshabilitado"))}</td>
+                </tr>
+                <tr style="{'opacity: 1;' if use_time_in_market else 'opacity: 0.6;'}">
+                    <td>TP_IN_TIME_IN_MARKET</td>
+                    <td><span class="param-value {'inactive' if not use_time_in_market else ''}">{tp_in_time_points} puntos</span> - {("⚠️ NO SE USA (USE_TIME_IN_MARKET=False)" if not use_time_in_market else ("Se aplica (cierra si se alcanza)" if use_tp_in_time else "No se aplica (anterior en False)"))}</td>
+                </tr>
+                <tr style="{'opacity: 1;' if use_time_in_market else 'opacity: 0.6;'}">
+                    <td>USE_MAX_SL_ALLOWED_IN_TIME_IN_MARKET</td>
+                    <td><span class="param-value {'inactive' if not use_time_in_market else ('true' if use_max_sl else 'false')}">{str(use_max_sl)}</span> - {("⚠️ NO SE USA (USE_TIME_IN_MARKET=False)" if not use_time_in_market else ("SL protector habilitado" if use_max_sl else "SL protector deshabilitado"))}</td>
+                </tr>
+                <tr style="{'opacity: 1;' if use_time_in_market else 'opacity: 0.6;'}">
+                    <td>MAX_SL_ALLOWED_IN_TIME_IN_MARKET</td>
+                    <td><span class="param-value {'inactive' if not use_time_in_market else ''}">{max_sl_points} puntos</span> - {("⚠️ NO SE USA (USE_TIME_IN_MARKET=False)" if not use_time_in_market else ("Se aplica" if use_max_sl else "No se aplica (anterior en False)"))}</td>
+                </tr>
+            </table>
+
+            <h3 style="margin: 30px 0 15px 0; color: {'#94a3b8' if use_time_in_market else '#1e293b'};">{"❌ TP/SL Tradicional (DESHABILITADO)" if use_time_in_market else "✅ TP/SL Tradicional (ACTIVO)"}</h3>
+            <table class="params-table" style="{'opacity: 0.6;' if use_time_in_market else 'opacity: 1;'}">
+                <tr>
+                    <td>VWAP_MOMENTUM_TP_POINTS</td>
+                    <td><span class="param-value">{tp_points} puntos</span> - {"No se usa" if use_time_in_market else "Activo"}</td>
+                </tr>
+                <tr>
+                    <td>VWAP_MOMENTUM_SL_POINTS</td>
+                    <td><span class="param-value">{sl_points} puntos</span> - {"No se usa" if use_time_in_market else "Activo"}</td>
+                </tr>
+                <tr>
+                    <td>USE_VWAP_SLOPE_INDICATOR_STOP_LOSS</td>
+                    <td><span class="param-value {'false' if use_time_in_market or not use_vwap_slope_sl else 'true'}">{str(use_vwap_slope_sl)}</span> - {"Deshabilitado" if use_time_in_market else ("Habilitado" if use_vwap_slope_sl else "Deshabilitado")}</td>
+                </tr>
+                <tr>
+                    <td>USE_TRAIL_CASH</td>
+                    <td><span class="param-value {'false' if use_time_in_market or not use_trail_cash else 'true'}">{str(use_trail_cash)}</span> - {"Deshabilitado" if use_time_in_market else ("Habilitado" if use_trail_cash else "Deshabilitado")}</td>
+                </tr>
+                <tr>
+                    <td>TRAIL_CASH_TRIGGER_POINTS</td>
+                    <td><span class="param-value">{trail_cash_trigger} pts</span> - {"Se aplica cuando activado" if use_trail_cash else "No se aplica (USE_TRAIL_CASH=False)"}</td>
+                </tr>
+                <tr>
+                    <td>TRAIL_CASH_BREAK_EVEN_POINTS_PROFIT</td>
+                    <td><span class="param-value">{trail_cash_profit} pts</span> - {"Ganancia a proteger" if use_trail_cash else "No se aplica (USE_TRAIL_CASH=False)"}</td>
+                </tr>
+            </table>
+
+            <h3 style="margin: 30px 0 15px 0; color: #1e293b;">⚙️ Parámetros Generales (SIEMPRE ACTIVOS)</h3>
+            <table class="params-table">
+                <tr>
+                    <td>VWAP_MOMENTUM_MAX_POSITIONS</td>
+                    <td><span class="param-value">{max_positions}</span> - Una posición a la vez</td>
+                </tr>
+                <tr>
+                    <td>VWAP_FAST</td>
+                    <td><span class="param-value">{vwap_fast} períodos</span> - VWAP rápido</td>
+                </tr>
+                <tr>
+                    <td>VWAP_SLOPE_DEGREE_WINDOW</td>
+                    <td><span class="param-value">{vwap_slope_window} barras</span> - Ventana para cálculo de pendiente VWAP</td>
+                </tr>
+                <tr>
+                    <td>SHOW_SUBPLOT_VWAP_SLOPE_INDICATOR</td>
+                    <td><span class="param-value {'true' if show_vwap_slope_subplot else 'false'}">{str(show_vwap_slope_subplot)}</span> - {"Subplot VWAP Slope visible" if show_vwap_slope_subplot else "Subplot VWAP Slope oculto"}</td>
+                </tr>
+                <tr>
+                    <td>VWAP_SLOPE_INDICATOR_HIGH_VALUE</td>
+                    <td><span class="param-value">{vwap_slope_high}</span> - Umbral alto para indicador de pendiente</td>
+                </tr>
+                <tr>
+                    <td>VWAP_SLOPE_INDICATOR_LOW_VALUE</td>
+                    <td><span class="param-value">{vwap_slope_low}</span> - Umbral bajo para indicador de pendiente</td>
+                </tr>
+                <tr>
+                    <td>PRICE_EJECTION_TRIGGER</td>
+                    <td><span class="param-value">{price_ejection*100:.1f}%</span> - Umbral para puntos verdes</td>
+                </tr>
+                <tr>
+                    <td>VWAP_MOMENTUM_STRAT_START_HOUR</td>
+                    <td><span class="param-value">{start_hour}</span> - Inicio trading</td>
+                </tr>
+                <tr>
+                    <td>VWAP_MOMENTUM_STRAT_END_HOUR</td>
+                    <td><span class="param-value">{end_hour}</span> - Fin trading</td>
+                </tr>
+                <tr>
+                    <td>POINT_VALUE</td>
+                    <td><span class="param-value">${point_value:.0f} por punto</span> - Valor NQ Futures</td>
+                </tr>
+            </table>
+
+            <h3 style="margin: 30px 0 15px 0; color: #1e293b;">🎯 FILTROS DE ENTRADA (Sortino Optimization)</h3>
+            <table class="params-table">
+                <tr>
+                    <td>USE_SELECTED_ALLOWED_HOURS</td>
+                    <td><span class="param-value {'true' if use_selected_allowed_hours else 'false'}">{str(use_selected_allowed_hours)}</span> - {"Filtro de horas óptimas ACTIVO" if use_selected_allowed_hours else "Filtro de horas óptimas DESACTIVADO (usa solo rango genérico)"}</td>
+                </tr>
+                <tr>
+                    <td>VWAP_MOMENTUM_ALLOWED_HOURS</td>
+                    <td><span class="param-value">{allowed_hours}</span> - {"Solo mejores horas (Sortino 0.11→0.95)" if use_selected_allowed_hours else "Lista disponible pero NO se usa"}</td>
+                </tr>
+                <tr>
+                    <td>VWAP_MOMENTUM_LONG_ALLOWED</td>
+                    <td><span class="param-value {'true' if long_allowed else 'false'}">{str(long_allowed)}</span> - {"BUY trades habilitadas" if long_allowed else "BUY trades DESHABILITADAS"}</td>
+                </tr>
+                <tr>
+                    <td>VWAP_MOMENTUM_SHORT_ALLOWED</td>
+                    <td><span class="param-value {'true' if short_allowed else 'false'}">{str(short_allowed)}</span> - {"SELL trades habilitadas (+$70 mejor vs BUY)" if short_allowed else "SELL trades DESHABILITADAS"}</td>
+                </tr>
+                <tr>
+                    <td>USE_VWAP_SLOW_TREND_FILTER</td>
+                    <td><span class="param-value {'true' if use_vwap_slow_trend_filter else 'false'}">{str(use_vwap_slow_trend_filter)}</span> - {"Filtro de tendencia ACTIVO (VWAP_SLOW=" + str(vwap_slow) + ": LONG si VWAP_FAST>VWAP_SLOW, SHORT si VWAP_FAST<VWAP_SLOW)" if use_vwap_slow_trend_filter else "Filtro de tendencia DESACTIVADO (opera contra/a favor de tendencia)"}</td>
+                </tr>
+            </table>
+        </div>
+
+        <!-- RESUMEN EJECUTIVO -->
+        <div class="summary-box">
+            <h3>📋 Resumen de Configuración Actual</h3>
+
+            <div class="summary-item">
+                <strong>Estrategia:</strong> {strategy_name}
+            </div>
+            <div class="summary-item">
+                <strong>Modo Salida:</strong> {exit_mode}{"con JSON Optimizado" if use_json_optimization and use_time_in_market else ""}
+            </div>
+            <div class="summary-item">
+                <strong>Duración:</strong> {"Variable según hora de entrada (JSON)" if use_json_optimization and use_time_in_market else f"{time_in_market_minutes} minutos fijos" if use_time_in_market else f"TP: {tp_points} pts / SL: {sl_points} pts"}
+            </div>
+            <div class="summary-item">
+                <strong>Stop Loss Protector:</strong> {f"{max_sl_points} puntos" if use_max_sl else "Deshabilitado"}
+            </div>
+            <div class="summary-item">
+                <strong>Máx Posiciones:</strong> {max_positions} posición{"es" if max_positions > 1 else ""} simultánea{"s" if max_positions > 1 else ""}
+            </div>
+            <div class="summary-item">
+                <strong>Horario:</strong> {start_hour} - {end_hour}
+            </div>
+        </div>
+
+    </div>
+</body>
+</html>
+'''
+
+    return html_content
+
+def update_dashboard():
+    """Actualiza el dashboard con los valores actuales del config"""
+    try:
+        # Cargar config
+        config = load_config_module()
+
+        # Generar HTML
+        html_content = generate_dashboard_html(config)
+
+        # Guardar archivo en outputs/charts
+        from config import OUTPUTS_DIR
+        charts_dir = OUTPUTS_DIR / "charts"
+        charts_dir.mkdir(parents=True, exist_ok=True)
+
+        dashboard_path = charts_dir / "config_dashboard.html"
+        with open(dashboard_path, 'w', encoding='utf-8') as f:
+            f.write(html_content)
+
+        print(f"[OK] Dashboard actualizado: {dashboard_path}")
+        return True
+
+    except Exception as e:
+        print(f"[ERROR] No se pudo actualizar dashboard: {str(e)}")
+        return False
+
+if __name__ == "__main__":
+    success = update_dashboard()
+
+    if success:
+        # Automatically open the dashboard in the web browser
+        import webbrowser
+        from config import OUTPUTS_DIR
+
+        charts_dir = OUTPUTS_DIR / "charts"
+        dashboard_path = charts_dir / "config_dashboard.html"
+
+        if dashboard_path.exists():
+            print(f"[INFO] Opening configuration dashboard in browser...")
+            webbrowser.open(str(dashboard_path))
+        else:
+            print(f"[ERROR] Dashboard file not found: {dashboard_path}")

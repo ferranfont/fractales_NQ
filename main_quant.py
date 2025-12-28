@@ -10,6 +10,10 @@ from find_fractals import process_fractals_range
 from find_reg_channel_scipy import calculate_channel
 from find_choppiness import calculate_fractal_metrics, print_consolidation_table
 from plot_day import plot_range_chart
+from show_config_dashboard import update_dashboard
+
+# Auto-update configuration dashboard
+update_dashboard()
 
 
 def main_quant_range(start_date: str, end_date: str):
@@ -341,5 +345,23 @@ if __name__ == "__main__":
 
     if result:
         print("[OK] Análisis completado exitosamente\n")
+
+        # Open the summary HTML file in the browser
+        import webbrowser
+        from config import ENABLE_VWAP_MOMENTUM_STRATEGY, ENABLE_VWAP_CROSSOVER_STRATEGY, DATE
+
+        trading_dir = OUTPUTS_DIR / "trading"
+
+        # Priority: Open Momentum summary if enabled, otherwise Crossover
+        if ENABLE_VWAP_MOMENTUM_STRATEGY:
+            summary_file = trading_dir / f"summary_vwap_momentum_{DATE}.html"
+            if summary_file.exists():
+                print(f"[INFO] Opening summary dashboard: {summary_file}")
+                webbrowser.open(str(summary_file))
+        elif ENABLE_VWAP_CROSSOVER_STRATEGY:
+            summary_file = trading_dir / f"summary_vwap_crossover_{DATE}.html"
+            if summary_file.exists():
+                print(f"[INFO] Opening summary dashboard: {summary_file}")
+                webbrowser.open(str(summary_file))
     else:
         print("[ERROR] El análisis finalizó con errores\n")

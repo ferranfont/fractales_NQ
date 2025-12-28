@@ -23,6 +23,10 @@ from config import (
     VWAP_MOMENTUM_STRAT_START_HOUR, VWAP_MOMENTUM_STRAT_END_HOUR,
     VWAP_MOMENTUM_TP_POINTS, VWAP_MOMENTUM_SL_POINTS
 )
+from show_config_dashboard import update_dashboard
+
+# Auto-update configuration dashboard
+update_dashboard()
 
 # ============================================================================
 # STEP 1: SCAN DATA FOLDER FOR AVAILABLE DATES
@@ -302,7 +306,7 @@ largest_loser = stop_trades['pnl_usd'].min() if len(stop_trades) > 0 else 0.0
 
 # Calculate avg ratio
 avg_ratio = avg_winner / abs(avg_loser) if avg_loser != 0 else 0
-avg_ratio_str = f"1:{int(round(avg_ratio))}" if avg_loser != 0 else "N/A"
+avg_ratio_str = f"1:{avg_ratio:.1f}" if avg_loser != 0 else "N/A"
 
 # Calculate GLOBAL risk metrics
 import numpy as np

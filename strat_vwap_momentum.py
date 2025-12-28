@@ -13,16 +13,24 @@ from config import (
     DATE, START_DATE, END_DATE,
     VWAP_MOMENTUM_TP_POINTS, VWAP_MOMENTUM_SL_POINTS, VWAP_MOMENTUM_MAX_POSITIONS,
     VWAP_MOMENTUM_STRAT_START_HOUR, VWAP_MOMENTUM_STRAT_END_HOUR,
-    VWAP_FAST, PRICE_EJECTION_TRIGGER, VWAP_SLOPE_DEGREE_WINDOW,
+    USE_SELECTED_ALLOWED_HOURS, VWAP_MOMENTUM_ALLOWED_HOURS,
+    VWAP_MOMENTUM_LONG_ALLOWED, VWAP_MOMENTUM_SHORT_ALLOWED,
+    USE_VWAP_SLOW_TREND_FILTER,
+    VWAP_FAST, VWAP_SLOW, PRICE_EJECTION_TRIGGER, VWAP_SLOPE_DEGREE_WINDOW,
     DATA_DIR, OUTPUTS_DIR,
     ENABLE_VWAP_MOMENTUM_STRATEGY,
     USE_VWAP_SLOPE_INDICATOR_STOP_LOSS, VWAP_SLOPE_INDICATOR_LOW_VALUE,
     USE_TIME_IN_MARKET, TIME_IN_MARKET_MINUTES,
     USE_TIME_IN_MARKET_JSON_OPTIMIZATION_FILE,
     USE_MAX_SL_ALLOWED_IN_TIME_IN_MARKET, MAX_SL_ALLOWED_IN_TIME_IN_MARKET,
+    USE_TP_ALLOWED_IN_TIME_IN_MARKET, TP_IN_TIME_IN_MARKET,
     USE_TRAIL_CASH, TRAIL_CASH_TRIGGER_POINTS, TRAIL_CASH_BREAK_EVEN_POINTS_PROFIT
 )
 from optimize_time_in_market import load_optimal_duration
+from show_config_dashboard import update_dashboard
+
+# Auto-update configuration dashboard
+update_dashboard()
 
 # Map to shorter names for compatibility
 TP_POINTS = VWAP_MOMENTUM_TP_POINTS
@@ -62,6 +70,52 @@ day_of_week = date_obj.isoweekday()  # 1=Monday, 2=Tuesday, ..., 7=Sunday
 day_names = {1: 'Monday', 2: 'Tuesday', 3: 'Wednesday', 4: 'Thursday', 5: 'Friday', 6: 'Saturday', 7: 'Sunday'}
 day_name = day_names[day_of_week]
 
+# ============================================================================
+# STRATEGY INFO STRING (for titles and summaries)
+# ============================================================================
+def get_strategy_info_compact():
+    """Returns a compact string with current strategy configuration"""
+    if USE_TIME_IN_MARKET:
+        if USE_TIME_IN_MARKET_JSON_OPTIMIZATION_FILE:
+            exit_mode = "Time-Exit (JSON)"
+        else:
+            time_label = "EOD" if TIME_IN_MARKET_MINUTES >= 9999 else f"{TIME_IN_MARKET_MINUTES}min"
+            exit_mode = f"Time-Exit ({time_label})"
+
+        # TP info
+        if USE_TP_ALLOWED_IN_TIME_IN_MARKET:
+            tp_info = f"| TP:{TP_IN_TIME_IN_MARKET}pts"
+        else:
+            tp_info = ""
+
+        # SL info
+        if USE_MAX_SL_ALLOWED_IN_TIME_IN_MARKET:
+            sl_info = f"| SL:{MAX_SL_ALLOWED_IN_TIME_IN_MARKET}pts"
+        else:
+            sl_info = ""
+    else:
+        exit_mode = f"TP/SL ({TP_POINTS}/{SL_POINTS}pts)"
+        tp_info = ""
+        sl_info = ""
+
+    # Direction filter info
+    if VWAP_MOMENTUM_LONG_ALLOWED and VWAP_MOMENTUM_SHORT_ALLOWED:
+        direction_info = ""
+    elif VWAP_MOMENTUM_SHORT_ALLOWED:
+        direction_info = "| SHORT-ONLY"
+    elif VWAP_MOMENTUM_LONG_ALLOWED:
+        direction_info = "| LONG-ONLY"
+    else:
+        direction_info = "| NO TRADES"
+
+    # Trend filter info
+    if USE_VWAP_SLOW_TREND_FILTER:
+        trend_info = f"| TREND-FILTER (VWAP{VWAP_SLOW})"
+    else:
+        trend_info = ""
+
+    return f"VWAP Momentum | {exit_mode} {tp_info} {sl_info} {direction_info} {trend_info}"
+
 print("="*80)
 print("VWAP MOMENTUM STRATEGY - ENABLED")
 print("="*80)
@@ -75,11 +129,18 @@ if USE_TIME_IN_MARKET:
         time_label = "EOD" if TIME_IN_MARKET_MINUTES >= 9999 else f"{TIME_IN_MARKET_MINUTES} minutes"
         print(f"  - Exit Mode: TIME-BASED (FIXED: {time_label})")
 
+    if USE_TP_ALLOWED_IN_TIME_IN_MARKET:
+        print(f"  - Take Profit (optional): {TP_IN_TIME_IN_MARKET} points (${TP_IN_TIME_IN_MARKET * POINT_VALUE:.0f}) - exits if hit before time")
+    else:
+        print(f"  - Take Profit: DISABLED")
+
     if USE_MAX_SL_ALLOWED_IN_TIME_IN_MARKET:
         print(f"  - Protective Stop Loss: {MAX_SL_ALLOWED_IN_TIME_IN_MARKET} points (${MAX_SL_ALLOWED_IN_TIME_IN_MARKET * POINT_VALUE:.0f})")
     else:
         print(f"  - Protective Stop Loss: DISABLED")
-    print(f"  - TP/SL/VWAP Slope Exits: DISABLED (using time-based exit only)")
+
+    print(f"  - Exit Priority: TP (if enabled) OR SL (if enabled) OR TIME - whatever happens FIRST")
+    print(f"  - VWAP Slope/Trailing Exits: DISABLED (using time-based mode)")
 else:
     print(f"  - Take Profit: {TP_POINTS} points (${TP_POINTS * POINT_VALUE:.0f})")
     print(f"  - Stop Loss: {SL_POINTS} points (${SL_POINTS * POINT_VALUE:.0f})")
@@ -94,6 +155,20 @@ print(f"  - VWAP Fast Period: {VWAP_FAST}")
 print(f"  - Price Ejection Trigger: {PRICE_EJECTION_TRIGGER*100:.1f}%")
 print(f"  - Trading Hours: {START_TRADING_HOUR} to {END_TRADING_HOUR}")
 print(f"  - Point Value: ${POINT_VALUE:.0f} per point")
+print(f"\n  ENTRY FILTERS:")
+print(f"  - Time Range: {START_TRADING_HOUR} to {END_TRADING_HOUR} (generic filter)")
+if USE_SELECTED_ALLOWED_HOURS:
+    print(f"  - Specific Hours: {VWAP_MOMENTUM_ALLOWED_HOURS} (optimal hours filter ACTIVE)")
+else:
+    print(f"  - Specific Hours: DISABLED (using only time range filter)")
+print(f"  - LONG trades: {'ENABLED' if VWAP_MOMENTUM_LONG_ALLOWED else 'DISABLED'}")
+print(f"  - SHORT trades: {'ENABLED' if VWAP_MOMENTUM_SHORT_ALLOWED else 'DISABLED'}")
+if USE_VWAP_SLOW_TREND_FILTER:
+    print(f"  - Trend Filter: ACTIVE (VWAP SLOW period {VWAP_SLOW})")
+    print(f"    * LONG only if VWAP_FAST > VWAP_SLOW (uptrend)")
+    print(f"    * SHORT only if VWAP_FAST < VWAP_SLOW (downtrend)")
+else:
+    print(f"  - Trend Filter: DISABLED")
 
 # ============================================================================
 # LOAD DATA
@@ -154,6 +229,11 @@ def calculate_vwap_slope_at_bar(df, bar_idx, window=VWAP_SLOPE_DEGREE_WINDOW):
 # Calculate VWAP Fast
 from calculate_vwap import calculate_vwap
 df['vwap_fast'] = calculate_vwap(df, period=VWAP_FAST)
+
+# Calculate VWAP Slow (for trend filter)
+if USE_VWAP_SLOW_TREND_FILTER:
+    df['vwap_slow'] = calculate_vwap(df, period=VWAP_SLOW)
+    print(f"[INFO] VWAP Slow calculated (period={VWAP_SLOW}) for trend filter")
 
 # Pre-calculate VWAP Slope for all bars (ABSOLUTE VALUE for exit logic)
 print(f"[INFO] Calculating VWAP Slope for all bars...")
@@ -228,12 +308,22 @@ for idx, bar in df.iterrows():
                 # Time-based exit: entry time + duration
                 target_exit_time = entry_time + timedelta(minutes=trade_duration_minutes)
 
-            # Check if we've reached the exit time
-            if bar['timestamp'] >= target_exit_time:
-                exit_reason = 'time_exit'
-                exit_price = bar['close']
+            # PRIORITY 1: Check take profit first (if enabled)
+            if USE_TP_ALLOWED_IN_TIME_IN_MARKET:
+                tp_points = TP_IN_TIME_IN_MARKET
 
-            # OPTIONAL: Check protective stop loss if enabled
+                if direction == 'BUY':
+                    tp_price = entry_price + tp_points
+                    if bar['high'] >= tp_price:
+                        exit_reason = 'profit'
+                        exit_price = tp_price
+                else:  # SELL
+                    tp_price = entry_price - tp_points
+                    if bar['low'] <= tp_price:
+                        exit_reason = 'profit'
+                        exit_price = tp_price
+
+            # PRIORITY 2: Check protective stop loss (if enabled)
             if exit_reason is None and USE_MAX_SL_ALLOWED_IN_TIME_IN_MARKET:
                 protective_sl = MAX_SL_ALLOWED_IN_TIME_IN_MARKET
 
@@ -247,6 +337,11 @@ for idx, bar in df.iterrows():
                     if bar['high'] >= protective_sl_price:
                         exit_reason = 'protective_sl_exit'
                         exit_price = protective_sl_price
+
+            # PRIORITY 3: Check time-based exit (only if TP and SL haven't triggered)
+            if exit_reason is None and bar['timestamp'] >= target_exit_time:
+                exit_reason = 'time_exit'
+                exit_price = bar['close']
 
         # ========================================================================
         # TRADITIONAL TP/SL EXIT MODE
@@ -355,8 +450,25 @@ for idx, bar in df.iterrows():
 
     # Check for new entry signals (only if no position open AND within trading hours)
     if open_position is None and MAXIMUM_POSITIONS_OPEN > 0 and within_trading_hours:
+        # Apply entry filters - both must pass
+        entry_hour = bar['timestamp'].hour
+
+        # Filter 1: Generic time range (START_HOUR to END_HOUR) - already checked in within_trading_hours
+        # Filter 2: Specific hours filter (only if enabled)
+        if USE_SELECTED_ALLOWED_HOURS:
+            hour_filter_pass = entry_hour in VWAP_MOMENTUM_ALLOWED_HOURS
+            if not hour_filter_pass:
+                continue  # Skip this bar if not in allowed hours list
+
         # LONG signal: Price ejection (green dot) above VWAP
-        if bar['long_signal']:
+        # Check trend filter if enabled
+        trend_allows_long = True
+        if USE_VWAP_SLOW_TREND_FILTER:
+            # LONG only if VWAP_FAST > VWAP_SLOW (uptrend)
+            if pd.notna(bar.get('vwap_slow')):
+                trend_allows_long = bar['vwap_fast'] > bar['vwap_slow']
+
+        if bar['long_signal'] and VWAP_MOMENTUM_LONG_ALLOWED and trend_allows_long:
             entry_price = bar['close']
             tp_price = entry_price + TP_POINTS
             sl_price = entry_price - SL_POINTS
@@ -392,7 +504,14 @@ for idx, bar in df.iterrows():
             }
 
         # SHORT signal: Price ejection (green dot) below VWAP
-        elif bar['short_signal']:
+        # Check trend filter if enabled
+        trend_allows_short = True
+        if USE_VWAP_SLOW_TREND_FILTER:
+            # SHORT only if VWAP_FAST < VWAP_SLOW (downtrend)
+            if pd.notna(bar.get('vwap_slow')):
+                trend_allows_short = bar['vwap_fast'] < bar['vwap_slow']
+
+        if bar['short_signal'] and VWAP_MOMENTUM_SHORT_ALLOWED and trend_allows_short:
             entry_price = bar['close']
             tp_price = entry_price - TP_POINTS  # TP is below entry for shorts
             sl_price = entry_price + SL_POINTS  # SL is above entry for shorts
@@ -561,7 +680,7 @@ if len(trades) > 0:
 
         # Avg Winner/Loser ratio calculation
         avg_ratio = avg_winner / abs(avg_loser) if avg_loser != 0 else 0
-        avg_ratio_str = f"1:{avg_ratio:.2f}" if avg_loser != 0 else "N/A"
+        avg_ratio_str = f"1:{avg_ratio:.1f}" if avg_loser != 0 else "N/A"
 
         # Risk metrics - max drawdown from cumulative pnl
         cum_pnl = df_trades_sorted['pnl_usd'].cumsum()
@@ -638,7 +757,7 @@ if len(trades) > 0:
         long_avg_winner = long_trades[long_trades['pnl_usd'] > 0]['pnl_usd'].mean() if long_winners > 0 else 0
         long_avg_loser = long_trades[long_trades['pnl_usd'] < 0]['pnl_usd'].mean() if long_losers > 0 else 0
         long_ratio = long_avg_winner / abs(long_avg_loser) if long_avg_loser != 0 else 0
-        long_ratio_str = f"1:{int(round(long_ratio))}" if long_ratio > 0 else "N/A"
+        long_ratio_str = f"1:{long_ratio:.1f}" if long_ratio > 0 else "N/A"
 
         # SHORT stats
         short_total = len(short_trades)
@@ -652,7 +771,7 @@ if len(trades) > 0:
         short_avg_winner = short_trades[short_trades['pnl_usd'] > 0]['pnl_usd'].mean() if short_winners > 0 else 0
         short_avg_loser = short_trades[short_trades['pnl_usd'] < 0]['pnl_usd'].mean() if short_losers > 0 else 0
         short_ratio = short_avg_winner / abs(short_avg_loser) if short_avg_loser != 0 else 0
-        short_ratio_str = f"1:{int(round(short_ratio))}" if short_ratio > 0 else "N/A"
+        short_ratio_str = f"1:{short_ratio:.1f}" if short_ratio > 0 else "N/A"
 
         # Build HTML (Bootstrap 4 CDN)
         html = f"""
@@ -662,7 +781,7 @@ if len(trades) > 0:
             <meta charset="utf-8">
             <meta name="viewport" content="width=device-width, initial-scale=1">
             <link href="https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/css/bootstrap.min.css" rel="stylesheet">
-            <title>Strategy Summary - {DATE} ({day_name})</title>
+            <title>{get_strategy_info_compact()} - {DATE} ({day_name})</title>
             <style>
                 body {{ padding: 16px; background: #f7f7f7; font-family: Arial, Helvetica, sans-serif; }}
                 .card {{ margin-bottom: 8px; border-radius: 6px; }}
@@ -674,9 +793,9 @@ if len(trades) > 0:
         </head>
         <body>
         <div class="container">
-            <h3 class="text-center" style="font-size:1.25rem; margin-bottom:4px;">STRATEGY VWAP MOMENTUM</h3>
+            <h3 class="text-center" style="font-size:1.25rem; margin-bottom:4px;">{get_strategy_info_compact()}</h3>
             <p class="text-center small-muted mb-2" style="margin-bottom:4px;"><strong>{DATE}</strong> ({day_name}, DoW={day_of_week})</p>
-            <p class="text-center small-muted mb-2" style="margin-bottom:4px;"><strong>TP:</strong> {TP_POINTS} pts &nbsp;|&nbsp; <strong>SL:</strong> {SL_POINTS} pts &nbsp;|&nbsp; <strong>Hours:</strong> {START_TRADING_HOUR} - {END_TRADING_HOUR}</p>
+            <p class="text-center small-muted mb-2" style="margin-bottom:4px;"><strong>Hours:</strong> {START_TRADING_HOUR} - {END_TRADING_HOUR} &nbsp;|&nbsp; <strong>VWAP Fast:</strong> {VWAP_FAST} &nbsp;|&nbsp; <strong>Ejection:</strong> {PRICE_EJECTION_TRIGGER*100:.1f}%</p>
 
             <div class="row compact">
                 <div class="col-md-6">

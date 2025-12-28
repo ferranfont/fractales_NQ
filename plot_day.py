@@ -4,9 +4,70 @@ from plotly.subplots import make_subplots
 import os
 from pathlib import Path
 from datetime import datetime
-from config import START_DATE, END_DATE, FRACTALS_DIR, CHARTS_DIR, PLOT_MINOR_FRACTALS, PLOT_MAJOR_FRACTALS, PLOT_MINOR_DOTS, PLOT_MAJOR_DOTS, SHOW_FREQUENCY_INDICATOR, PLOT_VWAP, SHOW_FAST_VWAP, SHOW_SLOW_VWAP, VWAP_FAST, VWAP_SLOW, SHOW_REGRESSION_CHANNEL, PRICE_EJECTION_TRIGGER, OVER_PRICE_EJECTION_TRIGGER, OUTPUTS_DIR, VWAP_SLOPE_DEGREE_WINDOW, SHOW_SUBPLOT_VWAP_SLOPE_INDICATOR, VWAP_SLOPE_INDICATOR_HIGH_VALUE, VWAP_SLOPE_INDICATOR_LOW_VALUE
+from config import (
+    START_DATE, END_DATE, FRACTALS_DIR, CHARTS_DIR,
+    PLOT_MINOR_FRACTALS, PLOT_MAJOR_FRACTALS, PLOT_MINOR_DOTS, PLOT_MAJOR_DOTS,
+    SHOW_FREQUENCY_INDICATOR, PLOT_VWAP, SHOW_FAST_VWAP, SHOW_SLOW_VWAP,
+    VWAP_FAST, VWAP_SLOW, SHOW_REGRESSION_CHANNEL,
+    PRICE_EJECTION_TRIGGER, OVER_PRICE_EJECTION_TRIGGER, OUTPUTS_DIR,
+    VWAP_SLOPE_DEGREE_WINDOW, SHOW_SUBPLOT_VWAP_SLOPE_INDICATOR,
+    VWAP_SLOPE_INDICATOR_HIGH_VALUE, VWAP_SLOPE_INDICATOR_LOW_VALUE,
+    # Strategy parameters for title
+    USE_TIME_IN_MARKET, TIME_IN_MARKET_MINUTES, USE_TIME_IN_MARKET_JSON_OPTIMIZATION_FILE,
+    USE_MAX_SL_ALLOWED_IN_TIME_IN_MARKET, MAX_SL_ALLOWED_IN_TIME_IN_MARKET,
+    USE_TP_ALLOWED_IN_TIME_IN_MARKET, TP_IN_TIME_IN_MARKET,
+    VWAP_MOMENTUM_TP_POINTS, VWAP_MOMENTUM_SL_POINTS,
+    VWAP_MOMENTUM_LONG_ALLOWED, VWAP_MOMENTUM_SHORT_ALLOWED,
+    USE_VWAP_SLOW_TREND_FILTER
+)
 from calculate_vwap import calculate_vwap
 import numpy as np
+
+# ============================================================================
+# STRATEGY INFO STRING (for chart titles)
+# ============================================================================
+def get_strategy_info_compact():
+    """Returns a compact string with current strategy configuration"""
+    if USE_TIME_IN_MARKET:
+        if USE_TIME_IN_MARKET_JSON_OPTIMIZATION_FILE:
+            exit_mode = "Time-Exit (JSON)"
+        else:
+            time_label = "EOD" if TIME_IN_MARKET_MINUTES >= 9999 else f"{TIME_IN_MARKET_MINUTES}min"
+            exit_mode = f"Time-Exit ({time_label})"
+
+        # TP info
+        if USE_TP_ALLOWED_IN_TIME_IN_MARKET:
+            tp_info = f"| TP:{TP_IN_TIME_IN_MARKET}pts"
+        else:
+            tp_info = ""
+
+        # SL info
+        if USE_MAX_SL_ALLOWED_IN_TIME_IN_MARKET:
+            sl_info = f"| SL:{MAX_SL_ALLOWED_IN_TIME_IN_MARKET}pts"
+        else:
+            sl_info = ""
+    else:
+        exit_mode = f"TP/SL ({VWAP_MOMENTUM_TP_POINTS}/{VWAP_MOMENTUM_SL_POINTS}pts)"
+        tp_info = ""
+        sl_info = ""
+
+    # Direction filter info
+    if VWAP_MOMENTUM_LONG_ALLOWED and VWAP_MOMENTUM_SHORT_ALLOWED:
+        direction_info = ""
+    elif VWAP_MOMENTUM_SHORT_ALLOWED:
+        direction_info = "| SHORT-ONLY"
+    elif VWAP_MOMENTUM_LONG_ALLOWED:
+        direction_info = "| LONG-ONLY"
+    else:
+        direction_info = "| NO TRADES"
+
+    # Trend filter info
+    if USE_VWAP_SLOW_TREND_FILTER:
+        trend_info = f"| TREND-FILTER (VWAP{VWAP_SLOW})"
+    else:
+        trend_info = ""
+
+    return f"VWAP Momentum | {exit_mode} {tp_info} {sl_info} {direction_info} {trend_info}"
 
 def calculate_vwap_slope_at_bar(df, bar_idx, window=10):
     """
@@ -668,15 +729,16 @@ def plot_range_chart(df, df_fractals_minor, df_fractals_major, start_date, end_d
 
     # Configurar layout
     # Título: mostrar solo una fecha si start_date == end_date
+    strategy_info = get_strategy_info_compact()
     if start_date == end_date:
         # Calculate day of week for single date
         date_obj = datetime.strptime(start_date, "%Y%m%d")
         day_of_week = date_obj.isoweekday()  # 1=Monday, 2=Tuesday, ..., 7=Sunday
         day_names = {1: 'Monday', 2: 'Tuesday', 3: 'Wednesday', 4: 'Thursday', 5: 'Friday', 6: 'Saturday', 7: 'Sunday'}
         day_name = day_names[day_of_week]
-        title_text = f'{symbol.upper()} - {start_date} ({day_name}, DoW={day_of_week})'
+        title_text = f'{symbol.upper()} - {start_date} ({day_name}, DoW={day_of_week}) | {strategy_info}'
     else:
-        title_text = f'{symbol.upper()} - {start_date} -> {end_date}'
+        title_text = f'{symbol.upper()} - {start_date} -> {end_date} | {strategy_info}'
 
     # Configurar layout general
     # Calcular altura según subplots activos
