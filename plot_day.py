@@ -12,6 +12,7 @@ from config import (
     PRICE_EJECTION_TRIGGER, OVER_PRICE_EJECTION_TRIGGER, OUTPUTS_DIR,
     VWAP_SLOPE_DEGREE_WINDOW, SHOW_SUBPLOT_VWAP_SLOPE_INDICATOR,
     VWAP_SLOPE_INDICATOR_HIGH_VALUE, VWAP_SLOPE_INDICATOR_LOW_VALUE,
+    SHOW_VWAP_INDICATOR_CROSSOVER,
     # Strategy parameters for title
     USE_TIME_IN_MARKET, TIME_IN_MARKET_MINUTES, USE_TIME_IN_MARKET_JSON_OPTIMIZATION_FILE,
     USE_MAX_SL_ALLOWED_IN_TIME_IN_MARKET, MAX_SL_ALLOWED_IN_TIME_IN_MARKET,
@@ -319,6 +320,47 @@ def plot_range_chart(df, df_fractals_minor, df_fractals_major, start_date, end_d
             fig.add_trace(trace_vwap_slow, row=price_row, col=1)
 
             print(f"[INFO] VWAP Slow({VWAP_SLOW}) añadido al gráfico: {len(df_vwap_slow)} puntos válidos")
+
+    # Añadir puntos naranjas cuando VWAP Slope cruza hacia arriba el nivel HIGH_VALUE (crossover)
+    if SHOW_VWAP_INDICATOR_CROSSOVER and 'vwap_slope' in df.columns:
+        # Detectar crossovers: cuando vwap_slope cruza de abajo hacia arriba el threshold HIGH_VALUE
+        # Crossover ocurre cuando:
+        # - Bar anterior: vwap_slope <= VWAP_SLOPE_INDICATOR_HIGH_VALUE
+        # - Bar actual: vwap_slope > VWAP_SLOPE_INDICATOR_HIGH_VALUE
+
+        df_crossover = df.copy()
+        df_crossover['vwap_slope_prev'] = df_crossover['vwap_slope'].shift(1)
+
+        # Condición de crossover
+        crossover_condition = (
+            (df_crossover['vwap_slope_prev'] <= VWAP_SLOPE_INDICATOR_HIGH_VALUE) &
+            (df_crossover['vwap_slope'] > VWAP_SLOPE_INDICATOR_HIGH_VALUE) &
+            (df_crossover['vwap_slope'].notna()) &
+            (df_crossover['vwap_slope_prev'].notna())
+        )
+
+        df_crossover_points = df_crossover[crossover_condition].copy()
+
+        if not df_crossover_points.empty:
+            trace_crossover = go.Scatter(
+                x=df_crossover_points['index'],
+                y=df_crossover_points['close'],
+                mode='markers',
+                name=f'VWAP Slope Crossover (>{VWAP_SLOPE_INDICATOR_HIGH_VALUE})',
+                marker=dict(
+                    color='orange',
+                    size=8,
+                    symbol='circle',
+                    line=dict(color='darkorange', width=1)
+                ),
+                hovertemplate='<b>VWAP Slope Crossover</b><br>Price: %{y:.2f}<br>Slope: %{customdata:.4f}<extra></extra>',
+                customdata=df_crossover_points['vwap_slope']
+            )
+            fig.add_trace(trace_crossover, row=price_row, col=1)
+
+            print(f"[INFO] VWAP Slope Crossover points detectados: {len(df_crossover_points)} (threshold: {VWAP_SLOPE_INDICATOR_HIGH_VALUE})")
+        else:
+            print(f"[INFO] No se detectaron VWAP Slope Crossovers (threshold: {VWAP_SLOPE_INDICATOR_HIGH_VALUE})")
 
     # Añadir puntos verdes cuando el precio se aleja del VWAP Fast (Price Ejection)
     if PLOT_VWAP and 'vwap_fast' in df.columns:
