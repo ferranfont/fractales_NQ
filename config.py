@@ -62,8 +62,10 @@ USE_VWAP_SLOPE_INDICATOR_STOP_LOSS = False   # True = cerrar posición cuando VW
 # FILTRO DE SALIDA POR TIEMPO VWAP MOMENTUM STRATEGY
 # ===========================================================================
 # mantenimiento de operación abierta mientras sigan apareciendo puntos verdes
-USE_KEEP_PUSHING_GREEN_DOTS = False      # True = mantener operacion abierta mientras sigan apareciendo puntos verdes, False = no usar este filtro
-TIME_OUT_AFTER_LAST_GREEN_DOT_MINUTES = 30   # Minutos para cerrar la operación después del último punto verde (si no hay nuevos puntos verdes)
+USE_KEEP_PUSHING_GREEN_DOTS = True               # True = mantener operacion abierta mientras sigan apareciendo puntos verdes, False = no usar este filtro
+TIME_OUT_AFTER_LAST_GREEN_DOT_MINUTES = 30       # Minutos para cerrar la operación después del último punto verde (si no hay nuevos puntos verdes)
+KEEP_POSITION_OPEN_IF_MARKET_PRICE_OVER_LAST_DOT = True # True = keep position open if market price is over last green dot, False = no special handling
+
 # IMPORTANT: When USE_TIME_IN_MARKET = True:
 #   - TP (Take Profit) is DISABLED (unless USE_TP_ALLOWED_IN_TIME_IN_MARKET = True)
 #   - SL (Stop Loss) is DISABLED (unless USE_MAX_SL_ALLOWED_IN_TIME_IN_MARKET = True)

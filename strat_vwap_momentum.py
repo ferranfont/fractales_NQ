@@ -25,7 +25,8 @@ from config import (
     USE_MAX_SL_ALLOWED_IN_TIME_IN_MARKET, MAX_SL_ALLOWED_IN_TIME_IN_MARKET,
     USE_TP_ALLOWED_IN_TIME_IN_MARKET, TP_IN_TIME_IN_MARKET,
     USE_TRAIL_CASH, TRAIL_CASH_TRIGGER_POINTS, TRAIL_CASH_BREAK_EVEN_POINTS_PROFIT,
-    USE_KEEP_PUSHING_GREEN_DOTS, TIME_OUT_AFTER_LAST_GREEN_DOT_MINUTES
+    USE_KEEP_PUSHING_GREEN_DOTS, TIME_OUT_AFTER_LAST_GREEN_DOT_MINUTES,
+    KEEP_POSITION_OPEN_IF_MARKET_PRICE_OVER_LAST_DOT
 )
 from optimize_time_in_market import load_optimal_duration
 from show_config_dashboard import update_dashboard
@@ -155,6 +156,9 @@ else:
         print(f"  - Price Ejection Trailing: ENABLED")
         print(f"    * Exit if no new price ejection dot in {TIME_OUT_AFTER_LAST_GREEN_DOT_MINUTES} minutes")
         print(f"    * Timer resets with ANY price ejection (green or red dot)")
+        if KEEP_POSITION_OPEN_IF_MARKET_PRICE_OVER_LAST_DOT:
+            print(f"    * Price protection: Keep LONG if price > last dot, SHORT if price < last dot")
+            print(f"    * Exit only when price crosses to wrong side of last dot price")
 print(f"  - Max Positions: {MAXIMUM_POSITIONS_OPEN}")
 print(f"  - VWAP Fast Period: {VWAP_FAST}")
 print(f"  - Price Ejection Trigger: {PRICE_EJECTION_TRIGGER*100:.1f}%")
@@ -399,17 +403,38 @@ for idx, bar in df.iterrows():
                 # This includes both green dots (normal ejection) and red dots (over ejection)
                 has_price_ejection = bar.get('price_ejection', False)
 
-                # If price ejection detected (green or red dot), reset the timer
+                # If price ejection detected (green or red dot), reset the timer AND update reference price
                 if has_price_ejection:
                     open_position['last_green_dot_time'] = bar['timestamp']
+                    open_position['last_green_dot_price'] = bar['close']  # Update reference price
                 else:
                     # No price ejection: check if timeout expired
                     last_green_dot_time = open_position.get('last_green_dot_time', open_position['entry_time'])
                     time_since_last_green_dot = (bar['timestamp'] - last_green_dot_time).total_seconds() / 60.0  # in minutes
 
                     if time_since_last_green_dot >= TIME_OUT_AFTER_LAST_GREEN_DOT_MINUTES:
-                        exit_reason = 'green_dot_timeout'
-                        exit_price = bar['close']
+                        # Timeout expired - check if we should exit based on price protection
+                        should_exit = True
+
+                        if KEEP_POSITION_OPEN_IF_MARKET_PRICE_OVER_LAST_DOT:
+                            # Price protection enabled
+                            last_dot_price = open_position.get('last_green_dot_price', open_position['entry_price'])
+                            current_price = bar['close']
+
+                            if direction == 'BUY':
+                                # LONG: Keep position open if price is ABOVE last dot price
+                                # Only exit if price crosses BELOW last dot price
+                                if current_price > last_dot_price:
+                                    should_exit = False
+                            else:  # SELL
+                                # SHORT: Keep position open if price is BELOW last dot price
+                                # Only exit if price crosses ABOVE last dot price
+                                if current_price < last_dot_price:
+                                    should_exit = False
+
+                        if should_exit:
+                            exit_reason = 'green_dot_timeout'
+                            exit_price = bar['close']
 
             # PRIORITY 3: Check VWAP Slope Indicator Stop Loss (if enabled)
             # ONLY triggers if:
@@ -523,6 +548,7 @@ for idx, bar in df.iterrows():
                 'entry_vwap': bar['vwap_fast'],
                 'tp_price': tp_price,
                 'last_green_dot_time': bar['timestamp'],  # Initialize green dot timer
+                'last_green_dot_price': bar['close'],  # Store price of last dot for price protection
                 'sl_price': sl_price,
                 'vwap_slope_entry': vwap_slope_entry,
                 'trailing_activated': False,
@@ -567,6 +593,7 @@ for idx, bar in df.iterrows():
                 'entry_vwap': bar['vwap_fast'],
                 'tp_price': tp_price,
                 'last_green_dot_time': bar['timestamp'],  # Initialize green dot timer
+                'last_green_dot_price': bar['close'],  # Store price of last dot for price protection
                 'sl_price': sl_price,
                 'vwap_slope_entry': vwap_slope_entry,
                 'trailing_activated': False,
