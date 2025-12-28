@@ -152,9 +152,9 @@ else:
         print(f"    * Trigger: {TRAIL_CASH_TRIGGER_POINTS} points profit")
         print(f"    * Move SL to: Entry + {TRAIL_CASH_BREAK_EVEN_POINTS_PROFIT} points")
     if USE_KEEP_PUSHING_GREEN_DOTS:
-        print(f"  - Green Dot Trailing: ENABLED")
-        print(f"    * Exit if no new green dot in {TIME_OUT_AFTER_LAST_GREEN_DOT_MINUTES} minutes")
-        print(f"    * Timer resets with each new green dot in trade direction")
+        print(f"  - Price Ejection Trailing: ENABLED")
+        print(f"    * Exit if no new price ejection dot in {TIME_OUT_AFTER_LAST_GREEN_DOT_MINUTES} minutes")
+        print(f"    * Timer resets with ANY price ejection (green or red dot)")
 print(f"  - Max Positions: {MAXIMUM_POSITIONS_OPEN}")
 print(f"  - VWAP Fast Period: {VWAP_FAST}")
 print(f"  - Price Ejection Trigger: {PRICE_EJECTION_TRIGGER*100:.1f}%")
@@ -391,27 +391,19 @@ for idx, bar in df.iterrows():
                     exit_reason = 'sl_exit'
                     exit_price = sl_price
 
-            # PRIORITY 2: Check Green Dot Timeout (if enabled)
-            # Monitor green dots - if no new green dot appears within timeout, exit
+            # PRIORITY 2: Check Price Ejection Timeout (if enabled)
+            # Monitor price ejection dots (green/red) - if no new dot appears within timeout, exit
+            # Note: ANY price ejection (green or red dot) resets the timer, regardless of direction
             if exit_reason is None and USE_KEEP_PUSHING_GREEN_DOTS:
-                # Check if there's a green dot in the current bar
-                # Green dot detection depends on direction:
-                # - For LONG positions: check long_signal (green dot above VWAP)
-                # - For SHORT positions: check short_signal (green dot below VWAP)
-                has_green_dot = False
+                # Check if there's a price ejection dot in the current bar
+                # This includes both green dots (normal ejection) and red dots (over ejection)
+                has_price_ejection = bar.get('price_ejection', False)
 
-                if direction == 'BUY':
-                    # LONG position: look for long signals (green dots above VWAP)
-                    has_green_dot = bar.get('long_signal', False)
-                else:  # SELL
-                    # SHORT position: look for short signals (green dots below VWAP)
-                    has_green_dot = bar.get('short_signal', False)
-
-                # If green dot detected, reset the timer
-                if has_green_dot:
+                # If price ejection detected (green or red dot), reset the timer
+                if has_price_ejection:
                     open_position['last_green_dot_time'] = bar['timestamp']
                 else:
-                    # No green dot: check if timeout expired
+                    # No price ejection: check if timeout expired
                     last_green_dot_time = open_position.get('last_green_dot_time', open_position['entry_time'])
                     time_since_last_green_dot = (bar['timestamp'] - last_green_dot_time).total_seconds() / 60.0  # in minutes
 
