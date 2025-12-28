@@ -523,19 +523,92 @@ def generate_dashboard_html(config):
                 <h2>Parámetros Completos del Sistema</h2>
             </div>
 
-            <h3 style="margin: 20px 0 15px 0; color: #1e293b;">{"✅ Time-in-Market (ACTIVO)" if use_time_in_market else "❌ Time-in-Market (DESHABILITADO - parámetros no se usan)"}</h3>
+            <!-- 1. MAIN TRADING PARAMETERS -->
+            <h3 style="margin: 20px 0 15px 0; color: #1e293b;">⚙️ MAIN TRADING PARAMETERS VWAP MOMENTUM STRATEGY</h3>
+            <table class="params-table">
+                <tr>
+                    <td>VWAP_MOMENTUM_TP_POINTS</td>
+                    <td><span class="param-value">{tp_points} puntos</span> - {"No se usa (USE_TIME_IN_MARKET=True)" if use_time_in_market else "Take Profit ACTIVO"} (${tp_points * point_value:,.0f})</td>
+                </tr>
+                <tr>
+                    <td>VWAP_MOMENTUM_SL_POINTS</td>
+                    <td><span class="param-value">{sl_points} puntos</span> - {"No se usa (USE_TIME_IN_MARKET=True)" if use_time_in_market else "Stop Loss ACTIVO"} (${sl_points * point_value:,.0f})</td>
+                </tr>
+                <tr>
+                    <td>VWAP_MOMENTUM_MAX_POSITIONS</td>
+                    <td><span class="param-value">{max_positions}</span> - Máximo de posiciones simultáneas</td>
+                </tr>
+            </table>
+
+            <!-- 2. CONFIGURACIÓN DE HORARIO DE TRADING -->
+            <h3 style="margin: 30px 0 15px 0; color: #1e293b;">🕒 CONFIGURACIÓN DE HORARIO DE TRADING</h3>
+            <table class="params-table">
+                <tr>
+                    <td>VWAP_MOMENTUM_STRAT_START_HOUR</td>
+                    <td><span class="param-value">{start_hour}</span> - Hora de inicio de trading (filtro genérico)</td>
+                </tr>
+                <tr>
+                    <td>VWAP_MOMENTUM_STRAT_END_HOUR</td>
+                    <td><span class="param-value">{end_hour}</span> - Hora de fin de trading (filtro genérico)</td>
+                </tr>
+                <tr>
+                    <td>USE_SELECTED_ALLOWED_HOURS</td>
+                    <td><span class="param-value {'true' if use_selected_allowed_hours else 'false'}">{str(use_selected_allowed_hours)}</span> - {"Filtro de horas específicas ACTIVO" if use_selected_allowed_hours else "Solo usa rango genérico (START_HOUR a END_HOUR)"}</td>
+                </tr>
+                <tr style="{'opacity: 1;' if use_selected_allowed_hours else 'opacity: 0.6;'}">
+                    <td>VWAP_MOMENTUM_ALLOWED_HOURS</td>
+                    <td><span class="param-value {'inactive' if not use_selected_allowed_hours else ''}">{allowed_hours}</span> - {("Solo opera en estas horas óptimas (Sortino 0.11→0.95)" if use_selected_allowed_hours else "⚠️ NO SE USA (USE_SELECTED_ALLOWED_HOURS=False)")}</td>
+                </tr>
+            </table>
+
+            <!-- 3. FILTROS DE ENTRADA A FAVOR TENDENCIA -->
+            <h3 style="margin: 30px 0 15px 0; color: #1e293b;">🎯 FILTROS DE ENTRADA A FAVOR TENDENCIA VWAP MOMENTUM STRATEGY</h3>
+            <table class="params-table">
+                <tr>
+                    <td>USE_VWAP_SLOW_TREND_FILTER</td>
+                    <td><span class="param-value {'true' if use_vwap_slow_trend_filter else 'false'}">{str(use_vwap_slow_trend_filter)}</span> - {"Filtro de tendencia ACTIVO (VWAP_SLOW=" + str(vwap_slow) + "): LONG si VWAP_FAST>VWAP_SLOW, SHORT si VWAP_FAST<VWAP_SLOW" if use_vwap_slow_trend_filter else "Filtro de tendencia DESACTIVADO (opera con/contra tendencia)"}</td>
+                </tr>
+                <tr>
+                    <td>VWAP_MOMENTUM_LONG_ALLOWED</td>
+                    <td><span class="param-value {'true' if long_allowed else 'false'}">{str(long_allowed)}</span> - {"Trades BUY habilitadas" if long_allowed else "Trades BUY DESHABILITADAS"}</td>
+                </tr>
+                <tr>
+                    <td>VWAP_MOMENTUM_SHORT_ALLOWED</td>
+                    <td><span class="param-value {'true' if short_allowed else 'false'}">{str(short_allowed)}</span> - {"Trades SELL habilitadas" if short_allowed else "Trades SELL DESHABILITADAS"}</td>
+                </tr>
+            </table>
+
+            <!-- 4. FILTROS DE SALIDA -->
+            <h3 style="margin: 30px 0 15px 0; color: #1e293b;">🚪 FILTROS DE SALIDA VWAP MOMENTUM STRATEGY</h3>
+            <table class="params-table">
+                <tr>
+                    <td>USE_VWAP_SLOPE_INDICATOR_STOP_LOSS</td>
+                    <td><span class="param-value {'false' if use_time_in_market or not use_vwap_slope_sl else 'true'}">{str(use_vwap_slope_sl)}</span> - {"Deshabilitado (USE_TIME_IN_MARKET=True)" if use_time_in_market else ("VWAP Slope Stop Loss ACTIVO" if use_vwap_slope_sl else "VWAP Slope Stop Loss deshabilitado")}</td>
+                </tr>
+            </table>
+
+            <!-- 5. FILTRO DE SALIDA POR TIEMPO -->
+            <h3 style="margin: 30px 0 15px 0; color: #1e293b;">{"✅ FILTRO DE SALIDA POR TIEMPO VWAP MOMENTUM STRATEGY (ACTIVO)" if use_time_in_market else "❌ FILTRO DE SALIDA POR TIEMPO (DESHABILITADO - parámetros no se usan)"}</h3>
             <table class="params-table" style="{'opacity: 1;' if use_time_in_market else 'opacity: 0.5; background: #f8fafc;'}">
                 <tr>
                     <td>USE_TIME_IN_MARKET</td>
-                    <td><span class="param-value {'true' if use_time_in_market else 'false'}">{str(use_time_in_market)}</span> - <strong>{"✅ Modo activo" if use_time_in_market else "❌ Modo INACTIVO → Todos los parámetros de abajo NO SE USAN"}</strong></td>
+                    <td><span class="param-value {'true' if use_time_in_market else 'false'}">{str(use_time_in_market)}</span> - <strong>{"✅ Modo time-in-market ACTIVO" if use_time_in_market else "❌ Modo INACTIVO → Todos los parámetros de abajo NO SE USAN"}</strong></td>
                 </tr>
                 <tr style="{'opacity: 1;' if use_time_in_market else 'opacity: 0.6;'}">
                     <td>USE_TIME_IN_MARKET_JSON_OPTIMIZATION_FILE</td>
-                    <td><span class="param-value {'inactive' if not use_time_in_market else ('true' if use_json_optimization else 'false')}">{str(use_json_optimization)}</span> - {("⚠️ NO SE USA (USE_TIME_IN_MARKET=False)" if not use_time_in_market else ("Carga desde JSON" if use_json_optimization else "Usa duración fija"))}</td>
+                    <td><span class="param-value {'inactive' if not use_time_in_market else ('true' if use_json_optimization else 'false')}">{str(use_json_optimization)}</span> - {("⚠️ NO SE USA (USE_TIME_IN_MARKET=False)" if not use_time_in_market else ("Carga duración óptima desde JSON por hora de entrada" if use_json_optimization else "Usa duración fija"))}</td>
                 </tr>
                 <tr style="{'opacity: 1;' if use_time_in_market else 'opacity: 0.6;'}">
                     <td>TIME_IN_MARKET_MINUTES</td>
-                    <td><span class="param-value {'inactive' if not use_time_in_market else ''}">{time_in_market_minutes} min</span> - {("⚠️ NO SE USA (USE_TIME_IN_MARKET=False)" if not use_time_in_market else ("Fallback (solo si JSON falla)" if use_json_optimization else "Duración fija activa"))}</td>
+                    <td><span class="param-value {'inactive' if not use_time_in_market else ''}">{time_in_market_minutes} min</span> - {("⚠️ NO SE USA (USE_TIME_IN_MARKET=False)" if not use_time_in_market else ("Fallback (solo si JSON falla)" if use_json_optimization else "Duración fija de salida"))}</td>
+                </tr>
+                <tr style="{'opacity: 1;' if use_time_in_market else 'opacity: 0.6;'}">
+                    <td>USE_MAX_SL_ALLOWED_IN_TIME_IN_MARKET</td>
+                    <td><span class="param-value {'inactive' if not use_time_in_market else ('true' if use_max_sl else 'false')}">{str(use_max_sl)}</span> - {("⚠️ NO SE USA (USE_TIME_IN_MARKET=False)" if not use_time_in_market else ("Stop loss protector ACTIVO" if use_max_sl else "Stop loss protector deshabilitado"))}</td>
+                </tr>
+                <tr style="{'opacity: 1;' if use_time_in_market else 'opacity: 0.6;'}">
+                    <td>MAX_SL_ALLOWED_IN_TIME_IN_MARKET</td>
+                    <td><span class="param-value {'inactive' if not use_time_in_market else ''}">{max_sl_points} puntos</span> - {("⚠️ NO SE USA (USE_TIME_IN_MARKET=False)" if not use_time_in_market else ("Se aplica (${} USD)".format(int(max_sl_points * point_value)) if use_max_sl else "No se aplica (USE_MAX_SL_ALLOWED_IN_TIME_IN_MARKET=False)"))}</td>
                 </tr>
                 <tr style="{'opacity: 1;' if use_time_in_market else 'opacity: 0.6;'}">
                     <td>USE_TP_ALLOWED_IN_TIME_IN_MARKET</td>
@@ -543,55 +616,41 @@ def generate_dashboard_html(config):
                 </tr>
                 <tr style="{'opacity: 1;' if use_time_in_market else 'opacity: 0.6;'}">
                     <td>TP_IN_TIME_IN_MARKET</td>
-                    <td><span class="param-value {'inactive' if not use_time_in_market else ''}">{tp_in_time_points} puntos</span> - {("⚠️ NO SE USA (USE_TIME_IN_MARKET=False)" if not use_time_in_market else ("Se aplica (cierra si se alcanza)" if use_tp_in_time else "No se aplica (anterior en False)"))}</td>
-                </tr>
-                <tr style="{'opacity: 1;' if use_time_in_market else 'opacity: 0.6;'}">
-                    <td>USE_MAX_SL_ALLOWED_IN_TIME_IN_MARKET</td>
-                    <td><span class="param-value {'inactive' if not use_time_in_market else ('true' if use_max_sl else 'false')}">{str(use_max_sl)}</span> - {("⚠️ NO SE USA (USE_TIME_IN_MARKET=False)" if not use_time_in_market else ("SL protector habilitado" if use_max_sl else "SL protector deshabilitado"))}</td>
-                </tr>
-                <tr style="{'opacity: 1;' if use_time_in_market else 'opacity: 0.6;'}">
-                    <td>MAX_SL_ALLOWED_IN_TIME_IN_MARKET</td>
-                    <td><span class="param-value {'inactive' if not use_time_in_market else ''}">{max_sl_points} puntos</span> - {("⚠️ NO SE USA (USE_TIME_IN_MARKET=False)" if not use_time_in_market else ("Se aplica" if use_max_sl else "No se aplica (anterior en False)"))}</td>
+                    <td><span class="param-value {'inactive' if not use_time_in_market else ''}">{tp_in_time_points} puntos</span> - {("⚠️ NO SE USA (USE_TIME_IN_MARKET=False)" if not use_time_in_market else ("Se aplica si alcanza (${} USD)".format(int(tp_in_time_points * point_value)) if use_tp_in_time else "No se aplica (USE_TP_ALLOWED_IN_TIME_IN_MARKET=False)"))}</td>
                 </tr>
             </table>
 
-            <h3 style="margin: 30px 0 15px 0; color: {'#94a3b8' if use_time_in_market else '#1e293b'};">{"❌ TP/SL Tradicional (DESHABILITADO)" if use_time_in_market else "✅ TP/SL Tradicional (ACTIVO)"}</h3>
-            <table class="params-table" style="{'opacity: 0.6;' if use_time_in_market else 'opacity: 1;'}">
-                <tr>
-                    <td>VWAP_MOMENTUM_TP_POINTS</td>
-                    <td><span class="param-value">{tp_points} puntos</span> - {"No se usa" if use_time_in_market else "Activo"}</td>
-                </tr>
-                <tr>
-                    <td>VWAP_MOMENTUM_SL_POINTS</td>
-                    <td><span class="param-value">{sl_points} puntos</span> - {"No se usa" if use_time_in_market else "Activo"}</td>
-                </tr>
-                <tr>
-                    <td>USE_VWAP_SLOPE_INDICATOR_STOP_LOSS</td>
-                    <td><span class="param-value {'false' if use_time_in_market or not use_vwap_slope_sl else 'true'}">{str(use_vwap_slope_sl)}</span> - {"Deshabilitado" if use_time_in_market else ("Habilitado" if use_vwap_slope_sl else "Deshabilitado")}</td>
-                </tr>
-                <tr>
-                    <td>USE_TRAIL_CASH</td>
-                    <td><span class="param-value {'false' if use_time_in_market or not use_trail_cash else 'true'}">{str(use_trail_cash)}</span> - {"Deshabilitado" if use_time_in_market else ("Habilitado" if use_trail_cash else "Deshabilitado")}</td>
-                </tr>
-                <tr>
-                    <td>TRAIL_CASH_TRIGGER_POINTS</td>
-                    <td><span class="param-value">{trail_cash_trigger} pts</span> - {"Se aplica cuando activado" if use_trail_cash else "No se aplica (USE_TRAIL_CASH=False)"}</td>
-                </tr>
-                <tr>
-                    <td>TRAIL_CASH_BREAK_EVEN_POINTS_PROFIT</td>
-                    <td><span class="param-value">{trail_cash_profit} pts</span> - {"Ganancia a proteger" if use_trail_cash else "No se aplica (USE_TRAIL_CASH=False)"}</td>
-                </tr>
-            </table>
-
-            <h3 style="margin: 30px 0 15px 0; color: #1e293b;">⚙️ Parámetros Generales (SIEMPRE ACTIVOS)</h3>
+            <!-- 6. TRAILING STOP LOSS PARAMETERS -->
+            <h3 style="margin: 30px 0 15px 0; color: #1e293b;">📈 TRAILING STOP LOSS PARAMETERS VWAP MOMENTUM STRATEGY</h3>
             <table class="params-table">
                 <tr>
-                    <td>VWAP_MOMENTUM_MAX_POSITIONS</td>
-                    <td><span class="param-value">{max_positions}</span> - Una posición a la vez</td>
+                    <td>USE_TRAIL_CASH</td>
+                    <td><span class="param-value {'false' if use_time_in_market or not use_trail_cash else 'true'}">{str(use_trail_cash)}</span> - {"Deshabilitado (USE_TIME_IN_MARKET=True)" if use_time_in_market else ("Trailing a Break-Even ACTIVO" if use_trail_cash else "Trailing a Break-Even deshabilitado")}</td>
                 </tr>
+                <tr style="{'opacity: 1;' if use_trail_cash and not use_time_in_market else 'opacity: 0.6;'}">
+                    <td>TRAIL_CASH_TRIGGER_POINTS</td>
+                    <td><span class="param-value {'inactive' if not use_trail_cash or use_time_in_market else ''}">{trail_cash_trigger} pts</span> - {("⚠️ NO SE USA" if (not use_trail_cash or use_time_in_market) else "Trigger para mover SL a break-even (${} USD)".format(int(trail_cash_trigger * point_value)))}</td>
+                </tr>
+                <tr style="{'opacity: 1;' if use_trail_cash and not use_time_in_market else 'opacity: 0.6;'}">
+                    <td>TRAIL_CASH_BREAK_EVEN_POINTS_PROFIT</td>
+                    <td><span class="param-value {'inactive' if not use_trail_cash or use_time_in_market else ''}">{trail_cash_profit} pts</span> - {("⚠️ NO SE USA" if (not use_trail_cash or use_time_in_market) else "Puntos de ganancia a proteger (${} USD)".format(int(trail_cash_profit * point_value)))}</td>
+                </tr>
+            </table>
+
+            <!-- 7. INDICADORES TÉCNICOS (Parámetros Generales) -->
+            <h3 style="margin: 30px 0 15px 0; color: #1e293b;">📊 PARÁMETROS DE INDICADORES TÉCNICOS</h3>
+            <table class="params-table">
                 <tr>
                     <td>VWAP_FAST</td>
-                    <td><span class="param-value">{vwap_fast} períodos</span> - VWAP rápido</td>
+                    <td><span class="param-value">{vwap_fast} períodos</span> - VWAP Fast (magenta) para señales de entrada</td>
+                </tr>
+                <tr>
+                    <td>VWAP_SLOW</td>
+                    <td><span class="param-value">{vwap_slow} períodos</span> - VWAP Slow (verde) para filtro de tendencia</td>
+                </tr>
+                <tr>
+                    <td>PRICE_EJECTION_TRIGGER</td>
+                    <td><span class="param-value">{price_ejection*100:.1f}%</span> - Umbral de distancia precio-VWAP para green dots</td>
                 </tr>
                 <tr>
                     <td>VWAP_SLOPE_DEGREE_WINDOW</td>
@@ -610,44 +669,8 @@ def generate_dashboard_html(config):
                     <td><span class="param-value">{vwap_slope_low}</span> - Umbral bajo para indicador de pendiente</td>
                 </tr>
                 <tr>
-                    <td>PRICE_EJECTION_TRIGGER</td>
-                    <td><span class="param-value">{price_ejection*100:.1f}%</span> - Umbral para puntos verdes</td>
-                </tr>
-                <tr>
-                    <td>VWAP_MOMENTUM_STRAT_START_HOUR</td>
-                    <td><span class="param-value">{start_hour}</span> - Inicio trading</td>
-                </tr>
-                <tr>
-                    <td>VWAP_MOMENTUM_STRAT_END_HOUR</td>
-                    <td><span class="param-value">{end_hour}</span> - Fin trading</td>
-                </tr>
-                <tr>
                     <td>POINT_VALUE</td>
-                    <td><span class="param-value">${point_value:.0f} por punto</span> - Valor NQ Futures</td>
-                </tr>
-            </table>
-
-            <h3 style="margin: 30px 0 15px 0; color: #1e293b;">🎯 FILTROS DE ENTRADA (Sortino Optimization)</h3>
-            <table class="params-table">
-                <tr>
-                    <td>USE_SELECTED_ALLOWED_HOURS</td>
-                    <td><span class="param-value {'true' if use_selected_allowed_hours else 'false'}">{str(use_selected_allowed_hours)}</span> - {"Filtro de horas óptimas ACTIVO" if use_selected_allowed_hours else "Filtro de horas óptimas DESACTIVADO (usa solo rango genérico)"}</td>
-                </tr>
-                <tr>
-                    <td>VWAP_MOMENTUM_ALLOWED_HOURS</td>
-                    <td><span class="param-value">{allowed_hours}</span> - {"Solo mejores horas (Sortino 0.11→0.95)" if use_selected_allowed_hours else "Lista disponible pero NO se usa"}</td>
-                </tr>
-                <tr>
-                    <td>VWAP_MOMENTUM_LONG_ALLOWED</td>
-                    <td><span class="param-value {'true' if long_allowed else 'false'}">{str(long_allowed)}</span> - {"BUY trades habilitadas" if long_allowed else "BUY trades DESHABILITADAS"}</td>
-                </tr>
-                <tr>
-                    <td>VWAP_MOMENTUM_SHORT_ALLOWED</td>
-                    <td><span class="param-value {'true' if short_allowed else 'false'}">{str(short_allowed)}</span> - {"SELL trades habilitadas (+$70 mejor vs BUY)" if short_allowed else "SELL trades DESHABILITADAS"}</td>
-                </tr>
-                <tr>
-                    <td>USE_VWAP_SLOW_TREND_FILTER</td>
-                    <td><span class="param-value {'true' if use_vwap_slow_trend_filter else 'false'}">{str(use_vwap_slow_trend_filter)}</span> - {"Filtro de tendencia ACTIVO (VWAP_SLOW=" + str(vwap_slow) + ": LONG si VWAP_FAST>VWAP_SLOW, SHORT si VWAP_FAST<VWAP_SLOW)" if use_vwap_slow_trend_filter else "Filtro de tendencia DESACTIVADO (opera contra/a favor de tendencia)"}</td>
+                    <td><span class="param-value">${point_value:.0f} por punto</span> - Valor contractual NQ Futures</td>
                 </tr>
             </table>
         </div>
