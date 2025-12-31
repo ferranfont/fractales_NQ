@@ -7,7 +7,7 @@ from pathlib import Path
 # CONFIGURACIÓN DE FECHAS (single day analysis)
 # ============================================================================
 # Opción 1: Fecha única (descomentar para usar una sola fecha)
-DATE = "20251009"  # Fecha en formato YYYYMMDD
+DATE = "20251202"  # Fecha en formato YYYYMMDD
 START_DATE = DATE
 END_DATE = DATE
 
@@ -21,9 +21,9 @@ ALL_DAYS_SEGMENT_END = "20251212"           # Fecha final del segmento (solo si 
 # ============================================================================
 # MAIN TRADING PARAMETERS VWAP MOMENTUM STRATEGY (Price Ejection - Green Dots)
 # ============================================================================
-ENABLE_VWAP_MOMENTUM_STRATEGY = False        # True = ejecutar estrategia, False = NO ejecutar
+ENABLE_VWAP_MOMENTUM_STRATEGY = True        # True = ejecutar estrategia, False = NO ejecutar
 VWAP_MOMENTUM_TP_POINTS = 125.0             # Take profit in points
-VWAP_MOMENTUM_SL_POINTS = 50.0            # Stop loss in points
+VWAP_MOMENTUM_SL_POINTS = 75.0            # Stop loss in points
 VWAP_MOMENTUM_MAX_POSITIONS = 1             # Maximum number of positions open simultaneously
 
 # ============================================================================
@@ -92,22 +92,22 @@ TP_IN_TIME_IN_MARKET = 100                           # Take profit in points (2:
 # Trailing Stop Loss Parameters (Break-Even)
 # When enabled, moves stop loss to break-even (or break-even + profit) after reaching trigger level
 USE_TRAIL_CASH = False                              # True = enable trailing stop to break-even, False = disabled
-TRAIL_CASH_TRIGGER_POINTS = 50                     # Trigger level in points - when profit reaches this, move SL to break-even
-TRAIL_CASH_BREAK_EVEN_POINTS_PROFIT = 25            # Points of profit to lock in when trailing (0 = break-even, 10 = entry + 10 points)
+TRAIL_CASH_TRIGGER_POINTS = 100                     # Trigger level in points - when profit reaches this, move SL to break-even
+TRAIL_CASH_BREAK_EVEN_POINTS_PROFIT = 1            # Points of profit to lock in when trailing (0 = break-even, 10 = entry + 10 points)
 
 # ATR Trailing Stop (Dynamic Volatility Based)
-USE_ATR_TRAILING_STOP = True                       # True = use ATR based trailing stop, False = disabled
+USE_ATR_TRAILING_STOP = False                       # True = use ATR based trailing stop, False = disabled
 ATR_PERIOD = 21                                    # Period for ATR calculation
-ATR_MULTIPLIER = 5                               # Multiplier for ATR to determine stop distance
+ATR_MULTIPLIER = 3                               # Multiplier for ATR to determine stop distance
 
 # ============================================================================
 # TRADING PARAMETERS VWAP CROSSOVER STRATEGY
 # ============================================================================
 ENABLE_VWAP_CROSSOVER_STRATEGY = False      # True = ejecutar estrategia, False = NO ejecutar
-VWAP_CROSSOVER_TP_POINTS = 5.0              # Take profit in points
-VWAP_CROSSOVER_SL_POINTS = 9.0              # Stop loss in points
+VWAP_CROSSOVER_TP_POINTS = 125.0              # Take profit in points
+VWAP_CROSSOVER_SL_POINTS = 10.0              # Stop loss in points
 VWAP_CROSSOVER_MAX_POSITIONS = 1            # Maximum number of positions open simultaneously
-VWAP_CROSSOVER_START_HOUR = "16:30:00"      # Hora de inicio de trading
+VWAP_CROSSOVER_START_HOUR = "00:01:00"      # Hora de inicio de trading
 VWAP_CROSSOVER_END_HOUR = "22:00:00"        # Hora de fin de trading
 
 # ============================================================================
@@ -211,13 +211,12 @@ PLOT_MAJOR_DOTS = False          # True = dibujar puntos (circles) en fractales 
 SHOW_FREQUENCY_INDICATOR = False   # True = mostrar subplot de frecuencia, False = ocultar subplot
 SHOW_REGRESSION_CHANNEL = False   # True = mostrar canal de regresión en el gráfico
 
-SHOW_SUBPLOT_VWAP_SLOPE_INDICATOR = True      # True = mostrar subplot de VWAP Slope, False = ocultar subplot
+SHOW_SUBPLOT_VWAP_SLOPE_INDICATOR = False      # True = mostrar subplot de VWAP Slope, False = ocultar subplot
 SHOW_VWAP_INDICATOR_CROSSOVER= True        # True = mostrar señales de cruce VWAP en el gráfico
-
-SHOW_ORANGE_DOT = False          # True = mostrar puntos naranjas (VWAP Slope crossover) en el gráfico de precio
-SHOW_BLUE_SQUARE = False         # True = mostrar cuadrados azules (VWAP Slope crossdown) en el gráfico de precio
-SHOW_GREEN_DOT = False           # True = mostrar puntos verdes (Price Ejection) en el gráfico de precio
-SHOW_RED_DOT = False             # True = mostrar puntos rojos (OVER Price Ejection) en el gráfico de precio
+SHOW_ORANGE_DOT = True         # True = mostrar puntos naranjas (VWAP Slope crossover) en el gráfico de precio
+SHOW_BLUE_SQUARE = True         # True = mostrar cuadrados azules (VWAP Slope crossdown) en el gráfico de precio
+SHOW_GREEN_DOT = True          # True = mostrar puntos verdes (Price Ejection) en el gráfico de precio
+SHOW_RED_DOT = True             # True = mostrar puntos rojos (OVER Price Ejection) en el gráfico de precio
 
 PLOT_VWAP = True                 # True = dibujar indicador VWAP en el gráfico
 SHOW_FAST_VWAP = True            # True = mostrar VWAP Fast (magenta)
