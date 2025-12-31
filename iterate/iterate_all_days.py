@@ -17,11 +17,14 @@ import plotly.io as pio
 sys.path.insert(0, str(Path(__file__).parent.parent))
 
 from config import (
-    DATA_DIR, OUTPUTS_DIR, ENABLE_VWAP_MOMENTUM_STRATEGY,
+    DATA_DIR, OUTPUTS_DIR,
+    ENABLE_VWAP_MOMENTUM_STRATEGY, ENABLE_VWAP_SQUARE_STRATEGY,
     USE_ALL_DAYS_AVAILABLE, ALL_DAYS_SEGMENT_START, ALL_DAYS_SEGMENT_END,
     SHOW_CHART_DURING_ITERATION,
     VWAP_MOMENTUM_STRAT_START_HOUR, VWAP_MOMENTUM_STRAT_END_HOUR,
-    VWAP_MOMENTUM_TP_POINTS, VWAP_MOMENTUM_SL_POINTS
+    VWAP_MOMENTUM_TP_POINTS, VWAP_MOMENTUM_SL_POINTS,
+    VWAP_SQUARE_START_HOUR, VWAP_SQUARE_END_HOUR,
+    VWAP_SQUARE_TP_POINTS, VWAP_SQUARE_SL_POINTS
 )
 from show_config_dashboard import update_dashboard
 
@@ -106,23 +109,20 @@ for i, date_str in enumerate(available_dates, 1):
     print(f"\n[{i}/{len(available_dates)}] Processing date: {date_str}")
     print("-"*80)
 
-    # Run strategy directly using subprocess with modified config
+    # Run strategies directly using subprocess with modified config
     try:
         import subprocess
         import sys
 
-        # Check if strategy is enabled
-        if not ENABLE_VWAP_MOMENTUM_STRATEGY:
-            print(f"[INFO] Strategy disabled, no trades to collect")
+        # Check if at least one strategy is enabled
+        if not ENABLE_VWAP_MOMENTUM_STRATEGY and not ENABLE_VWAP_SQUARE_STRATEGY:
+            print(f"[INFO] Both strategies disabled, no trades to collect")
             continue
 
-        # Prepare the script path
+        # Prepare the script paths
         project_root = Path(__file__).parent.parent
-        strategy_script = project_root / "strat_vwap_momentum.py"
-
-        if not strategy_script.exists():
-            print(f"[ERROR] Strategy file not found: {strategy_script}")
-            continue
+        momentum_script = project_root / "strat_vwap_momentum.py"
+        square_script = project_root / "strat_vwap_square.py"
 
         # Temporarily modify config.py to set the date
         config_file = project_root / "config.py"
@@ -158,51 +158,89 @@ for i, date_str in enumerate(available_dates, 1):
             f.write(modified_content)
 
         try:
-            # Execute the strategy
-            result = subprocess.run(
-                [sys.executable, str(strategy_script)],
-                capture_output=True,
-                text=True,
-                cwd=str(project_root)
-            )
+            # Execute VWAP Momentum Strategy if enabled
+            if ENABLE_VWAP_MOMENTUM_STRATEGY:
+                if momentum_script.exists():
+                    print(f"[INFO] Executing VWAP Momentum strategy...")
+                    result = subprocess.run(
+                        [sys.executable, str(momentum_script)],
+                        capture_output=True,
+                        text=True,
+                        cwd=str(project_root)
+                    )
 
-            if result.returncode == 0:
-                print(f"[OK] Strategy executed for {date_str}")
+                    if result.returncode == 0:
+                        print(f"[OK] VWAP Momentum executed for {date_str}")
 
-                # Load the tracking record CSV for this date
-                csv_file = trading_dir / f"tracking_record_vwap_momentum_{date_str}.csv"
+                        # Load the tracking record CSV for this date
+                        csv_file = trading_dir / f"tracking_record_vwap_momentum_{date_str}.csv"
 
-                if csv_file.exists():
-                    df_day = pd.read_csv(csv_file, sep=';', decimal=',')
-                    if len(df_day) > 0:
-                        print(f"[OK] Collected {len(df_day)} trades from {date_str}")
-                        all_trades.append(df_day)
-                    else:
-                        print(f"[INFO] No trades generated for {date_str}")
-                else:
-                    print(f"[INFO] No tracking record found for {date_str}")
-
-                # Generate chart if enabled
-                if SHOW_CHART_DURING_ITERATION:
-                    plot_script = project_root / "plot_day.py"
-                    if plot_script.exists():
-                        print(f"[INFO] Generating chart for {date_str}...")
-                        plot_result = subprocess.run(
-                            [sys.executable, str(plot_script)],
-                            capture_output=True,
-                            text=True,
-                            cwd=str(project_root)
-                        )
-                        if plot_result.returncode == 0:
-                            print(f"[OK] Chart generated for {date_str}")
+                        if csv_file.exists():
+                            df_day = pd.read_csv(csv_file, sep=';', decimal=',')
+                            if len(df_day) > 0:
+                                print(f"[OK] Collected {len(df_day)} Momentum trades from {date_str}")
+                                all_trades.append(df_day)
+                            else:
+                                print(f"[INFO] No Momentum trades generated for {date_str}")
                         else:
-                            print(f"[WARN] Chart generation failed for {date_str}")
+                            print(f"[INFO] No Momentum tracking record found for {date_str}")
                     else:
-                        print(f"[WARN] plot_day.py not found, skipping chart generation")
-            else:
-                print(f"[WARN] Strategy returned code {result.returncode} for {date_str}")
-                if result.stderr:
-                    print(f"[ERROR] {result.stderr[:200]}")
+                        print(f"[WARN] VWAP Momentum returned code {result.returncode} for {date_str}")
+                        if result.stderr:
+                            print(f"[ERROR] {result.stderr[:200]}")
+                else:
+                    print(f"[ERROR] Momentum strategy file not found: {momentum_script}")
+
+            # Execute VWAP Square Strategy if enabled
+            if ENABLE_VWAP_SQUARE_STRATEGY:
+                if square_script.exists():
+                    print(f"[INFO] Executing VWAP Square strategy...")
+                    result = subprocess.run(
+                        [sys.executable, str(square_script)],
+                        capture_output=True,
+                        text=True,
+                        cwd=str(project_root)
+                    )
+
+                    if result.returncode == 0:
+                        print(f"[OK] VWAP Square executed for {date_str}")
+
+                        # Load the tracking record CSV for this date
+                        csv_file = trading_dir / f"tracking_record_vwap_square_{date_str}.csv"
+
+                        if csv_file.exists():
+                            df_day = pd.read_csv(csv_file, sep=';', decimal=',')
+                            if len(df_day) > 0:
+                                print(f"[OK] Collected {len(df_day)} Square trades from {date_str}")
+                                all_trades.append(df_day)
+                            else:
+                                print(f"[INFO] No Square trades generated for {date_str}")
+                        else:
+                            print(f"[INFO] No Square tracking record found for {date_str}")
+                    else:
+                        print(f"[WARN] VWAP Square returned code {result.returncode} for {date_str}")
+                        if result.stderr:
+                            print(f"[ERROR] {result.stderr[:200]}")
+                else:
+                    print(f"[ERROR] Square strategy file not found: {square_script}")
+
+            # Generate chart if enabled (after both strategies)
+            if SHOW_CHART_DURING_ITERATION:
+                plot_script = project_root / "plot_day.py"
+                if plot_script.exists():
+                    print(f"[INFO] Generating chart for {date_str}...")
+                    plot_result = subprocess.run(
+                        [sys.executable, str(plot_script)],
+                        capture_output=True,
+                        text=True,
+                        cwd=str(project_root)
+                    )
+                    if plot_result.returncode == 0:
+                        print(f"[OK] Chart generated for {date_str}")
+                    else:
+                        print(f"[WARN] Chart generation failed for {date_str}")
+                else:
+                    print(f"[WARN] plot_day.py not found, skipping chart generation")
 
         finally:
             # Restore original config
@@ -450,8 +488,8 @@ try:
 
         # Calculate daily statistics
         total_trades_day = len(day_trades)
-        profits_day = len(day_trades[day_trades['exit_reason'] == 'profit'])
-        stops_day = len(day_trades[day_trades['exit_reason'] == 'stop'])
+        profits_day = len(day_trades[day_trades['exit_reason'].isin(['profit', 'tp_exit'])])
+        stops_day = len(day_trades[day_trades['exit_reason'].isin(['stop', 'sl_exit', 'protective_sl_exit', 'trail_stop', 'slope_exit', 'green_dot_timeout'])])
         win_rate_day = (profits_day / (profits_day + stops_day) * 100) if (profits_day + stops_day) > 0 else 0
 
         total_pnl_day = day_trades['pnl_usd'].sum()
@@ -463,8 +501,9 @@ try:
         buy_pnl_day = day_trades[day_trades['direction'] == 'BUY']['pnl_usd'].sum() if buy_trades_day > 0 else 0
         sell_pnl_day = day_trades[day_trades['direction'] == 'SELL']['pnl_usd'].sum() if sell_trades_day > 0 else 0
 
-        # Get day of week
-        day_of_week = day_trades.iloc[0]['day_of_week']
+        # Get day of week from date
+        date_obj = pd.to_datetime(date)
+        day_of_week = date_obj.isoweekday()  # 1=Monday, 2=Tuesday, ..., 7=Sunday
         day_names_map = {1: 'Mon', 2: 'Tue', 3: 'Wed', 4: 'Thu', 5: 'Fri', 6: 'Sat', 7: 'Sun'}
         day_name_short = day_names_map.get(day_of_week, '')
 
@@ -549,28 +588,39 @@ except Exception as e:
 # Build trades table HTML
 trades_html = ""
 for idx, row in df_all.iterrows():
-    pnl_class = "profit" if row['exit_reason'] == 'profit' else "loss"
+    pnl_class = "profit" if row['pnl'] > 0 else "loss"
+
+    # Safely get values with defaults for missing columns
+    trade_id = row.get('trade_id', '-')
+    day_of_week = row.get('day_of_week', '-')
+    entry_vwap = f"{row['entry_vwap']:.2f}" if 'entry_vwap' in row and pd.notna(row['entry_vwap']) else '-'
+    exit_vwap = f"{row['exit_vwap']:.2f}" if 'exit_vwap' in row and pd.notna(row['exit_vwap']) else '-'
+    tp_price = f"{row['tp_price']:.2f}" if 'tp_price' in row and pd.notna(row['tp_price']) else '-'
+    sl_price = f"{row['sl_price']:.2f}" if 'sl_price' in row and pd.notna(row['sl_price']) else '-'
+    time_in_market = f"{row['time_in_market']:.1f}" if 'time_in_market' in row and pd.notna(row['time_in_market']) else '-'
+    vwap_slope_entry = f"{row['vwap_slope_entry']:.4f}" if 'vwap_slope_entry' in row and pd.notna(row['vwap_slope_entry']) else '-'
+    vwap_slope_exit = f"{row['vwap_slope_exit']:.4f}" if 'vwap_slope_exit' in row and pd.notna(row['vwap_slope_exit']) else '-'
 
     trades_html += f"""
         <tr class="{pnl_class}">
             <td>{idx + 1}</td>
-            <td>{row['trade_id']}</td>
-            <td>{row['day_of_week']}</td>
+            <td>{trade_id}</td>
+            <td>{day_of_week}</td>
             <td>{row['entry_time']}</td>
             <td>{row['exit_time']}</td>
             <td>{row['direction']}</td>
             <td>{row['entry_price']:.2f}</td>
             <td>{row['exit_price']:.2f}</td>
-            <td>{row['entry_vwap']:.2f}</td>
-            <td>{row['exit_vwap']:.2f}</td>
-            <td>{row['tp_price']:.2f}</td>
-            <td>{row['sl_price']:.2f}</td>
+            <td>{entry_vwap}</td>
+            <td>{exit_vwap}</td>
+            <td>{tp_price}</td>
+            <td>{sl_price}</td>
             <td>{row['exit_reason']}</td>
             <td>{row['pnl']:+.2f}</td>
             <td>${row['pnl_usd']:,.2f}</td>
-            <td>{row['time_in_market']:.1f}</td>
-            <td>{row['vwap_slope_entry']:.4f}</td>
-            <td>{row['vwap_slope_exit']:.4f}</td>
+            <td>{time_in_market}</td>
+            <td>{vwap_slope_entry}</td>
+            <td>{vwap_slope_exit}</td>
         </tr>
     """
 
@@ -578,7 +628,7 @@ html_content = f"""<!DOCTYPE html>
 <html>
 <head>
     <meta charset="UTF-8">
-    <title>VWAP Momentum Strategy - Iteration Summary ({first_date} to {last_date})</title>
+    <title>VWAP Strategies - Iteration Summary ({first_date} to {last_date})</title>
     <style>
         body {{
             font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
@@ -690,10 +740,11 @@ html_content = f"""<!DOCTYPE html>
 </head>
 <body>
     <div class="container">
-        <h1>VWAP Momentum Strategy - Iteration Summary</h1>
+        <h1>VWAP Strategies - Iteration Summary</h1>
         <p><strong>Date Range:</strong> {first_date} to {last_date}</p>
-        <p><strong>Trading Hours:</strong> {VWAP_MOMENTUM_STRAT_START_HOUR} to {VWAP_MOMENTUM_STRAT_END_HOUR}</p>
-        <p><strong>TP/SL:</strong> {VWAP_MOMENTUM_TP_POINTS:.0f} / {VWAP_MOMENTUM_SL_POINTS:.0f} points</p>
+        <p><strong>Strategies Enabled:</strong> {'VWAP Momentum' if ENABLE_VWAP_MOMENTUM_STRATEGY else ''}{' + ' if ENABLE_VWAP_MOMENTUM_STRATEGY and ENABLE_VWAP_SQUARE_STRATEGY else ''}{'VWAP Square' if ENABLE_VWAP_SQUARE_STRATEGY else ''}</p>
+        <p><strong>Trading Hours (Momentum):</strong> {VWAP_MOMENTUM_STRAT_START_HOUR} to {VWAP_MOMENTUM_STRAT_END_HOUR} | <strong>TP/SL:</strong> {VWAP_MOMENTUM_TP_POINTS:.0f}/{VWAP_MOMENTUM_SL_POINTS:.0f} pts</p>
+        <p><strong>Trading Hours (Square):</strong> {VWAP_SQUARE_START_HOUR} to {VWAP_SQUARE_END_HOUR} | <strong>TP/SL:</strong> {VWAP_SQUARE_TP_POINTS:.0f}/{VWAP_SQUARE_SL_POINTS:.0f} pts</p>
         <p><strong>Total Days Processed:</strong> {len(available_dates)}</p>
         <p><strong>Generated:</strong> {datetime.now().strftime("%Y-%m-%d %H:%M:%S")}</p>
 
@@ -807,8 +858,9 @@ html_content = f"""<!DOCTYPE html>
         </table>
 
         <div class="footer">
-            <p>Generated by VWAP Momentum Strategy Iteration Script</p>
+            <p>Generated by VWAP Strategies Iteration Script</p>
             <p>Date Range: {first_date} to {last_date} | Total Days: {len(available_dates)} | Total Trades: {total_trades}</p>
+            <p>Strategies: {'VWAP Momentum' if ENABLE_VWAP_MOMENTUM_STRATEGY else ''}{' + ' if ENABLE_VWAP_MOMENTUM_STRATEGY and ENABLE_VWAP_SQUARE_STRATEGY else ''}{'VWAP Square' if ENABLE_VWAP_SQUARE_STRATEGY else ''}</p>
         </div>
     </div>
 </body>

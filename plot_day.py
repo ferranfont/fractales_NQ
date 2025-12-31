@@ -13,13 +13,23 @@ from config import (
     VWAP_SLOPE_DEGREE_WINDOW, SHOW_SUBPLOT_VWAP_SLOPE_INDICATOR,
     VWAP_SLOPE_INDICATOR_HIGH_VALUE, VWAP_SLOPE_INDICATOR_LOW_VALUE,
     SHOW_VWAP_INDICATOR_CROSSOVER,
-    # Strategy parameters for title
+    SHOW_ORANGE_DOT, SHOW_BLUE_SQUARE, SHOW_GREEN_DOT, SHOW_RED_DOT,
+    # Strategy enable flags
+    ENABLE_VWAP_MOMENTUM_STRATEGY, ENABLE_VWAP_SQUARE_STRATEGY,
+    # VWAP Momentum parameters
     USE_TIME_IN_MARKET, TIME_IN_MARKET_MINUTES, USE_TIME_IN_MARKET_JSON_OPTIMIZATION_FILE,
     USE_MAX_SL_ALLOWED_IN_TIME_IN_MARKET, MAX_SL_ALLOWED_IN_TIME_IN_MARKET,
     USE_TP_ALLOWED_IN_TIME_IN_MARKET, TP_IN_TIME_IN_MARKET,
     VWAP_MOMENTUM_TP_POINTS, VWAP_MOMENTUM_SL_POINTS,
     VWAP_MOMENTUM_LONG_ALLOWED, VWAP_MOMENTUM_SHORT_ALLOWED,
-    USE_VWAP_SLOW_TREND_FILTER
+    USE_VWAP_SLOW_TREND_FILTER,
+    # VWAP Square parameters
+    VWAP_SQUARE_TP_POINTS, VWAP_SQUARE_SL_POINTS,
+    VWAP_SQUARE_LISTENING_TIME, VWAP_SQUARE_MIN_SPIKE,
+    USE_SQUARE_ATR_TRAILING_STOP, SQUARE_ATR_PERIOD, SQUARE_ATR_MULTIPLIER,
+    USE_OPOSITE_SIDE_OF_SQUARE_AS_STOP,
+    USE_VWAP_SQUARE_SHAKE_OUT, VWAP_SQUARE_SHAKE_OUT_RETRACEMENT_PCT,
+    USE_SQUARE_VWAP_SLOW_TREND_FILTER
 )
 from calculate_vwap import calculate_vwap
 import numpy as np
@@ -29,46 +39,87 @@ import numpy as np
 # ============================================================================
 def get_strategy_info_compact():
     """Returns a compact string with current strategy configuration"""
-    if USE_TIME_IN_MARKET:
-        if USE_TIME_IN_MARKET_JSON_OPTIMIZATION_FILE:
-            exit_mode = "Time-Exit (JSON)"
-        else:
-            time_label = "EOD" if TIME_IN_MARKET_MINUTES >= 9999 else f"{TIME_IN_MARKET_MINUTES}min"
-            exit_mode = f"Time-Exit ({time_label})"
 
-        # TP info
-        if USE_TP_ALLOWED_IN_TIME_IN_MARKET:
-            tp_info = f"| TP:{TP_IN_TIME_IN_MARKET}pts"
+    # Determine which strategy is enabled
+    if ENABLE_VWAP_SQUARE_STRATEGY:
+        # VWAP SQUARE STRATEGY
+        strategy_name = "VWAP Square"
+
+        # TP/SL info
+        if USE_SQUARE_ATR_TRAILING_STOP:
+            sl_info = f"ATR-Trail({SQUARE_ATR_PERIOD}/{SQUARE_ATR_MULTIPLIER}x)"
         else:
+            sl_info = f"SL:{VWAP_SQUARE_SL_POINTS}pts"
+
+        tp_sl_info = f"TP/SL ({VWAP_SQUARE_TP_POINTS}/{sl_info})"
+
+        # Listening time
+        listen_info = f"Listen:{VWAP_SQUARE_LISTENING_TIME}min"
+
+        # Shake out mode
+        if USE_VWAP_SQUARE_SHAKE_OUT:
+            mode_info = f"SHAKE-OUT({VWAP_SQUARE_SHAKE_OUT_RETRACEMENT_PCT}%)"
+        else:
+            mode_info = "BREAKOUT"
+
+        # Additional filters
+        filters = []
+        if USE_OPOSITE_SIDE_OF_SQUARE_AS_STOP:
+            filters.append("OppSide-SL")
+        if USE_SQUARE_VWAP_SLOW_TREND_FILTER:
+            filters.append(f"Trend(VWAP{VWAP_SLOW})")
+        if VWAP_SQUARE_MIN_SPIKE > 0:
+            filters.append(f"MinSpike:{VWAP_SQUARE_MIN_SPIKE}pts")
+
+        filter_info = "| " + " | ".join(filters) if filters else ""
+
+        return f"{strategy_name} | {tp_sl_info} | {listen_info} | {mode_info} {filter_info}"
+
+    elif ENABLE_VWAP_MOMENTUM_STRATEGY:
+        # VWAP MOMENTUM STRATEGY
+        if USE_TIME_IN_MARKET:
+            if USE_TIME_IN_MARKET_JSON_OPTIMIZATION_FILE:
+                exit_mode = "Time-Exit (JSON)"
+            else:
+                time_label = "EOD" if TIME_IN_MARKET_MINUTES >= 9999 else f"{TIME_IN_MARKET_MINUTES}min"
+                exit_mode = f"Time-Exit ({time_label})"
+
+            # TP info
+            if USE_TP_ALLOWED_IN_TIME_IN_MARKET:
+                tp_info = f"| TP:{TP_IN_TIME_IN_MARKET}pts"
+            else:
+                tp_info = ""
+
+            # SL info
+            if USE_MAX_SL_ALLOWED_IN_TIME_IN_MARKET:
+                sl_info = f"| SL:{MAX_SL_ALLOWED_IN_TIME_IN_MARKET}pts"
+            else:
+                sl_info = ""
+        else:
+            exit_mode = f"TP/SL ({VWAP_MOMENTUM_TP_POINTS}/{VWAP_MOMENTUM_SL_POINTS}pts)"
             tp_info = ""
-
-        # SL info
-        if USE_MAX_SL_ALLOWED_IN_TIME_IN_MARKET:
-            sl_info = f"| SL:{MAX_SL_ALLOWED_IN_TIME_IN_MARKET}pts"
-        else:
             sl_info = ""
-    else:
-        exit_mode = f"TP/SL ({VWAP_MOMENTUM_TP_POINTS}/{VWAP_MOMENTUM_SL_POINTS}pts)"
-        tp_info = ""
-        sl_info = ""
 
-    # Direction filter info
-    if VWAP_MOMENTUM_LONG_ALLOWED and VWAP_MOMENTUM_SHORT_ALLOWED:
-        direction_info = ""
-    elif VWAP_MOMENTUM_SHORT_ALLOWED:
-        direction_info = "| SHORT-ONLY"
-    elif VWAP_MOMENTUM_LONG_ALLOWED:
-        direction_info = "| LONG-ONLY"
-    else:
-        direction_info = "| NO TRADES"
+        # Direction filter info
+        if VWAP_MOMENTUM_LONG_ALLOWED and VWAP_MOMENTUM_SHORT_ALLOWED:
+            direction_info = ""
+        elif VWAP_MOMENTUM_SHORT_ALLOWED:
+            direction_info = "| SHORT-ONLY"
+        elif VWAP_MOMENTUM_LONG_ALLOWED:
+            direction_info = "| LONG-ONLY"
+        else:
+            direction_info = "| NO TRADES"
 
-    # Trend filter info
-    if USE_VWAP_SLOW_TREND_FILTER:
-        trend_info = f"| TREND-FILTER (VWAP{VWAP_SLOW})"
-    else:
-        trend_info = ""
+        # Trend filter info
+        if USE_VWAP_SLOW_TREND_FILTER:
+            trend_info = f"| TREND-FILTER (VWAP{VWAP_SLOW})"
+        else:
+            trend_info = ""
 
-    return f"VWAP Momentum | {exit_mode} {tp_info} {sl_info} {direction_info} {trend_info}"
+        return f"VWAP Momentum | {exit_mode} {tp_info} {sl_info} {direction_info} {trend_info}"
+
+    else:
+        return "NO STRATEGY ENABLED"
 
 def calculate_vwap_slope_at_bar(df, bar_idx, window=10):
     """
@@ -99,9 +150,10 @@ def calculate_vwap_slope_at_bar(df, bar_idx, window=10):
     if pd.isna(vwap_window).any():
         return 0.0
 
-    # Simple linear regression: slope = (y2 - y1) / (x2 - x1)
-    # Using first and last point for simplicity
-    slope = (vwap_window[-1] - vwap_window[0]) / (window - 1)
+    # Use polyfit with absolute value to match find_rectangles.py calculation
+    # This ensures synchronization between chart and strategy
+    import numpy as np
+    slope = abs(np.polyfit(np.arange(len(vwap_window)), vwap_window, 1)[0])
 
     return slope
 
@@ -221,8 +273,13 @@ def plot_range_chart(df, df_fractals_minor, df_fractals_major, start_date, end_d
         # Note: For visualization, we apply a minimum value to avoid very small values in log scale
         if show_slope_subplot:
             # If vwap_slope already exists (from strategy), use it; otherwise calculate it
+            # IMPORTANT: Use exact same calculation method as find_rectangles.py for synchronization
             if 'vwap_slope' not in df.columns:
-                df['vwap_slope'] = [abs(calculate_vwap_slope_at_bar(df, idx, window=VWAP_SLOPE_DEGREE_WINDOW)) for idx in df.index]
+                import numpy as np
+                df['vwap_slope'] = df['vwap_fast'].rolling(window=VWAP_SLOPE_DEGREE_WINDOW).apply(
+                    lambda x: abs(np.polyfit(np.arange(len(x)), x, 1)[0]) if len(x) == VWAP_SLOPE_DEGREE_WINDOW else np.nan,
+                    raw=False
+                )
 
             # Create a copy for plotting with minimum value for log scale visualization
             min_slope = 0.002
@@ -322,26 +379,34 @@ def plot_range_chart(df, df_fractals_minor, df_fractals_major, start_date, end_d
             print(f"[INFO] VWAP Slow({VWAP_SLOW}) añadido al gráfico: {len(df_vwap_slow)} puntos válidos")
 
     # Añadir puntos naranjas cuando VWAP Slope cruza hacia arriba el nivel HIGH_VALUE (crossover)
+    # IMPORTANT: Detect crossovers directly from the vwap_slope indicator already calculated
+    # Do NOT use find_vwap_slope_rectangles() - use the indicator itself
     if SHOW_VWAP_INDICATOR_CROSSOVER and 'vwap_slope' in df.columns:
-        # Detectar crossovers: cuando vwap_slope cruza de abajo hacia arriba el threshold HIGH_VALUE
-        # Crossover ocurre cuando:
-        # - Bar anterior: vwap_slope <= VWAP_SLOPE_INDICATOR_HIGH_VALUE
-        # - Bar actual: vwap_slope > VWAP_SLOPE_INDICATOR_HIGH_VALUE
+        # Detect crossovers directly from vwap_slope indicator
+        df_with_prev = df.copy()
+        df_with_prev['vwap_slope_prev'] = df_with_prev['vwap_slope'].shift(1)
 
-        df_crossover = df.copy()
-        df_crossover['vwap_slope_prev'] = df_crossover['vwap_slope'].shift(1)
-
-        # Condición de crossover
+        # Crossover UP: previous <= threshold and current > threshold
         crossover_condition = (
-            (df_crossover['vwap_slope_prev'] <= VWAP_SLOPE_INDICATOR_HIGH_VALUE) &
-            (df_crossover['vwap_slope'] > VWAP_SLOPE_INDICATOR_HIGH_VALUE) &
-            (df_crossover['vwap_slope'].notna()) &
-            (df_crossover['vwap_slope_prev'].notna())
+            (df_with_prev['vwap_slope_prev'] <= VWAP_SLOPE_INDICATOR_HIGH_VALUE) &
+            (df_with_prev['vwap_slope'] > VWAP_SLOPE_INDICATOR_HIGH_VALUE) &
+            (df_with_prev['vwap_slope'].notna()) &
+            (df_with_prev['vwap_slope_prev'].notna())
         )
 
-        df_crossover_points = df_crossover[crossover_condition].copy()
+        # Crossdown: previous > threshold and current <= threshold
+        crossdown_condition = (
+            (df_with_prev['vwap_slope_prev'] > VWAP_SLOPE_INDICATOR_HIGH_VALUE) &
+            (df_with_prev['vwap_slope'] <= VWAP_SLOPE_INDICATOR_HIGH_VALUE) &
+            (df_with_prev['vwap_slope'].notna()) &
+            (df_with_prev['vwap_slope_prev'].notna())
+        )
 
-        if not df_crossover_points.empty:
+        df_crossover_points = df_with_prev[crossover_condition].copy()
+        df_crossdown_points = df_with_prev[crossdown_condition].copy()
+
+        # Show orange dots (crossover) if enabled
+        if SHOW_ORANGE_DOT and not df_crossover_points.empty:
             trace_crossover = go.Scatter(
                 x=df_crossover_points['index'],
                 y=df_crossover_points['close'],
@@ -357,10 +422,144 @@ def plot_range_chart(df, df_fractals_minor, df_fractals_major, start_date, end_d
                 customdata=df_crossover_points['vwap_slope']
             )
             fig.add_trace(trace_crossover, row=price_row, col=1)
-
             print(f"[INFO] VWAP Slope Crossover points detectados: {len(df_crossover_points)} (threshold: {VWAP_SLOPE_INDICATOR_HIGH_VALUE})")
-        else:
-            print(f"[INFO] No se detectaron VWAP Slope Crossovers (threshold: {VWAP_SLOPE_INDICATOR_HIGH_VALUE})")
+        elif not df_crossover_points.empty:
+            print(f"[INFO] Found {len(df_crossover_points)} crossover points (orange dots hidden - SHOW_ORANGE_DOT=False)")
+
+        # Show blue squares (crossdown) if enabled
+        if SHOW_BLUE_SQUARE and not df_crossdown_points.empty:
+            trace_crossdown = go.Scatter(
+                x=df_crossdown_points['index'],
+                y=df_crossdown_points['close'],
+                mode='markers',
+                name=f'VWAP Slope Crossdown (<{VWAP_SLOPE_INDICATOR_HIGH_VALUE})',
+                marker=dict(
+                    color='blue',
+                    size=6,
+                    symbol='square',
+                    line=dict(color='darkblue', width=0.5)
+                ),
+                hovertemplate='<b>VWAP Slope Crossdown</b><br>Price: %{y:.2f}<br>Slope: %{customdata:.4f}<extra></extra>',
+                customdata=df_crossdown_points['vwap_slope']
+            )
+            fig.add_trace(trace_crossdown, row=price_row, col=1)
+            print(f"[INFO] VWAP Slope Crossdown points detectados: {len(df_crossdown_points)} (threshold: {VWAP_SLOPE_INDICATOR_HIGH_VALUE})")
+        elif not df_crossdown_points.empty:
+            print(f"[INFO] Found {len(df_crossdown_points)} crossdown points (blue squares hidden - SHOW_BLUE_SQUARE=False)")
+
+    # Draw rectangles based on VWAP Slope crossover/crossdown pairs
+    # Use REALTIME rectangle detection for faster, more aggressive patterns
+    if SHOW_VWAP_INDICATOR_CROSSOVER and 'vwap_slope' in df.columns:
+        if not df_crossover_points.empty and not df_crossdown_points.empty:
+            # Import REALTIME classification function (closes rectangles early)
+            from find_rectangles_realtime import find_vwap_slope_rectangles_realtime
+
+            # Get rectangles with REALTIME classification
+            rectangles_data = find_vwap_slope_rectangles_realtime(df)
+
+            # Convert to plot format (map timestamps to index)
+            rectangles = []
+            for rect in rectangles_data:
+                rectangles.append({
+                    'x1_index': df.loc[rect['x1_index'], 'index'],
+                    'x2_index': df.loc[rect['x2_index'], 'index'],
+                    'y1': rect['y1'],
+                    'y2': rect['y2'],
+                    'type': rect['type'],
+                    'price_per_bar': rect['price_per_bar']
+                })
+
+            print(f"[INFO] Created {len(rectangles)} rectangles from crossover/crossdown pairs")
+
+            # Count rectangle types
+            tall_narrow_up = [r for r in rectangles if r.get('type') == 'tall_narrow_up']
+            tall_narrow_down = [r for r in rectangles if r.get('type') == 'tall_narrow_down']
+            consolidation = [r for r in rectangles if r.get('type') == 'consolidation']
+            print(f"[INFO] Drawing rectangles: {len(tall_narrow_up)} tall&narrow UP (chartreuse), {len(tall_narrow_down)} tall&narrow DOWN (red), {len(consolidation)} consolidation (orange)")
+
+            for rect in rectangles:
+                # Determine color based on aspect ratio AND trend direction
+                rect_type = rect.get('type', 'consolidation')  # Default to orange if no type
+
+                if rect_type == 'tall_narrow_up':
+                    # Tall & Narrow UPTREND: high volatility, rising price (chartreuse green)
+                    line_color = "green"  # Green outline
+                    fill_color = "chartreuse"
+                    opacity = 0.22  # More intense for green rectangles
+                    line_width = 2  # Thicker outline for visibility
+                elif rect_type == 'tall_narrow_down':
+                    # Tall & Narrow DOWNTREND: high volatility, falling price (red)
+                    line_color = "red"  # Red outline
+                    fill_color = "red"
+                    opacity = 0.22  # More intense for red rectangles
+                    line_width = 2  # Thicker outline for visibility
+                else:
+                    # Consolidation: low volatility, sideways movement (orange)
+                    line_color = "orange"
+                    fill_color = "orange"
+                    opacity = 0.03  # Very low opacity for orange consolidation squares (should NOT generate trades)
+                    line_width = 1  # Standard width for orange
+
+                # Add rectangle shape
+                fig.add_shape(
+                    type="rect",
+                    x0=rect['x1_index'],
+                    x1=rect['x2_index'],
+                    y0=rect['y1'],
+                    y1=rect['y2'],
+                    line=dict(color=line_color, width=line_width),
+                    fillcolor=fill_color,
+                    opacity=opacity,
+                    layer="below",
+                    row=price_row,
+                    col=1
+                )
+
+                # Add retracement level line for shake out mode
+                if USE_VWAP_SQUARE_SHAKE_OUT and ENABLE_VWAP_SQUARE_STRATEGY:
+                    # Only draw retracement lines for tall & narrow rectangles (not consolidation)
+                    if rect_type in ['tall_narrow_up', 'tall_narrow_down']:
+                        # Calculate retracement level
+                        rectangle_height = rect['y2'] - rect['y1']
+                        retracement_distance = rectangle_height * (VWAP_SQUARE_SHAKE_OUT_RETRACEMENT_PCT / 100.0)
+
+                        if rect_type == 'tall_narrow_up':
+                            # GREEN: retracement is DOWN from y2 (upper boundary)
+                            retracement_level = rect['y2'] - retracement_distance
+                            retrace_color = "green"  # Solid opaque green
+                        else:  # tall_narrow_down
+                            # RED: retracement is UP from y1 (lower boundary)
+                            retracement_level = rect['y1'] + retracement_distance
+                            retrace_color = "red"  # Match red rectangle color
+
+                        # Common settings for all retracement lines
+                        retrace_opacity = 0.5  # Semi-transparent
+                        retrace_width = 1  # Standard width
+
+                        # Calculate listening window end (x1 = x2 + LISTENING_TIME minutes)
+                        # Get the timestamp at x2_index
+                        x2_timestamp = df.loc[df['index'] == rect['x2_index'], 'timestamp'].iloc[0]
+                        listening_end_timestamp = x2_timestamp + pd.Timedelta(minutes=VWAP_SQUARE_LISTENING_TIME)
+
+                        # Find the index corresponding to listening_end_timestamp (or closest)
+                        listening_end_index = df.loc[df['timestamp'] >= listening_end_timestamp, 'index'].min()
+                        if pd.isna(listening_end_index):
+                            # If listening window extends beyond data, use last available index
+                            listening_end_index = df['index'].max()
+
+                        # Draw horizontal line from rectangle end (x0) to listening window end (x1)
+                        fig.add_shape(
+                            type="line",
+                            x0=rect['x2_index'],  # Start at rectangle close
+                            x1=listening_end_index,  # End at listening window
+                            y0=retracement_level,
+                            y1=retracement_level,
+                            line=dict(color=retrace_color, width=retrace_width, dash="dot"),
+                            opacity=retrace_opacity,
+                            layer="above",
+                            row=price_row,
+                            col=1
+                        )
 
     # Añadir puntos verdes cuando el precio se aleja del VWAP Fast (Price Ejection)
     if PLOT_VWAP and 'vwap_fast' in df.columns:
@@ -370,7 +569,8 @@ def plot_range_chart(df, df_fractals_minor, df_fractals_major, start_date, end_d
         # Filtrar puntos donde la distancia supera el threshold
         df_ejection = df[df['price_vwap_distance'] >= PRICE_EJECTION_TRIGGER].copy()
 
-        if not df_ejection.empty:
+        # Show green dots (Price Ejection) if enabled
+        if SHOW_GREEN_DOT and not df_ejection.empty:
             trace_ejection = go.Scatter(
                 x=df_ejection['index'],
                 y=df_ejection['close'],
@@ -385,8 +585,9 @@ def plot_range_chart(df, df_fractals_minor, df_fractals_major, start_date, end_d
                 customdata=df_ejection['price_vwap_distance'] * 100
             )
             fig.add_trace(trace_ejection, row=price_row, col=1)
-
             print(f"[INFO] Price Ejection points detectados: {len(df_ejection)} (threshold: {PRICE_EJECTION_TRIGGER*100:.1f}%)")
+        elif not df_ejection.empty:
+            print(f"[INFO] Found {len(df_ejection)} price ejection points (green dots hidden - SHOW_GREEN_DOT=False)")
         else:
             # Debug: mostrar la distancia máxima detectada
             max_distance = df['price_vwap_distance'].max()
@@ -395,7 +596,8 @@ def plot_range_chart(df, df_fractals_minor, df_fractals_major, start_date, end_d
         # Añadir puntos rojos cuando el precio se aleja AÚN MÁS del VWAP Fast (Over Price Ejection)
         df_over_ejection = df[df['price_vwap_distance'] >= OVER_PRICE_EJECTION_TRIGGER].copy()
 
-        if not df_over_ejection.empty:
+        # Show red dots (OVER Price Ejection) if enabled
+        if SHOW_RED_DOT and not df_over_ejection.empty:
             trace_over_ejection = go.Scatter(
                 x=df_over_ejection['index'],
                 y=df_over_ejection['close'],
@@ -410,8 +612,9 @@ def plot_range_chart(df, df_fractals_minor, df_fractals_major, start_date, end_d
                 customdata=df_over_ejection['price_vwap_distance'] * 100
             )
             fig.add_trace(trace_over_ejection, row=price_row, col=1)
-
             print(f"[INFO] OVER Price Ejection points detectados: {len(df_over_ejection)} (threshold: {OVER_PRICE_EJECTION_TRIGGER*100:.1f}%)")
+        elif not df_over_ejection.empty:
+            print(f"[INFO] Found {len(df_over_ejection)} OVER ejection points (red dots hidden - SHOW_RED_DOT=False)")
         else:
             print(f"[INFO] No hay OVER Price Ejection points (threshold: {OVER_PRICE_EJECTION_TRIGGER*100:.1f}%)")
 
@@ -552,7 +755,8 @@ def plot_range_chart(df, df_fractals_minor, df_fractals_major, start_date, end_d
     # df_trades puede pasarse como parámetro o ser cargado automáticamente desde outputs/trading
     # Load trades ONLY from ENABLED strategies
     if df_trades is None:
-        from config import ENABLE_VWAP_CROSSOVER_STRATEGY, ENABLE_VWAP_MOMENTUM_STRATEGY
+        from config import ENABLE_VWAP_CROSSOVER_STRATEGY, ENABLE_VWAP_PULLBACK_STRATEGY
+        # ENABLE_VWAP_MOMENTUM_STRATEGY and ENABLE_VWAP_SQUARE_STRATEGY already imported at module level
 
         date_range_str_local = start_date if start_date == end_date else f"{start_date}_{end_date}"
         trades_list = []
@@ -580,6 +784,30 @@ def plot_range_chart(df, df_fractals_minor, df_fractals_major, start_date, end_d
                     print(f"[INFO] Momentum trades loaded: {len(df_momentum)} rows")
                 except Exception as e:
                     print(f"[WARN] Could not load momentum trades: {e}")
+
+        # Try to load VWAP Pullback strategy trades (only if enabled)
+        if ENABLE_VWAP_PULLBACK_STRATEGY:
+            pullback_path = OUTPUTS_DIR / "trading" / f"tracking_record_vwap_pullback_{date_range_str_local}.csv"
+            if pullback_path.exists():
+                try:
+                    df_pullback = pd.read_csv(pullback_path, sep=';', decimal=',', parse_dates=['entry_time', 'exit_time'])
+                    df_pullback['strategy'] = 'Pullback'  # Add strategy tag
+                    trades_list.append(df_pullback)
+                    print(f"[INFO] Pullback trades loaded: {len(df_pullback)} rows")
+                except Exception as e:
+                    print(f"[WARN] Could not load pullback trades: {e}")
+
+        # Try to load VWAP Square strategy trades (only if enabled)
+        if ENABLE_VWAP_SQUARE_STRATEGY:
+            square_path = OUTPUTS_DIR / "trading" / f"tracking_record_vwap_square_{date_range_str_local}.csv"
+            if square_path.exists():
+                try:
+                    df_square = pd.read_csv(square_path, sep=';', decimal=',', parse_dates=['entry_time', 'exit_time'])
+                    df_square['strategy'] = 'Square'  # Add strategy tag
+                    trades_list.append(df_square)
+                    print(f"[INFO] Square trades loaded: {len(df_square)} rows")
+                except Exception as e:
+                    print(f"[WARN] Could not load square trades: {e}")
 
         # Combine all trades if any were loaded
         if trades_list:
@@ -617,21 +845,23 @@ def plot_range_chart(df, df_fractals_minor, df_fractals_major, start_date, end_d
         # Entries markers (triangle up for BUY, triangle down for SELL)
         if not mapped_entries.empty:
             marker_symbols = ['triangle-up' if d == 'BUY' else 'triangle-down' for d in mapped_entries['direction']]
-            marker_colors = ['green' if d == 'BUY' else 'red' for d in mapped_entries['direction']]
+
+            # Green for BUY, Bright Red for SELL (all strategies)
+            marker_colors = ['green' if d == 'BUY' else '#FF0000' for d in mapped_entries['direction']]
+
             trace_entries = go.Scatter(
                 x=mapped_entries['entry_index'],
                 y=mapped_entries['entry_price'],
                 mode='markers',
                 name='Entries',
-                marker=dict(symbol=marker_symbols, color=marker_colors, size=10, line=dict(color='rgba(0, 0, 0, 0.3)', width=1)),
+                marker=dict(symbol=marker_symbols, color=marker_colors, size=10, line=dict(width=0), opacity=1.0),
                 customdata=mapped_entries[['direction','entry_time']].astype(str).values,
                 hovertemplate='Entry: %{y:.2f}<br>Dir: %{customdata[0]}<br>%{customdata[1]}<extra></extra>'
             )
             fig.add_trace(trace_entries, row=price_row, col=1)
 
-        # Exits markers (color by exit_reason: profit=green, stop=red)
+        # Exits markers (all gray crosses, matching Momentum strategy style)
         if not mapped_exits.empty:
-            exit_colors = ['green' if r == 'profit' else ('red' if r == 'stop' else 'gray') for r in mapped_exits['exit_reason']]
             trace_exits = go.Scatter(
                 x=mapped_exits['exit_index'],
                 y=mapped_exits['exit_price'],
@@ -639,7 +869,7 @@ def plot_range_chart(df, df_fractals_minor, df_fractals_major, start_date, end_d
                 name='Exits',
                 marker=dict(
                     symbol='x',                # diagonal cross
-                    color=exit_colors,
+                    color='gray',              # all exits in gray
                     size=8,                   # slightly smaller for a thinner look
                     line=dict(width=0),       # remove black outline to avoid thickness
                     opacity=0.9
@@ -649,19 +879,85 @@ def plot_range_chart(df, df_fractals_minor, df_fractals_major, start_date, end_d
             )
             fig.add_trace(trace_exits, row=price_row, col=1)
 
-        # Lines connecting entry and exit for trades with both indices mapped
+        # Lines connecting entry and exit for trades with both indices mapped (all gray, matching Momentum strategy style)
         trades_with_both = df_trades.dropna(subset=['entry_index','exit_index']).copy()
         for _, t in trades_with_both.iterrows():
             xpair = [int(t['entry_index']), int(t['exit_index'])]
             ypair = [t['entry_price'], t['exit_price']]
-            color = 'green' if t.get('exit_reason') == 'profit' else ('red' if t.get('exit_reason') == 'stop' else 'gray')
             trace_line = go.Scatter(
-                x=xpair, y=ypair, mode='lines', line=dict(color=color, width=1), opacity=0.7,
+                x=xpair, y=ypair, mode='lines', line=dict(color='gray', width=1), opacity=0.7,
                 hoverinfo='skip', showlegend=False
             )
             fig.add_trace(trace_line, row=price_row, col=1)
 
     # --- END TRADES PLOTTING ---
+
+    # --- TRAILING STOP EVOLUTION PLOTTING (SL History) ---
+    # Load SL history from CSV if available (only for Square strategy - shown as violet line)
+    # Only display trailing stop during active positions (from entry to exit)
+
+    # Square strategy SL history (violet solid line, only during active positions)
+    sl_history_path_square = OUTPUTS_DIR / "trading" / f"sl_history_vwap_square_{date_range_str_local}.csv"
+    trades_path_square = OUTPUTS_DIR / "trading" / f"tracking_record_vwap_square_{date_range_str_local}.csv"
+
+    if sl_history_path_square.exists() and trades_path_square.exists():
+        try:
+            print(f"[INFO] Loading Square SL history from {sl_history_path_square.name}")
+            df_sl_history_sq = pd.read_csv(sl_history_path_square, sep=';', decimal=',', parse_dates=['timestamp'])
+            df_trades_sq = pd.read_csv(trades_path_square, sep=';', decimal=',', parse_dates=['entry_time', 'exit_time'])
+
+            # Map timestamps to index
+            if not pd.api.types.is_datetime64_any_dtype(df_sl_history_sq['timestamp']):
+                df_sl_history_sq['timestamp'] = pd.to_datetime(df_sl_history_sq['timestamp'])
+
+            # Use same mapping function as for trades
+            if 'df' in locals() or 'df' in globals():
+                df_sl_history_sq['index'] = df_sl_history_sq['timestamp'].apply(_map_ts_to_index)
+                df_sl_valid_sq = df_sl_history_sq.dropna(subset=['index']).copy()
+
+                if not df_sl_valid_sq.empty:
+                    # Filter SL history to only show during active positions
+                    # For each trade, only show SL points between entry_time and exit_time
+                    active_sl_segments = []
+
+                    for _, trade in df_trades_sq.iterrows():
+                        entry_time = trade['entry_time']
+                        exit_time = trade['exit_time']
+
+                        # Filter SL history for this trade's active period
+                        trade_sl = df_sl_valid_sq[
+                            (df_sl_valid_sq['timestamp'] >= entry_time) &
+                            (df_sl_valid_sq['timestamp'] <= exit_time)
+                        ].copy()
+
+                        if not trade_sl.empty:
+                            active_sl_segments.append(trade_sl)
+
+                    # Draw each segment separately (one per trade)
+                    total_points = 0
+                    for segment in active_sl_segments:
+                        segment = segment.sort_values('index')
+
+                        trace_sl_line_sq = go.Scatter(
+                            x=segment['index'],
+                            y=segment['sl_price'],
+                            mode='lines',
+                            name='Trailing Stop (Square)',
+                            line=dict(
+                                color='violet',  # Violet dashed line for trailing stop
+                                width=1,
+                                dash='dash'  # Dashed line style
+                            ),
+                            showlegend=(total_points == 0),  # Only show legend for first segment
+                            hovertemplate='SL (Square): %{y:.2f}<br>%{x}<extra></extra>'
+                        )
+                        fig.add_trace(trace_sl_line_sq, row=price_row, col=1)
+                        total_points += len(segment)
+
+                    print(f"[INFO] Square Trailing Stop line added: {total_points} points across {len(active_sl_segments)} trades")
+        except Exception as e:
+            print(f"[WARN] Failed to load/plot Square SL history: {e}")
+    # --- END TRAILING STOP PLOTTING ---
 
     # Añadir subplot de métricas - SEGUNDOS entre fractales
     # Solo añadir si el subplot de frecuencia NO está oculto
@@ -772,15 +1068,24 @@ def plot_range_chart(df, df_fractals_minor, df_fractals_major, start_date, end_d
     # Configurar layout
     # Título: mostrar solo una fecha si start_date == end_date
     strategy_info = get_strategy_info_compact()
+
+    # Calculate day profit from trades
+    day_profit_usd = 0
+    if df_trades is not None and not df_trades.empty and 'pnl_usd' in df_trades.columns:
+        day_profit_usd = df_trades['pnl_usd'].sum()
+
+    # Format profit with sign
+    profit_str = f"Day_profit: ${day_profit_usd:,.0f}"
+
     if start_date == end_date:
         # Calculate day of week for single date
         date_obj = datetime.strptime(start_date, "%Y%m%d")
         day_of_week = date_obj.isoweekday()  # 1=Monday, 2=Tuesday, ..., 7=Sunday
         day_names = {1: 'Monday', 2: 'Tuesday', 3: 'Wednesday', 4: 'Thursday', 5: 'Friday', 6: 'Saturday', 7: 'Sunday'}
         day_name = day_names[day_of_week]
-        title_text = f'{symbol.upper()} - {start_date} ({day_name}, DoW={day_of_week}) | {strategy_info}'
+        title_text = f'{symbol.upper()} - {start_date} ({day_name}, DoW={day_of_week}) | {strategy_info} | {profit_str}'
     else:
-        title_text = f'{symbol.upper()} - {start_date} -> {end_date} | {strategy_info}'
+        title_text = f'{symbol.upper()} - {start_date} -> {end_date} | {strategy_info} | {profit_str}'
 
     # Configurar layout general
     # Calcular altura según subplots activos

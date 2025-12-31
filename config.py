@@ -7,23 +7,23 @@ from pathlib import Path
 # CONFIGURACIÓN DE FECHAS (single day analysis)
 # ============================================================================
 # Opción 1: Fecha única (descomentar para usar una sola fecha)
-DATE = "20251104"  # Fecha en formato YYYYMMDD
+DATE = "20251009"  # Fecha en formato YYYYMMDD
 START_DATE = DATE
 END_DATE = DATE
 
 # ============================================================================
 # CONFIGURACIÓN DE ITERACIÓN (iterate_all_days.py)
 # ============================================================================
-USE_ALL_DAYS_AVAILABLE = True               # True = procesar todos los días en data/, False = usar rango específico
-ALL_DAYS_SEGMENT_START = "20241001"         # Fecha inicial del segmento (solo si USE_ALL_DAYS_AVAILABLE=False)
-ALL_DAYS_SEGMENT_END = "20251031"           # Fecha final del segmento (solo si USE_ALL_DAYS_AVAILABLE=False)
+USE_ALL_DAYS_AVAILABLE = False              # True = procesar todos los días en data/, False = usar rango específico
+ALL_DAYS_SEGMENT_START = "20251001"         # Fecha inicial del segmento (solo si USE_ALL_DAYS_AVAILABLE=False)
+ALL_DAYS_SEGMENT_END = "20251212"           # Fecha final del segmento (solo si USE_ALL_DAYS_AVAILABLE=False)
 
 # ============================================================================
 # MAIN TRADING PARAMETERS VWAP MOMENTUM STRATEGY (Price Ejection - Green Dots)
 # ============================================================================
-ENABLE_VWAP_MOMENTUM_STRATEGY = True        # True = ejecutar estrategia, False = NO ejecutar
+ENABLE_VWAP_MOMENTUM_STRATEGY = False        # True = ejecutar estrategia, False = NO ejecutar
 VWAP_MOMENTUM_TP_POINTS = 125.0             # Take profit in points
-VWAP_MOMENTUM_SL_POINTS = 40.0            # Stop loss in points
+VWAP_MOMENTUM_SL_POINTS = 50.0            # Stop loss in points
 VWAP_MOMENTUM_MAX_POSITIONS = 1             # Maximum number of positions open simultaneously
 
 # ============================================================================
@@ -43,7 +43,7 @@ VWAP_MOMENTUM_ALLOWED_HOURS = [0, 1, 3, 4, 6, 10, 12, 13, 16, 17, 18]  # Best ho
 # FILTROS DE ENTRADA A FAVOR TENDENCIA VWAP MOMENTUM STRATEGY
 # ============================================================================
 # Trade only with the trend defined by VWAP FAST vs VWAP SLOW
-USE_VWAP_SLOW_TREND_FILTER = False          # True = only trade with trend, False = ignore trend
+USE_VWAP_SLOW_TREND_FILTER = True          # True = only trade with trend, False = ignore trend
 # When enabled:
 #   - LONG (BUY): only if VWAP_FAST > VWAP_SLOW (uptrend)
 #   - SHORT (SELL): only if VWAP_FAST < VWAP_SLOW (downtrend)
@@ -62,8 +62,8 @@ USE_VWAP_SLOPE_INDICATOR_STOP_LOSS = False   # True = cerrar posición cuando VW
 # FILTRO DE SALIDA POR TIEMPO VWAP MOMENTUM STRATEGY
 # ===========================================================================
 # mantenimiento de operación abierta mientras sigan apareciendo puntos verdes
-USE_KEEP_PUSHING_GREEN_DOTS = True               # True = mantener operacion abierta mientras sigan apareciendo puntos verdes, False = no usar este filtro
-TIME_OUT_AFTER_LAST_GREEN_DOT_MINUTES = 30       # Minutos para cerrar la operación después del último punto verde (si no hay nuevos puntos verdes)
+USE_KEEP_PUSHING_GREEN_DOTS = False               # True = mantener operacion abierta mientras sigan apareciendo puntos verdes, False = no usar este filtro
+TIME_OUT_AFTER_LAST_GREEN_DOT_MINUTES = 45       # Minutos para cerrar la operación después del último punto verde (si no hay nuevos puntos verdes)
 KEEP_POSITION_OPEN_IF_MARKET_PRICE_OVER_LAST_DOT = True # True = keep position open if market price is over last green dot, False = no special handling
 
 # IMPORTANT: When USE_TIME_IN_MARKET = True:
@@ -92,8 +92,13 @@ TP_IN_TIME_IN_MARKET = 100                           # Take profit in points (2:
 # Trailing Stop Loss Parameters (Break-Even)
 # When enabled, moves stop loss to break-even (or break-even + profit) after reaching trigger level
 USE_TRAIL_CASH = False                              # True = enable trailing stop to break-even, False = disabled
-TRAIL_CASH_TRIGGER_POINTS = 100                     # Trigger level in points - when profit reaches this, move SL to break-even
-TRAIL_CASH_BREAK_EVEN_POINTS_PROFIT = 0             # Points of profit to lock in when trailing (0 = break-even, 10 = entry + 10 points)
+TRAIL_CASH_TRIGGER_POINTS = 50                     # Trigger level in points - when profit reaches this, move SL to break-even
+TRAIL_CASH_BREAK_EVEN_POINTS_PROFIT = 25            # Points of profit to lock in when trailing (0 = break-even, 10 = entry + 10 points)
+
+# ATR Trailing Stop (Dynamic Volatility Based)
+USE_ATR_TRAILING_STOP = True                       # True = use ATR based trailing stop, False = disabled
+ATR_PERIOD = 21                                    # Period for ATR calculation
+ATR_MULTIPLIER = 5                               # Multiplier for ATR to determine stop distance
 
 # ============================================================================
 # TRADING PARAMETERS VWAP CROSSOVER STRATEGY
@@ -104,6 +109,52 @@ VWAP_CROSSOVER_SL_POINTS = 9.0              # Stop loss in points
 VWAP_CROSSOVER_MAX_POSITIONS = 1            # Maximum number of positions open simultaneously
 VWAP_CROSSOVER_START_HOUR = "16:30:00"      # Hora de inicio de trading
 VWAP_CROSSOVER_END_HOUR = "22:00:00"        # Hora de fin de trading
+
+# ============================================================================
+# TRADING PARAMETERS VWAP PULLBACK STRATEGY
+# ============================================================================
+ENABLE_VWAP_PULLBACK_STRATEGY = False          # True = ejecutar estrategia, False = NO ejecutar
+VWAP_PULLBACK_TP_POINTS = 125.0              # Take profit in points
+VWAP_PULLBACK_SL_POINTS = 40.0               # Stop loss in points
+VWAP_PULLBACK_MAX_POSITIONS = 1              # Maximum number of positions open simultaneously
+VWAP_PULLBACK_START_HOUR = "00:01:00"        # Hora de inicio de trading
+VWAP_PULLBACK_END_HOUR = "22:00:00"          # Hora de fin de trading
+
+# ============================================================================
+# TRADING PARAMETERS VWAP SQUARE STRATEGY (Rectangle Breakout)
+# ============================================================================
+ENABLE_VWAP_SQUARE_STRATEGY = False           # True = ejecutar estrategia, False = NO ejecutar
+VWAP_SQUARE_TP_POINTS = 100.0                # Take profit in points
+VWAP_SQUARE_SL_POINTS = 60.0                 # Stop loss in points
+VWAP_SQUARE_MAX_POSITIONS = 1                # Maximum number of positions open simultaneously
+VWAP_SQUARE_START_HOUR = "00:01:00"          # Hora de inicio de trading
+VWAP_SQUARE_END_HOUR = "22:00:00"            # Hora de fin de trading
+SQUARE_TALL_NARROW_THRESHOLD = 5.5           # Threshold for aspect ratio: price_per_bar > threshold = tall&narrow (chartreuse), else = perfect square (red)
+VWAP_SQUARE_MIN_SPIKE = 50                   # Minimum rectangle height in points (y2-y1). 0 = take all. Filters out small noise rectangles       # Threshold for aspect ratio: price_per_bar > threshold = tall&narrow (chartreuse), else = perfect square (red)
+VWAP_SQUARE_LISTENING_TIME = 60              # Minutes to listen for breakout after square closes
+VWAP_SQUARE_SHIFT_POINTS = 0                 # Puntos adicionales de margen: BUY = MAX + shift, SELL = MIN - shift
+USE_SQUARE_VWAP_SLOW_TREND_FILTER = True     # True = solo opera a favor de la tendencia (VWAP Fast vs Slow)
+
+# ATR Trailing Stop for Square Strategy (Dynamic Volatility Based)
+USE_SQUARE_ATR_TRAILING_STOP = False          # True = use ATR based trailing stop, False = use fixed stop
+SQUARE_ATR_PERIOD = 21                       # Period for ATR calculation
+SQUARE_ATR_MULTIPLIER = 7                    # Multiplier for ATR to determine stop distance
+
+# Rectangle-Based Initial Stop Loss
+USE_OPOSITE_SIDE_OF_SQUARE_AS_STOP = True   # True = use opposite side of rectangle as initial stop, False = use fixed SL
+
+# Shake Out Strategy (Failed Breakout Reversal)
+USE_VWAP_SQUARE_SHAKE_OUT = True              # True = trade failed breakouts (shake outs), False = use normal breakout logic
+VWAP_SQUARE_SHAKE_OUT_RETRACEMENT_PCT = 38    # Shake Out Retracement Confirmation (only used when USE_VWAP_SQUARE_SHAKE_OUT = True)
+ # Percentage of rectangle height that must be retraced to confirm shake out
+# How it works (only in SHAKE OUT mode):
+# - GREEN rect: After breaking ABOVE y2, price must retrace down to: y2 - (rectangle_height * retracement_pct / 100)
+# - RED rect: After breaking BELOW y1, price must retrace up to: y1 + (rectangle_height * retracement_pct / 100)
+# Examples:
+#   100 = full retracement (must reach opposite side of rectangle)
+#   88 = 88% retracement from breakout level back towards rectangle
+#   125 = 125% retracement (must go 25% beyond the opposite side)
+# Retracement must occur within VWAP_SQUARE_LISTENING_TIME
 
 # ============================================================================
 # DIRECTORIOS DEL PROYECTO
@@ -138,13 +189,10 @@ TRIGGER_PERIODS = 2                      # Número de fractales consecutivos por
 # ============================================================================
 # PARÁMETROS DE INDICADORES TÉCNICOS
 # ============================================================================
-PLOT_VWAP = True                 # True = dibujar indicador VWAP en el gráfico
-SHOW_FAST_VWAP = True            # True = mostrar VWAP Fast (magenta)
-SHOW_SLOW_VWAP = True       # True = mostrar VWAP Slow (verde)
-VWAP_FAST = 50                   # Periodo para VWAP rápido (magenta)
-VWAP_SLOW = 200               # Periodo para VWAP lento (verde)
+VWAP_FAST = 100               # Periodo para VWAP rápido (magenta)
+VWAP_SLOW = 200                  # Periodo para VWAP lento (verde)
 
-PRICE_EJECTION_TRIGGER = 0.001          # Porcentaje mínimo de distancia entre precio y VWAP fast para trigger (0.001 = 0.1%)
+PRICE_EJECTION_TRIGGER = 0.001         # Porcentaje mínimo de distancia entre precio y VWAP fast para trigger (0.001 = 0.1%)
 OVER_PRICE_EJECTION_TRIGGER = 0.003     # Porcentaje para trigger de sobre-alejamiento (puntos rojos) (0.005 = 0.5%)
 
 VWAP_SLOPE_DEGREE_WINDOW = 10                 # Window (in bars) to calculate VWAP slope at entry/exit
@@ -165,6 +213,15 @@ SHOW_REGRESSION_CHANNEL = False   # True = mostrar canal de regresión en el gr�
 
 SHOW_SUBPLOT_VWAP_SLOPE_INDICATOR = True      # True = mostrar subplot de VWAP Slope, False = ocultar subplot
 SHOW_VWAP_INDICATOR_CROSSOVER= True        # True = mostrar señales de cruce VWAP en el gráfico
+
+SHOW_ORANGE_DOT = False          # True = mostrar puntos naranjas (VWAP Slope crossover) en el gráfico de precio
+SHOW_BLUE_SQUARE = False         # True = mostrar cuadrados azules (VWAP Slope crossdown) en el gráfico de precio
+SHOW_GREEN_DOT = False           # True = mostrar puntos verdes (Price Ejection) en el gráfico de precio
+SHOW_RED_DOT = False             # True = mostrar puntos rojos (OVER Price Ejection) en el gráfico de precio
+
+PLOT_VWAP = True                 # True = dibujar indicador VWAP en el gráfico
+SHOW_FAST_VWAP = True            # True = mostrar VWAP Fast (magenta)
+SHOW_SLOW_VWAP = True            # True = mostrar VWAP Slow (verde)
 
 # ============================================================================
 # ITERATION PARAMETERS

@@ -22,11 +22,48 @@ def get_config_value(config, name, default="N/A"):
 def generate_dashboard_html(config):
     """Genera el HTML del dashboard con valores actuales"""
 
-    # Extraer valores del config
+    # ===== EXTRACT ALL CONFIG VALUES =====
+
+    # GENERAL
+    point_value = get_config_value(config, 'POINT_VALUE', 20.0)
+    vwap_fast = get_config_value(config, 'VWAP_FAST', 100)
+    vwap_slow = get_config_value(config, 'VWAP_SLOW', 200)
+
+    # VWAP MOMENTUM STRATEGY
     enable_vwap_momentum = get_config_value(config, 'ENABLE_VWAP_MOMENTUM_STRATEGY', False)
     use_time_in_market = get_config_value(config, 'USE_TIME_IN_MARKET', False)
     use_json_optimization = get_config_value(config, 'USE_TIME_IN_MARKET_JSON_OPTIMIZATION_FILE', False)
     use_max_sl = get_config_value(config, 'USE_MAX_SL_ALLOWED_IN_TIME_IN_MARKET', False)
+
+    # VWAP CROSSOVER STRATEGY
+    enable_vwap_crossover = get_config_value(config, 'ENABLE_VWAP_CROSSOVER_STRATEGY', False)
+    crossover_tp = get_config_value(config, 'VWAP_CROSSOVER_TP_POINTS', 5.0)
+    crossover_sl = get_config_value(config, 'VWAP_CROSSOVER_SL_POINTS', 9.0)
+    crossover_start = get_config_value(config, 'VWAP_CROSSOVER_START_HOUR', '16:30:00')
+    crossover_end = get_config_value(config, 'VWAP_CROSSOVER_END_HOUR', '22:00:00')
+
+    # VWAP PULLBACK STRATEGY
+    enable_vwap_pullback = get_config_value(config, 'ENABLE_VWAP_PULLBACK_STRATEGY', False)
+    pullback_tp = get_config_value(config, 'VWAP_PULLBACK_TP_POINTS', 125.0)
+    pullback_sl = get_config_value(config, 'VWAP_PULLBACK_SL_POINTS', 40.0)
+    pullback_start = get_config_value(config, 'VWAP_PULLBACK_START_HOUR', '00:01:00')
+    pullback_end = get_config_value(config, 'VWAP_PULLBACK_END_HOUR', '22:00:00')
+
+    # VWAP SQUARE STRATEGY
+    enable_vwap_square = get_config_value(config, 'ENABLE_VWAP_SQUARE_STRATEGY', False)
+    square_tp = get_config_value(config, 'VWAP_SQUARE_TP_POINTS', 100.0)
+    square_sl = get_config_value(config, 'VWAP_SQUARE_SL_POINTS', 60.0)
+    square_start = get_config_value(config, 'VWAP_SQUARE_START_HOUR', '00:01:00')
+    square_end = get_config_value(config, 'VWAP_SQUARE_END_HOUR', '22:00:00')
+    square_listening_time = get_config_value(config, 'VWAP_SQUARE_LISTENING_TIME', 60)
+    square_min_spike = get_config_value(config, 'VWAP_SQUARE_MIN_SPIKE', 50)
+    use_square_trend_filter = get_config_value(config, 'USE_SQUARE_VWAP_SLOW_TREND_FILTER', False)
+    use_square_atr_trailing = get_config_value(config, 'USE_SQUARE_ATR_TRAILING_STOP', False)
+    square_atr_period = get_config_value(config, 'SQUARE_ATR_PERIOD', 21)
+    square_atr_mult = get_config_value(config, 'SQUARE_ATR_MULTIPLIER', 7)
+    use_opposite_side_stop = get_config_value(config, 'USE_OPOSITE_SIDE_OF_SQUARE_AS_STOP', False)
+    use_shake_out = get_config_value(config, 'USE_VWAP_SQUARE_SHAKE_OUT', False)
+    shake_out_retrace_pct = get_config_value(config, 'VWAP_SQUARE_SHAKE_OUT_RETRACEMENT_PCT', 100)
 
     time_in_market_minutes = get_config_value(config, 'TIME_IN_MARKET_MINUTES', 180)
     use_tp_in_time = get_config_value(config, 'USE_TP_ALLOWED_IN_TIME_IN_MARKET', True)
@@ -671,6 +708,100 @@ def generate_dashboard_html(config):
                 <tr>
                     <td>POINT_VALUE</td>
                     <td><span class="param-value">${point_value:.0f} por punto</span> - Valor contractual NQ Futures</td>
+                </tr>
+            </table>
+        </div>
+
+        <!-- VWAP CROSSOVER STRATEGY -->
+        <div class="section">
+            <div class="section-header">
+                <span class="section-icon">🔄</span>
+                <h2>VWAP Crossover Strategy</h2>
+            </div>
+            <table class="params-table">
+                <tr>
+                    <td>ENABLE_VWAP_CROSSOVER_STRATEGY</td>
+                    <td><span class="param-value {'true' if enable_vwap_crossover else 'false'}">{str(enable_vwap_crossover)}</span> - {"Estrategia ACTIVA" if enable_vwap_crossover else "Estrategia DESHABILITADA"}</td>
+                </tr>
+                <tr>
+                    <td>TP / SL</td>
+                    <td><span class="param-value">{crossover_tp} / {crossover_sl} pts</span> - (${crossover_tp * point_value:,.0f} / ${crossover_sl * point_value:,.0f})</td>
+                </tr>
+                <tr>
+                    <td>Trading Hours</td>
+                    <td><span class="param-value">{crossover_start} - {crossover_end}</span></td>
+                </tr>
+            </table>
+        </div>
+
+        <!-- VWAP PULLBACK STRATEGY -->
+        <div class="section">
+            <div class="section-header">
+                <span class="section-icon">↩️</span>
+                <h2>VWAP Pullback Strategy</h2>
+            </div>
+            <table class="params-table">
+                <tr>
+                    <td>ENABLE_VWAP_PULLBACK_STRATEGY</td>
+                    <td><span class="param-value {'true' if enable_vwap_pullback else 'false'}">{str(enable_vwap_pullback)}</span> - {"Estrategia ACTIVA" if enable_vwap_pullback else "Estrategia DESHABILITADA"}</td>
+                </tr>
+                <tr>
+                    <td>TP / SL</td>
+                    <td><span class="param-value">{pullback_tp} / {pullback_sl} pts</span> - (${pullback_tp * point_value:,.0f} / ${pullback_sl * point_value:,.0f})</td>
+                </tr>
+                <tr>
+                    <td>Trading Hours</td>
+                    <td><span class="param-value">{pullback_start} - {pullback_end}</span></td>
+                </tr>
+            </table>
+        </div>
+
+        <!-- VWAP SQUARE STRATEGY -->
+        <div class="section">
+            <div class="section-header">
+                <span class="section-icon">🟥</span>
+                <h2>VWAP Square Strategy (Rectangle Breakout)</h2>
+            </div>
+            <table class="params-table">
+                <tr>
+                    <td>ENABLE_VWAP_SQUARE_STRATEGY</td>
+                    <td><span class="param-value {'true' if enable_vwap_square else 'false'}">{str(enable_vwap_square)}</span> - {"Estrategia ACTIVA" if enable_vwap_square else "Estrategia DESHABILITADA"}</td>
+                </tr>
+                <tr>
+                    <td>TP / SL</td>
+                    <td><span class="param-value">{square_tp} / {square_sl} pts</span> - (${square_tp * point_value:,.0f} / ${square_sl * point_value:,.0f})</td>
+                </tr>
+                <tr>
+                    <td>Trading Hours</td>
+                    <td><span class="param-value">{square_start} - {square_end}</span></td>
+                </tr>
+                <tr>
+                    <td>VWAP_SQUARE_LISTENING_TIME</td>
+                    <td><span class="param-value">{square_listening_time} min</span> - Ventana de escucha después del cierre del rectángulo</td>
+                </tr>
+                <tr>
+                    <td>VWAP_SQUARE_MIN_SPIKE</td>
+                    <td><span class="param-value">{square_min_spike} pts</span> - Altura mínima del rectángulo (filtra ruido pequeño)</td>
+                </tr>
+                <tr>
+                    <td>USE_SQUARE_VWAP_SLOW_TREND_FILTER</td>
+                    <td><span class="param-value {'true' if use_square_trend_filter else 'false'}">{str(use_square_trend_filter)}</span> - {"Opera solo a favor de tendencia VWAP" if use_square_trend_filter else "Opera en ambas direcciones"}</td>
+                </tr>
+                <tr>
+                    <td>USE_SQUARE_ATR_TRAILING_STOP</td>
+                    <td><span class="param-value {'true' if use_square_atr_trailing else 'false'}">{str(use_square_atr_trailing)}</span> - {"ATR Trailing activo (Period={square_atr_period}, Mult={square_atr_mult}x)" if use_square_atr_trailing else "SL fijo"}</td>
+                </tr>
+                <tr>
+                    <td>USE_OPOSITE_SIDE_OF_SQUARE_AS_STOP</td>
+                    <td><span class="param-value {'true' if use_opposite_side_stop else 'false'}">{str(use_opposite_side_stop)}</span> - {"SL en lado opuesto del rectángulo" if use_opposite_side_stop else "SL fijo en puntos"}</td>
+                </tr>
+                <tr>
+                    <td>USE_VWAP_SQUARE_SHAKE_OUT</td>
+                    <td><span class="param-value {'true' if use_shake_out else 'false'}">{str(use_shake_out)}</span> - {"Shake Out mode: trade failed breakouts" if use_shake_out else "Normal breakout mode"}</td>
+                </tr>
+                <tr style="{'opacity: 1;' if use_shake_out else 'opacity: 0.6;'}">
+                    <td>VWAP_SQUARE_SHAKE_OUT_RETRACEMENT_PCT</td>
+                    <td><span class="param-value {'inactive' if not use_shake_out else ''}">{shake_out_retrace_pct}%</span> - {("Requiere retroceso del " + str(shake_out_retrace_pct) + "% para confirmar shake out" if use_shake_out else "No se usa (shake out deshabilitado)")}</td>
                 </tr>
             </table>
         </div>
