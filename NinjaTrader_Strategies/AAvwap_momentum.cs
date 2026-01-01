@@ -67,7 +67,7 @@ namespace NinjaTrader.NinjaScript.Strategies
 				VwapFastPeriod		= 100;		// VWAP_FAST
 				VwapSlowPeriod		= 200;		// VWAP_SLOW
 				TakeProfitPoints	= 125;		// VWAP_MOMENTUM_TP_POINTS
-				StopLossPoints		= 60;		// VWAP_MOMENTUM_SL_POINTS
+				StopLossPoints		= 75;		// VWAP_MOMENTUM_SL_POINTS (UPDATED TO MATCH CURRENT CONFIG)
 				PriceEjectionTrigger = 0.001;	// PRICE_EJECTION_TRIGGER (0.1%)
 				UseTrendFilter		= true;		// USE_VWAP_SLOW_TREND_FILTER
 				AllowLong			= true;		// VWAP_MOMENTUM_LONG_ALLOWED

@@ -19,12 +19,19 @@ sys.path.insert(0, str(Path(__file__).parent.parent))
 from config import (
     DATA_DIR, OUTPUTS_DIR,
     ENABLE_VWAP_MOMENTUM_STRATEGY, ENABLE_VWAP_SQUARE_STRATEGY,
+    ENABLE_VWAP_CROSSOVER_STRATEGY, ENABLE_VWAP_PULLBACK_STRATEGY,
     USE_ALL_DAYS_AVAILABLE, ALL_DAYS_SEGMENT_START, ALL_DAYS_SEGMENT_END,
     SHOW_CHART_DURING_ITERATION,
     VWAP_MOMENTUM_STRAT_START_HOUR, VWAP_MOMENTUM_STRAT_END_HOUR,
     VWAP_MOMENTUM_TP_POINTS, VWAP_MOMENTUM_SL_POINTS,
     VWAP_SQUARE_START_HOUR, VWAP_SQUARE_END_HOUR,
-    VWAP_SQUARE_TP_POINTS, VWAP_SQUARE_SL_POINTS
+    VWAP_SQUARE_TP_POINTS, VWAP_SQUARE_SL_POINTS,
+    # Filter configurations
+    USE_VWAP_SLOW_TREND_FILTER,
+    USE_TRAIL_CASH, USE_ATR_TRAILING_STOP,
+    USE_TIME_IN_MARKET, USE_KEEP_PUSHING_GREEN_DOTS,
+    USE_VWAP_SLOPE_INDICATOR_STOP_LOSS,
+    USE_SELECTED_ALLOWED_HOURS
 )
 from show_config_dashboard import update_dashboard
 
@@ -115,14 +122,17 @@ for i, date_str in enumerate(available_dates, 1):
         import sys
 
         # Check if at least one strategy is enabled
-        if not ENABLE_VWAP_MOMENTUM_STRATEGY and not ENABLE_VWAP_SQUARE_STRATEGY:
-            print(f"[INFO] Both strategies disabled, no trades to collect")
+        if not (ENABLE_VWAP_MOMENTUM_STRATEGY or ENABLE_VWAP_SQUARE_STRATEGY or
+                ENABLE_VWAP_CROSSOVER_STRATEGY or ENABLE_VWAP_PULLBACK_STRATEGY):
+            print(f"[INFO] All strategies disabled, no trades to collect")
             continue
 
         # Prepare the script paths
         project_root = Path(__file__).parent.parent
         momentum_script = project_root / "strat_vwap_momentum.py"
         square_script = project_root / "strat_vwap_square.py"
+        crossover_script = project_root / "strat_vwap_crossover.py"
+        pullback_script = project_root / "strat_vwap_pullback.py"
 
         # Temporarily modify config.py to set the date
         config_file = project_root / "config.py"
@@ -224,7 +234,73 @@ for i, date_str in enumerate(available_dates, 1):
                 else:
                     print(f"[ERROR] Square strategy file not found: {square_script}")
 
-            # Generate chart if enabled (after both strategies)
+            # Execute VWAP Crossover Strategy if enabled
+            if ENABLE_VWAP_CROSSOVER_STRATEGY:
+                if crossover_script.exists():
+                    print(f"[INFO] Executing VWAP Crossover strategy...")
+                    result = subprocess.run(
+                        [sys.executable, str(crossover_script)],
+                        capture_output=True,
+                        text=True,
+                        cwd=str(project_root)
+                    )
+
+                    if result.returncode == 0:
+                        print(f"[OK] VWAP Crossover executed for {date_str}")
+
+                        # Load the tracking record CSV for this date
+                        csv_file = trading_dir / f"tracking_record_vwap_crossover_{date_str}.csv"
+
+                        if csv_file.exists():
+                            df_day = pd.read_csv(csv_file, sep=';', decimal=',')
+                            if len(df_day) > 0:
+                                print(f"[OK] Collected {len(df_day)} Crossover trades from {date_str}")
+                                all_trades.append(df_day)
+                            else:
+                                print(f"[INFO] No Crossover trades generated for {date_str}")
+                        else:
+                            print(f"[INFO] No Crossover tracking record found for {date_str}")
+                    else:
+                        print(f"[WARN] VWAP Crossover returned code {result.returncode} for {date_str}")
+                        if result.stderr:
+                            print(f"[ERROR] {result.stderr[:200]}")
+                else:
+                    print(f"[ERROR] Crossover strategy file not found: {crossover_script}")
+
+            # Execute VWAP Pullback Strategy if enabled
+            if ENABLE_VWAP_PULLBACK_STRATEGY:
+                if pullback_script.exists():
+                    print(f"[INFO] Executing VWAP Pullback strategy...")
+                    result = subprocess.run(
+                        [sys.executable, str(pullback_script)],
+                        capture_output=True,
+                        text=True,
+                        cwd=str(project_root)
+                    )
+
+                    if result.returncode == 0:
+                        print(f"[OK] VWAP Pullback executed for {date_str}")
+
+                        # Load the tracking record CSV for this date
+                        csv_file = trading_dir / f"tracking_record_vwap_pullback_{date_str}.csv"
+
+                        if csv_file.exists():
+                            df_day = pd.read_csv(csv_file, sep=';', decimal=',')
+                            if len(df_day) > 0:
+                                print(f"[OK] Collected {len(df_day)} Pullback trades from {date_str}")
+                                all_trades.append(df_day)
+                            else:
+                                print(f"[INFO] No Pullback trades generated for {date_str}")
+                        else:
+                            print(f"[INFO] No Pullback tracking record found for {date_str}")
+                    else:
+                        print(f"[WARN] VWAP Pullback returned code {result.returncode} for {date_str}")
+                        if result.stderr:
+                            print(f"[ERROR] {result.stderr[:200]}")
+                else:
+                    print(f"[ERROR] Pullback strategy file not found: {pullback_script}")
+
+            # Generate chart if enabled (after all strategies)
             if SHOW_CHART_DURING_ITERATION:
                 plot_script = project_root / "plot_day.py"
                 if plot_script.exists():
@@ -341,6 +417,12 @@ avg_winner = profit_trades['pnl_usd'].mean() if len(profit_trades) > 0 else 0.0
 avg_loser = stop_trades['pnl_usd'].mean() if len(stop_trades) > 0 else 0.0
 largest_winner = profit_trades['pnl_usd'].max() if len(profit_trades) > 0 else 0.0
 largest_loser = stop_trades['pnl_usd'].min() if len(stop_trades) > 0 else 0.0
+
+# Profit Factor: Gross Profit / Abs(Gross Loss)
+if gross_loss < 0:
+    profit_factor = gross_profit / abs(gross_loss)
+else:
+    profit_factor = 0.0
 
 # Calculate avg ratio
 avg_ratio = avg_winner / abs(avg_loser) if avg_loser != 0 else 0
@@ -773,6 +855,7 @@ html_content = f"""<!DOCTYPE html>
             <p>Winners / Losers: <span class="value">{profit_count} / {stop_count} (Ratio: {ratio_str})</span></p>
             <p>Gross Profit: <span class="value">${gross_profit:,.2f}</span></p>
             <p>Gross Loss: <span class="value">${gross_loss:,.2f}</span></p>
+            <p>Profit Factor: <span class="value">{profit_factor:.2f}</span></p>
             <p>Avg Winner: <span class="value">${avg_winner:,.2f}</span></p>
             <p>Avg Loser: <span class="value">${avg_loser:,.2f}</span></p>
             <p>Avg Winner / Avg Loser: <span class="value">(Ratio: {avg_ratio_str})</span></p>
@@ -792,6 +875,26 @@ html_content = f"""<!DOCTYPE html>
             <p>Sharpe Ratio: <span class="value">{sharpe_global:.2f}</span></p>
             <p>Sortino Ratio: <span class="value">{sortino_global:.2f}</span></p>
             <p>Ulcer Index: <span class="value">{ulcer_global:.1f}%</span></p>
+        </div>
+
+        <h2>Configuration Summary</h2>
+        <div class="win-loss">
+            <p><strong>Entry Filters:</strong></p>
+            <p>Trend Filter (VWAP Slow): <span class="value">{'ENABLED ✓' if USE_VWAP_SLOW_TREND_FILTER else 'DISABLED ✗'}</span></p>
+            <p>Selected Hours Only: <span class="value">{'ENABLED ✓' if USE_SELECTED_ALLOWED_HOURS else 'DISABLED ✗'}</span></p>
+
+            <p style="margin-top: 15px;"><strong>Exit Filters:</strong></p>
+            <p>Time in Market: <span class="value">{'ENABLED ✓' if USE_TIME_IN_MARKET else 'DISABLED ✗'}</span></p>
+            <p>Keep Pushing Green Dots: <span class="value">{'ENABLED ✓' if USE_KEEP_PUSHING_GREEN_DOTS else 'DISABLED ✗'}</span></p>
+            <p>VWAP Slope Indicator Stop: <span class="value">{'ENABLED ✓' if USE_VWAP_SLOPE_INDICATOR_STOP_LOSS else 'DISABLED ✗'}</span></p>
+
+            <p style="margin-top: 15px;"><strong>Trailing Stops:</strong></p>
+            <p>Break-Even Trailing (Cash): <span class="value">{'ENABLED ✓' if USE_TRAIL_CASH else 'DISABLED ✗'}</span></p>
+            <p>ATR Trailing Stop: <span class="value">{'ENABLED ✓' if USE_ATR_TRAILING_STOP else 'DISABLED ✗'}</span></p>
+
+            <p style="margin-top: 15px;"><strong>Strategy:</strong></p>
+            <p>Simple Green/Red Dot entries with Fixed TP/SL</p>
+            <p>TP: <span class="value">{VWAP_MOMENTUM_TP_POINTS} pts</span> | SL: <span class="value">{VWAP_MOMENTUM_SL_POINTS} pts</span></p>
         </div>
 
         <h2>Equity Curve</h2>
@@ -894,7 +997,33 @@ print("="*80)
 print(f"\nProcessed {len(available_dates)} dates from {first_date} to {last_date}")
 print(f"Total trades collected: {total_trades}")
 print(f"Win rate: {win_rate:.1f}%")
+print(f"Winners / Losers: {profit_count} / {stop_count}")
+print(f"Gross Profit: ${gross_profit:,.0f}")
+print(f"Gross Loss: ${gross_loss:,.0f}")
+print(f"Profit Factor: {profit_factor:.2f}")
 print(f"Total P&L: ${total_pnl_usd:,.0f}")
+
+# Configuration Summary
+print("\n" + "-"*80)
+print("CONFIGURATION SUMMARY - FILTERS & EXITS")
+print("-"*80)
+print("\nEntry Filters:")
+print(f"  • Trend Filter (VWAP Slow):        {'ENABLED ✓' if USE_VWAP_SLOW_TREND_FILTER else 'DISABLED ✗'}")
+print(f"  • Selected Hours Only:             {'ENABLED ✓' if USE_SELECTED_ALLOWED_HOURS else 'DISABLED ✗'}")
+
+print("\nExit Filters:")
+print(f"  • Time in Market:                  {'ENABLED ✓' if USE_TIME_IN_MARKET else 'DISABLED ✗'}")
+print(f"  • Keep Pushing Green Dots:         {'ENABLED ✓' if USE_KEEP_PUSHING_GREEN_DOTS else 'DISABLED ✗'}")
+print(f"  • VWAP Slope Indicator Stop:       {'ENABLED ✓' if USE_VWAP_SLOPE_INDICATOR_STOP_LOSS else 'DISABLED ✗'}")
+
+print("\nTrailing Stops:")
+print(f"  • Break-Even Trailing (Cash):      {'ENABLED ✓' if USE_TRAIL_CASH else 'DISABLED ✗'}")
+print(f"  • ATR Trailing Stop:               {'ENABLED ✓' if USE_ATR_TRAILING_STOP else 'DISABLED ✗'}")
+
+print("\nStrategy: Simple Green/Red Dot entries with Fixed TP/SL")
+print(f"TP: {VWAP_MOMENTUM_TP_POINTS} pts | SL: {VWAP_MOMENTUM_SL_POINTS} pts")
+print("-"*80)
+
 print(f"\nOutput files:")
 print(f"  - CSV: {consolidated_csv.name}")
 print(f"  - HTML: {html_file.name}")

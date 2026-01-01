@@ -957,6 +957,68 @@ def plot_range_chart(df, df_fractals_minor, df_fractals_major, start_date, end_d
                     print(f"[INFO] Square Trailing Stop line added: {total_points} points across {len(active_sl_segments)} trades")
         except Exception as e:
             print(f"[WARN] Failed to load/plot Square SL history: {e}")
+
+    # Momentum strategy SL history (violet solid line, only during active positions)
+    sl_history_path_momentum = OUTPUTS_DIR / "trading" / f"sl_history_vwap_momentum_{date_range_str_local}.csv"
+    trades_path_momentum = OUTPUTS_DIR / "trading" / f"tracking_record_vwap_momentum_{date_range_str_local}.csv"
+
+    if sl_history_path_momentum.exists() and trades_path_momentum.exists():
+        try:
+            print(f"[INFO] Loading Momentum SL history from {sl_history_path_momentum.name}")
+            df_sl_history_mom = pd.read_csv(sl_history_path_momentum, sep=';', decimal=',', parse_dates=['timestamp'])
+            df_trades_mom = pd.read_csv(trades_path_momentum, sep=';', decimal=',', parse_dates=['entry_time', 'exit_time'])
+
+            # Map timestamps to index
+            if not pd.api.types.is_datetime64_any_dtype(df_sl_history_mom['timestamp']):
+                df_sl_history_mom['timestamp'] = pd.to_datetime(df_sl_history_mom['timestamp'])
+
+            # Use same mapping function as for trades
+            if 'df' in locals() or 'df' in globals():
+                df_sl_history_mom['index'] = df_sl_history_mom['timestamp'].apply(_map_ts_to_index)
+                df_sl_valid_mom = df_sl_history_mom.dropna(subset=['index']).copy()
+
+                if not df_sl_valid_mom.empty:
+                    # Filter SL history to only show during active positions
+                    # For each trade, only show SL points between entry_time and exit_time
+                    active_sl_segments = []
+
+                    for _, trade in df_trades_mom.iterrows():
+                        entry_time = trade['entry_time']
+                        exit_time = trade['exit_time']
+
+                        # Filter SL history for this trade's active period
+                        trade_sl = df_sl_valid_mom[
+                            (df_sl_valid_mom['timestamp'] >= entry_time) &
+                            (df_sl_valid_mom['timestamp'] <= exit_time)
+                        ].copy()
+
+                        if not trade_sl.empty:
+                            active_sl_segments.append(trade_sl)
+
+                    # Draw each segment separately (one per trade)
+                    total_points = 0
+                    for segment in active_sl_segments:
+                        segment = segment.sort_values('index')
+
+                        trace_sl_line_mom = go.Scatter(
+                            x=segment['index'],
+                            y=segment['sl_price'],
+                            mode='lines',
+                            name='Trailing Stop (Momentum)',
+                            line=dict(
+                                color='violet',  # Violet dashed line for trailing stop
+                                width=1,
+                                dash='dash'  # Dashed line style
+                            ),
+                            showlegend=(total_points == 0),  # Only show legend for first segment
+                            hovertemplate='SL (Momentum): %{y:.2f}<br>%{x}<extra></extra>'
+                        )
+                        fig.add_trace(trace_sl_line_mom, row=price_row, col=1)
+                        total_points += len(segment)
+
+                    print(f"[INFO] Momentum Trailing Stop line added: {total_points} points across {len(active_sl_segments)} trades")
+        except Exception as e:
+            print(f"[WARN] Failed to load/plot Momentum SL history: {e}")
     # --- END TRAILING STOP PLOTTING ---
 
     # Añadir subplot de métricas - SEGUNDOS entre fractales
@@ -1094,7 +1156,7 @@ def plot_range_chart(df, df_fractals_minor, df_fractals_major, start_date, end_d
     elif show_slope_subplot or show_frequency_subplot:
         height = 900
     else:
-        height = 600
+        height = 800  # Increased from 600 to 800 for better visibility when no subplots
 
     fig.update_layout(
         title=title_text,
