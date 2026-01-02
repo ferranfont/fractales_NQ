@@ -7,7 +7,7 @@ from pathlib import Path
 # CONFIGURACIÓN DE FECHAS (single day analysis)
 # ============================================================================
 # Opción 1: Fecha única (descomentar para usar una sola fecha)
-DATE = "20251202"  # Fecha en formato YYYYMMDD
+DATE = "20251126"  # Fecha en formato YYYYMMDD
 START_DATE = DATE
 END_DATE = DATE
 
@@ -16,7 +16,7 @@ END_DATE = DATE
 # ============================================================================
 USE_ALL_DAYS_AVAILABLE = False              # True = procesar todos los días en data/, False = usar rango específico
 ALL_DAYS_SEGMENT_START = "20251001"         # Fecha inicial del segmento (solo si USE_ALL_DAYS_AVAILABLE=False)
-ALL_DAYS_SEGMENT_END = "20251212"           # Fecha final del segmento (solo si USE_ALL_DAYS_AVAILABLE=False)
+ALL_DAYS_SEGMENT_END = "20251219"           # Fecha final del segmento (solo si USE_ALL_DAYS_AVAILABLE=False)
 
 # ============================================================================
 # MAIN TRADING PARAMETERS VWAP MOMENTUM STRATEGY (Price Ejection - Green Dots)
@@ -51,6 +51,24 @@ USE_VWAP_SLOW_TREND_FILTER = True          # True = only trade with trend, False
 # Global direction filter, ilter which trade directions are allowed (BUY and/or SELL)
 VWAP_MOMENTUM_LONG_ALLOWED = True         # True = allow BUY trades, False = disable BUY
 VWAP_MOMENTUM_SHORT_ALLOWED = True          # True = allow SELL trades, False = disable SELL
+
+
+# ============================================================================
+# VWAP MOMENTUM STRATEGY GRID
+# ===========================================================================
+# Entry Grid Strategy (Multiple entries at different price levels)
+USE_ENTRY_GRID = False                     # True = enable grid entry system, False = single entry only
+GRID_STEP = 60                             # Distance between grid levels in points
+NUMBER_OF_GRID_STEPS = 1                    # Number of additional limit orders to place
+# Grid Logic:
+#   - BUY: Places limit orders at entry_price - (GRID_STEP × 1), entry_price - (GRID_STEP × 2)
+#   - SELL: Places limit orders at entry_price + (GRID_STEP × 1), entry_price + (GRID_STEP × 2)
+#   - Grid orders do NOT count toward VWAP_MOMENTUM_MAX_POSITIONS
+#   - All grid entries share the SAME stop loss level as main position (not calculated from grid fill price)
+#   - Each grid entry has its own TP calculated from its fill price
+# Example (BUY): Main entry 25000 → SL 24925 (25000-75)
+#                Grid 1 fills at 24970 → SL 24925 (SAME as main), TP 25095 (24970+125)
+#                Grid 2 fills at 24940 → SL 24925 (SAME as main), TP 25065 (24940+125)
 
 # ============================================================================
 # FILTROS DE SALIDA VWAP MOMENTUM STRATEGY

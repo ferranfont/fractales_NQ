@@ -31,7 +31,9 @@ from config import (
     USE_TRAIL_CASH, USE_ATR_TRAILING_STOP,
     USE_TIME_IN_MARKET, USE_KEEP_PUSHING_GREEN_DOTS,
     USE_VWAP_SLOPE_INDICATOR_STOP_LOSS,
-    USE_SELECTED_ALLOWED_HOURS
+    USE_SELECTED_ALLOWED_HOURS,
+    # Grid Entry System
+    USE_ENTRY_GRID, GRID_STEP, NUMBER_OF_GRID_STEPS
 )
 from show_config_dashboard import update_dashboard
 
@@ -428,6 +430,13 @@ else:
 avg_ratio = avg_winner / abs(avg_loser) if avg_loser != 0 else 0
 avg_ratio_str = f"1:{avg_ratio:.1f}" if avg_loser != 0 else "N/A"
 
+# Recovery Index: How many wins needed to recover from one loss
+# Formula: Avg Loss / Avg Win = Number of wins needed to break even after 1 loss
+if avg_winner > 0:
+    recovery_index = abs(avg_loser) / avg_winner
+else:
+    recovery_index = 0.0
+
 # Calculate GLOBAL risk metrics
 import numpy as np
 
@@ -469,6 +478,7 @@ print(f"Total P&L: {total_pnl:+.0f} points (${total_pnl_usd:,.0f})")
 print(f"Average per trade: ${avg_pnl_usd:+.2f}")
 print(f"BUY trades: {len(buy_trades)} (${buy_pnl_usd:,.0f})")
 print(f"SELL trades: {len(sell_trades)} (${sell_pnl_usd:,.0f})")
+print(f"Recovery Index: {recovery_index:.2f} wins needed to recover from 1 loss (lower is better)")
 
 # ============================================================================
 # GENERATE CHARTS FOR HTML SUMMARY
@@ -827,6 +837,7 @@ html_content = f"""<!DOCTYPE html>
         <p><strong>Strategies Enabled:</strong> {'VWAP Momentum' if ENABLE_VWAP_MOMENTUM_STRATEGY else ''}{' + ' if ENABLE_VWAP_MOMENTUM_STRATEGY and ENABLE_VWAP_SQUARE_STRATEGY else ''}{'VWAP Square' if ENABLE_VWAP_SQUARE_STRATEGY else ''}</p>
         <p><strong>Trading Hours (Momentum):</strong> {VWAP_MOMENTUM_STRAT_START_HOUR} to {VWAP_MOMENTUM_STRAT_END_HOUR} | <strong>TP/SL:</strong> {VWAP_MOMENTUM_TP_POINTS:.0f}/{VWAP_MOMENTUM_SL_POINTS:.0f} pts</p>
         <p><strong>Trading Hours (Square):</strong> {VWAP_SQUARE_START_HOUR} to {VWAP_SQUARE_END_HOUR} | <strong>TP/SL:</strong> {VWAP_SQUARE_TP_POINTS:.0f}/{VWAP_SQUARE_SL_POINTS:.0f} pts</p>
+        {'<p style="background: #fff3cd; padding: 8px; border-radius: 4px; display: inline-block;"><strong>🔢 Grid Entry:</strong> ENABLED - ' + str(NUMBER_OF_GRID_STEPS) + ' steps @ ' + str(GRID_STEP) + 'pts | All positions share SAME SL level</p>' if USE_ENTRY_GRID else '<p><strong>🔢 Grid Entry:</strong> DISABLED</p>'}
         <p><strong>Total Days Processed:</strong> {len(available_dates)}</p>
         <p><strong>Generated:</strong> {datetime.now().strftime("%Y-%m-%d %H:%M:%S")}</p>
 
@@ -875,6 +886,7 @@ html_content = f"""<!DOCTYPE html>
             <p>Sharpe Ratio: <span class="value">{sharpe_global:.2f}</span></p>
             <p>Sortino Ratio: <span class="value">{sortino_global:.2f}</span></p>
             <p>Ulcer Index: <span class="value">{ulcer_global:.1f}%</span></p>
+            <p>Recovery Index: <span class="value">{recovery_index:.2f} wins needed per loss</span> <span style="font-size: 0.9em; color: #666;">(Lower is better)</span></p>
         </div>
 
         <h2>Configuration Summary</h2>
