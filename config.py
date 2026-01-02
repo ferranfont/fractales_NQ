@@ -7,7 +7,7 @@ from pathlib import Path
 # CONFIGURACIÓN DE FECHAS (single day analysis)
 # ============================================================================
 # Opción 1: Fecha única (descomentar para usar una sola fecha)
-DATE = "20251126"  # Fecha en formato YYYYMMDD
+DATE = "20251215"  # Fecha en formato YYYYMMDD
 START_DATE = DATE
 END_DATE = DATE
 
@@ -36,8 +36,8 @@ VWAP_MOMENTUM_STRAT_END_HOUR = "22:59:59"   # Hora de fin de trading
 # These filters work together (both must pass):
 # 1. Generic time range filter: START_HOUR to END_HOUR (always active)
 # 2. Specific hours filter: ALLOWED_HOURS (only if USE_SELECTED_ALLOWED_HOURS = True)
-USE_SELECTED_ALLOWED_HOURS = False          # True = only trade in specific hours from list below, False = trade in any hour within START/END range
-VWAP_MOMENTUM_ALLOWED_HOURS = [0, 1, 3, 4, 6, 10, 12, 13, 16, 17, 18]  # Best hours from backtesting (Expected: Sortino 0.11 -> 0.95) - Only used if USE_SELECTED_ALLOWED_HOURS = True
+USE_SELECTED_ALLOWED_HOURS = True          # True = only trade in specific hours from list below, False = trade in any hour within START/END range
+VWAP_MOMENTUM_ALLOWED_HOURS = [0, 4, 5, 6, 7, 8, 10, 12, 13, 15, 16, 17, 18, 19, 21, 22]  # Optimized: Removed toxic hours (1, 2, 3, 9, 11, 14, 20)
 
 # ============================================================================
 # FILTROS DE ENTRADA A FAVOR TENDENCIA VWAP MOMENTUM STRATEGY

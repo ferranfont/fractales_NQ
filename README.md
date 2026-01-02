@@ -32,8 +32,9 @@ factales_NQ/
 ├── iterate/
 │   └── iterate_all_days.py        # Procesamiento multi-día con consolidación
 ├── utils/
-│   ├── segregate_by_date.py       # Segregar CSV por fechas
-│   └── normalize_csv_columns.py   # Normalizar columnas a minúsculas
+│   ├── segregate_by_date.py       # Segregar CSV por fechas (normaliza automáticamente)
+│   ├── normaliza_columns_csv.py   # Módulo de normalización compartido
+│   └── normalize_csv_columns.py   # Herramienta legacy de normalización batch
 ├── data/                          # Datos tick-by-tick por día
 │   └── time_and_sales_nq_YYYYMMDD.csv
 └── outputs/
@@ -181,9 +182,22 @@ Los archivos deben estar en formato europeo con estas columnas (minúsculas):
 - Separador: `;` (punto y coma)
 - Decimal: `,` (coma)
 
-### Normalizar Columnas
+### Segregar por Fecha y Normalizar
 
-Si tus archivos usan mayúsculas (Timestamp, Precio, Volumen):
+Si tienes un CSV grande con múltiples días, este script lo segregará por fecha **y normalizará automáticamente las columnas**:
+
+```bash
+python utils/segregate_by_date.py
+```
+
+Funciones:
+- Separa un CSV multi-día en archivos individuales: `time_and_sales_nq_YYYYMMDD.csv`
+- Normaliza automáticamente las columnas usando el módulo `normaliza_columns_csv.py`
+- Soporta múltiples variaciones de nombres: Timestamp/Date → timestamp, Precio/Price → precio, etc.
+
+### Normalizar Columnas (Legacy)
+
+Para normalizar archivos existentes sin segregar:
 
 ```bash
 # Modo dry-run (solo muestra cambios)
@@ -193,15 +207,7 @@ python utils/normalize_csv_columns.py
 python utils/normalize_csv_columns.py --apply
 ```
 
-### Segregar por Fecha
-
-Si tienes un CSV grande con múltiples días:
-
-```bash
-python utils/segregate_by_date.py
-```
-
-Creará archivos individuales: `time_and_sales_nq_YYYYMMDD.csv`
+**Nota**: Este script es para normalización batch de archivos existentes. Para nuevos datos, usa `segregate_by_date.py` que normaliza automáticamente.
 
 ## Salidas
 
@@ -292,8 +298,9 @@ Los datos tick-by-tick se convierten automáticamente a barras OHLC de 1 minuto:
 
 ### Compatibilidad
 
-- Soporta tanto formato antiguo (Timestamp, Precio, Volumen) como nuevo (timestamp, precio, volume)
-- Normalización automática a minúsculas en todas las operaciones
+- Soporta múltiples formatos de columnas (uppercase/lowercase, español/inglés)
+- Normalización automática mediante módulo compartido `normaliza_columns_csv.py`
+- El script `segregate_by_date.py` normaliza automáticamente durante la segregación
 - Compatible con Windows/Linux/Mac
 
 ## Troubleshooting
@@ -305,7 +312,12 @@ Verifica que los archivos CSV estén en `data/` con el formato:
 
 ### Error: Column name mismatch
 
-Ejecuta el normalizador:
+**Opción 1 (Recomendada)**: Si segregas un CSV grande, la normalización es automática:
+```bash
+python utils/segregate_by_date.py
+```
+
+**Opción 2**: Para normalizar archivos existentes:
 ```bash
 python utils/normalize_csv_columns.py --apply
 ```
