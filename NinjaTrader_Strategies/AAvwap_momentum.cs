@@ -38,6 +38,11 @@ namespace NinjaTrader.NinjaScript.Strategies
 
 		// Position tracking
 		private double entryPrice = 0;
+		private double mainPositionStopLoss = 0; // SL level shared by all grid positions
+
+		// Grid tracking
+		private List<string> gridOrderNames = new List<string>();
+		private int gridOrderCounter = 0;
 		#endregion
 
 		protected override void OnStateChange()
@@ -78,6 +83,16 @@ namespace NinjaTrader.NinjaScript.Strategies
 				StartMinute			= 0;
 				EndHour				= 22;
 				EndMinute			= 59;
+
+				// Grid Entry System
+				UseGridEntry		= false;	// USE_ENTRY_GRID
+				GridStepPoints		= 60;		// GRID_STEP (distance between grid levels in points)
+				NumberOfGridSteps	= 1;		// NUMBER_OF_GRID_STEPS (number of additional limit orders)
+
+				// Close All Trades at Specific Time
+				UseCloseAllAtTime	= false;	// Enable auto-close at specific time
+				CloseAllHour		= 22;		// Hour to close all positions (0-23)
+				CloseAllMinute		= 0;		// Minute to close all positions (0-59)
 			}
 			else if (State == State.Configure)
 			{
@@ -103,6 +118,13 @@ namespace NinjaTrader.NinjaScript.Strategies
 			// Need enough bars for VWAP calculation
 			if (CurrentBar < Math.Max(VwapFastPeriod, VwapSlowPeriod))
 				return;
+
+			// Check if we need to close all positions at specific time
+			if (UseCloseAllAtTime && ShouldCloseAllPositions())
+			{
+				CloseAllPositions("Time_Close");
+				return;
+			}
 
 			// Check if we're within trading hours
 			if (!IsWithinTradingHours())
@@ -161,8 +183,14 @@ namespace NinjaTrader.NinjaScript.Strategies
 							return; // Skip entry if not in uptrend
 					}
 
-					// Enter LONG
+					// Enter LONG (main position)
 					EnterLong(1, "Green_Dot_Long");
+
+					// Place Grid Limit Orders if enabled
+					if (UseGridEntry && NumberOfGridSteps > 0)
+					{
+						PlaceGridOrders(true, currentPrice); // true = LONG
+					}
 				}
 
 				// SHORT ENTRY (Red Dot)
@@ -175,8 +203,14 @@ namespace NinjaTrader.NinjaScript.Strategies
 							return; // Skip entry if not in downtrend
 					}
 
-					// Enter SHORT
+					// Enter SHORT (main position)
 					EnterShort(1, "Red_Dot_Short");
+
+					// Place Grid Limit Orders if enabled
+					if (UseGridEntry && NumberOfGridSteps > 0)
+					{
+						PlaceGridOrders(false, currentPrice); // false = SHORT
+					}
 				}
 			}
 		}
@@ -185,23 +219,53 @@ namespace NinjaTrader.NinjaScript.Strategies
 			int quantity, int filled, double averageFillPrice,
 			OrderState orderState, DateTime time, ErrorCode error, string nativeError)
 		{
-			// Track entry price when order is filled
+			// Track entry price when MAIN position order is filled
 			if (order.Name == "Green_Dot_Long" || order.Name == "Red_Dot_Short")
 			{
 				if (orderState == OrderState.Filled)
 				{
 					entryPrice = averageFillPrice;
 
-					// Set fixed TP and SL
+					// Calculate and store main position SL level (shared by grid entries)
 					if (Position.MarketPosition == MarketPosition.Long)
 					{
+						mainPositionStopLoss = entryPrice - (StopLossPoints * TickSize);
 						SetProfitTarget("Green_Dot_Long", CalculationMode.Ticks, TakeProfitPoints);
 						SetStopLoss("Green_Dot_Long", CalculationMode.Ticks, StopLossPoints, false);
 					}
 					else if (Position.MarketPosition == MarketPosition.Short)
 					{
+						mainPositionStopLoss = entryPrice + (StopLossPoints * TickSize);
 						SetProfitTarget("Red_Dot_Short", CalculationMode.Ticks, TakeProfitPoints);
 						SetStopLoss("Red_Dot_Short", CalculationMode.Ticks, StopLossPoints, false);
+					}
+				}
+			}
+
+			// Track GRID entry fills
+			if (gridOrderNames.Contains(order.Name))
+			{
+				if (orderState == OrderState.Filled)
+				{
+					double gridEntryPrice = averageFillPrice;
+
+					// Set TP for grid entry (calculated from its own fill price)
+					SetProfitTarget(order.Name, CalculationMode.Ticks, TakeProfitPoints);
+
+					// Set SL for grid entry (uses MAIN position's SL level, NOT from grid fill price)
+					if (Position.MarketPosition == MarketPosition.Long)
+					{
+						// Calculate SL distance from grid fill price to main SL level
+						double slDistance = gridEntryPrice - mainPositionStopLoss;
+						int slTicks = (int)(slDistance / TickSize);
+						SetStopLoss(order.Name, CalculationMode.Ticks, slTicks, false);
+					}
+					else if (Position.MarketPosition == MarketPosition.Short)
+					{
+						// Calculate SL distance from grid fill price to main SL level
+						double slDistance = mainPositionStopLoss - gridEntryPrice;
+						int slTicks = (int)(slDistance / TickSize);
+						SetStopLoss(order.Name, CalculationMode.Ticks, slTicks, false);
 					}
 				}
 			}
@@ -217,6 +281,83 @@ namespace NinjaTrader.NinjaScript.Strategies
 			TimeSpan endTime = new TimeSpan(EndHour, EndMinute, 59);
 
 			return currentTime >= startTime && currentTime <= endTime;
+		}
+
+		/// <summary>
+		/// Check if we should close all positions (at specific time)
+		/// </summary>
+		private bool ShouldCloseAllPositions()
+		{
+			TimeSpan currentTime = Time[0].TimeOfDay;
+			TimeSpan closeTime = new TimeSpan(CloseAllHour, CloseAllMinute, 0);
+
+			// Close if current time is at or past the close time and we have positions
+			return currentTime >= closeTime && Position.MarketPosition != MarketPosition.Flat;
+		}
+
+		/// <summary>
+		/// Close all open positions
+		/// </summary>
+		private void CloseAllPositions(string signalName)
+		{
+			if (Position.MarketPosition == MarketPosition.Long)
+			{
+				ExitLong(signalName);
+			}
+			else if (Position.MarketPosition == MarketPosition.Short)
+			{
+				ExitShort(signalName);
+			}
+
+			// Cancel any pending grid limit orders
+			CancelAllGridOrders();
+		}
+
+		/// <summary>
+		/// Place grid limit orders
+		/// </summary>
+		private void PlaceGridOrders(bool isLong, double mainEntryPrice)
+		{
+			// Clear previous grid order tracking
+			gridOrderNames.Clear();
+
+			for (int i = 1; i <= NumberOfGridSteps; i++)
+			{
+				double limitPrice;
+				string orderName = "Grid_" + (++gridOrderCounter) + "_Step" + i;
+
+				if (isLong)
+				{
+					// For LONG: Place limit orders BELOW main entry
+					// Example: Main at 20000, Grid Step 60 pts → Grid 1 at 19940, Grid 2 at 19880
+					limitPrice = mainEntryPrice - (i * GridStepPoints * TickSize);
+					EnterLongLimit(1, limitPrice, orderName);
+				}
+				else
+				{
+					// For SHORT: Place limit orders ABOVE main entry
+					// Example: Main at 20000, Grid Step 60 pts → Grid 1 at 20060, Grid 2 at 20120
+					limitPrice = mainEntryPrice + (i * GridStepPoints * TickSize);
+					EnterShortLimit(1, limitPrice, orderName);
+				}
+
+				// Track grid order names
+				gridOrderNames.Add(orderName);
+
+				// Draw horizontal line on chart for grid level
+				Draw.HorizontalLine(this, "GridLevel_" + orderName, limitPrice,
+					isLong ? Brushes.LimeGreen : Brushes.Red, DashStyleHelper.Dot, 1);
+			}
+		}
+
+		/// <summary>
+		/// Cancel all pending grid limit orders
+		/// </summary>
+		private void CancelAllGridOrders()
+		{
+			// NinjaTrader will automatically cancel all pending orders when position is closed
+			// But we clear our tracking list
+			gridOrderNames.Clear();
 		}
 
 		#region Properties
@@ -288,6 +429,40 @@ namespace NinjaTrader.NinjaScript.Strategies
 		[Range(0, 59)]
 		[Display(Name="End Minute", Description="Trading end minute (0-59)", Order=4, GroupName="4. Trading Hours")]
 		public int EndMinute
+		{ get; set; }
+
+		[NinjaScriptProperty]
+		[Display(Name="Use Grid Entry", Description="Enable grid entry system with multiple limit orders", Order=1, GroupName="5. Grid Entry System")]
+		public bool UseGridEntry
+		{ get; set; }
+
+		[NinjaScriptProperty]
+		[Range(1, int.MaxValue)]
+		[Display(Name="Grid Step (Points)", Description="Distance between grid levels in points (e.g., 60 points = 60 ticks for NQ)", Order=2, GroupName="5. Grid Entry System")]
+		public int GridStepPoints
+		{ get; set; }
+
+		[NinjaScriptProperty]
+		[Range(1, 10)]
+		[Display(Name="Number of Grid Steps", Description="Number of additional limit orders to place (1-10)", Order=3, GroupName="5. Grid Entry System")]
+		public int NumberOfGridSteps
+		{ get; set; }
+
+		[NinjaScriptProperty]
+		[Display(Name="Close All at Time", Description="Enable auto-close all positions at specific time", Order=1, GroupName="6. Time Management")]
+		public bool UseCloseAllAtTime
+		{ get; set; }
+
+		[NinjaScriptProperty]
+		[Range(0, 23)]
+		[Display(Name="Close All Hour", Description="Hour to close all positions (0-23, e.g., 22 = 10 PM)", Order=2, GroupName="6. Time Management")]
+		public int CloseAllHour
+		{ get; set; }
+
+		[NinjaScriptProperty]
+		[Range(0, 59)]
+		[Display(Name="Close All Minute", Description="Minute to close all positions (0-59)", Order=3, GroupName="6. Time Management")]
+		public int CloseAllMinute
 		{ get; set; }
 
 		#endregion
