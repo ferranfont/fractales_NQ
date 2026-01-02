@@ -22,38 +22,70 @@ using NinjaTrader.NinjaScript.Indicators;
 using NinjaTrader.NinjaScript.DrawingTools;
 #endregion
 
-//This namespace holds Strategies in this folder and is required. Do not change it.
+//Strategy to implement VWAP Momentum Logic from config.py
+// Authors: Assistant & User
+// Version: 3.0 (ULTRA-ROBUST Ghost Order Protection)
+// - AdoptAccountPosition: Syncs with real broker position
+// - Ghost Position Detector: Compares strategy vs account state
+// - Historical Block: No processing of historical bars
+// - Order Cleanup: Cancels all pending orders on start/stop
+
 namespace NinjaTrader.NinjaScript.Strategies
 {
-	public class AAvwap_momentum : Strategy
+	public class AAvwap_momentum_V3 : Strategy
 	{
 		#region Variables
-		// VWAP Indicators
-		private VWAP vwapFast;
-		private VWAP vwapSlow;
+		// Parameters
+		private int		vwapFastPeriod;
+		private int		vwapSlowPeriod;
+		private double	takeProfitPoints;
+		private double	stopLossPoints;
+		private double	priceEjectionTrigger;
+		private bool	useTrendFilter;
+		private bool	allowLong;
+		private bool	allowShort;
+		
+		// Trading Hours
+		private int		startHour;
+		private int		startMinute;
+		private int		endHour;
+		private int		endMinute;
 
-		// Entry signals
-		private bool greenDotSignal = false;
-		private bool redDotSignal = false;
+		// Grid Entry
+		private bool	useGridEntry;
+		private double	gridStepPoints;
+		private int		numberOfGridSteps;
 
-		// Position tracking
-		private double entryPrice = 0;
-		private double mainPositionStopLoss = 0; // SL level shared by all grid positions
+		// Close All
+		private bool	useCloseAllAtTime;
+		private int		closeAllHour;
+		private int		closeAllMinute;
 
-		// Grid tracking
-		private List<string> gridOrderNames = new List<string>();
-		private int gridOrderCounter = 0;
+		// Hour Filter
+		private bool	useHourFilter;
+		private string	excludedHoursString;
+		private HashSet<int> excludedHoursSet;
 
-		// Hour filter tracking
-		private HashSet<int> excludedHours = new HashSet<int>();
+		// Indicators
+		private SMA vwapFast; 
+		private SMA vwapSlow; 
+
+		// Internal Logic
+		private double entryPrice;
+		private double mainPositionStopLoss;
+		private List<string> gridOrderNames; 
+		
+		// Safety
+		private DateTime enableTime;
+
 		#endregion
 
 		protected override void OnStateChange()
 		{
 			if (State == State.SetDefaults)
 			{
-				Description									= @"Simple VWAP Momentum Strategy - Green/Red Dot Entries with Fixed TP/SL";
-				Name										= "AAvwap_momentum";
+				Description									= "VWAP Momentum Strategy with Ejection Logic";
+				Name										= "AAvwap_momentum_V3";
 				Calculate									= Calculate.OnBarClose;
 				EntriesPerDirection							= 1;
 				EntryHandling								= EntryHandling.AllEntries;
@@ -63,167 +95,181 @@ namespace NinjaTrader.NinjaScript.Strategies
 				MaximumBarsLookBack							= MaximumBarsLookBack.TwoHundredFiftySix;
 				OrderFillResolution							= OrderFillResolution.Standard;
 				Slippage									= 0;
-				StartBehavior								= StartBehavior.WaitUntilFlat;
+				StartBehavior								= StartBehavior.AdoptAccountPosition; 
 				TimeInForce									= TimeInForce.Gtc;
 				TraceOrders									= false;
 				RealtimeErrorHandling						= RealtimeErrorHandling.StopCancelClose;
 				StopTargetHandling							= StopTargetHandling.PerEntryExecution;
-				BarsRequiredToTrade							= 20;
+				BarsRequiredToTrade							= 200; 
 				IsInstantiatedOnEachOptimizationIteration	= true;
 
-				// Strategy Parameters (from config.py)
-				VwapFastPeriod		= 100;		// VWAP_FAST
-				VwapSlowPeriod		= 200;		// VWAP_SLOW
-				TakeProfitPoints	= 125;		// VWAP_MOMENTUM_TP_POINTS
-				StopLossPoints		= 75;		// VWAP_MOMENTUM_SL_POINTS (UPDATED TO MATCH CURRENT CONFIG)
-				PriceEjectionTrigger = 0.001;	// PRICE_EJECTION_TRIGGER (0.1%)
-				UseTrendFilter		= true;		// USE_VWAP_SLOW_TREND_FILTER
-				AllowLong			= true;		// VWAP_MOMENTUM_LONG_ALLOWED
-				AllowShort			= true;		// VWAP_MOMENTUM_SHORT_ALLOWED
+				// Strategy Parameters
+				VwapFastPeriod		= 100;		
+				VwapSlowPeriod		= 200;		
+				TakeProfitPoints	= 500;		
+				StopLossPoints		= 300;		
+				PriceEjectionTrigger = 0.001;	// 0.1% Trigger
+				UseTrendFilter		= true;		
+				AllowLong			= true;		
+				AllowShort			= true;		
 
-				// Trading Hours (default 24h, adjust as needed)
+				// Trading Hours
 				StartHour			= 0;
 				StartMinute			= 0;
 				EndHour				= 22;
 				EndMinute			= 59;
 
-				// Grid Entry System
-				UseGridEntry		= false;	// USE_ENTRY_GRID
-				GridStepPoints		= 60;		// GRID_STEP (distance between grid levels in points)
-				NumberOfGridSteps	= 1;		// NUMBER_OF_GRID_STEPS (number of additional limit orders)
+				// Grid Entry
+				UseGridEntry		= false;	
+				GridStepPoints		= 60;		
+				NumberOfGridSteps	= 1;		
 
-				// Close All Trades at Specific Time
-				UseCloseAllAtTime	= false;	// Enable auto-close at specific time
-				CloseAllHour		= 22;		// Hour to close all positions (0-23)
-				CloseAllMinute		= 0;		// Minute to close all positions (0-59)
+				// Close All
+				UseCloseAllAtTime	= false;	
+				CloseAllHour		= 22;		
+				CloseAllMinute		= 0;		
 
-				// Hour Filter (Avoid Trading During Specific Hours)
-				UseHourFilter		= false;	// Enable hour exclusion filter
-				ExcludedHoursString	= "0,5,23";	// Comma-separated list of hours to exclude (e.g., "0,5,23" = avoid 00:xx, 05:xx, 23:xx)
+				// Hour Filter
+				UseHourFilter		= false;		
+				ExcludedHoursString	= "1,2,3,9,11,14,20";	
 			}
 			else if (State == State.Configure)
 			{
-				// Parse excluded hours string into HashSet
 				ParseExcludedHours();
+				
+				gridOrderNames = new List<string>();
+				for(int i=1; i<=NumberOfGridSteps; i++)
+				{
+					gridOrderNames.Add("Grid_L_" + i);
+					gridOrderNames.Add("Grid_S_" + i);
+				}
 			}
 			else if (State == State.DataLoaded)
 			{
-				// Initialize VWAP indicators
-				vwapFast = VWAP(Close, VwapFastPeriod);
-				vwapSlow = VWAP(Close, VwapSlowPeriod);
+				vwapFast = SMA(VwapFastPeriod);
+				vwapSlow = SMA(VwapSlowPeriod);
 
-				// Add to chart for visualization
 				AddChartIndicator(vwapFast);
 				AddChartIndicator(vwapSlow);
 
-				// Set colors for visualization
 				vwapFast.Plots[0].Brush = Brushes.Magenta;
 				vwapSlow.Plots[0].Brush = Brushes.Green;
+			}
+			else if (State == State.Realtime)
+			{
+				// CRITICAL FIX #1: Detect and reset ghost positions
+				// If strategy thinks there's a position but account is actually flat → force reset
+				if (Position.MarketPosition != MarketPosition.Flat)
+				{
+					var accountPosition = Account.Positions.FirstOrDefault(p => p.Instrument == Instrument);
+					if (accountPosition == null || accountPosition.Quantity == 0)
+					{
+						Print(">>> GHOST POSITION DETECTED! Strategy shows position but account is flat. Forcing reset...");
+						ExitLong();
+						ExitShort();
+						Print(">>> Ghost position reset complete.");
+					}
+				}
+
+				// CRITICAL FIX #2: Cancel ALL pending orders on strategy start to prevent ghost orders
+				// This clears any cached order state from previous runs
+				CancelAllPendingOrders();
+				Print("=== Strategy Started in Realtime Mode - All pending orders cancelled ===");
+
+				enableTime = DateTime.Now;
+			}
+			else if (State == State.Terminated)
+			{
+				// CRITICAL FIX: Cancel ALL pending orders on strategy termination
+				CancelAllPendingOrders();
+				Print("=== Strategy Terminated - All pending orders cancelled ===");
 			}
 		}
 
 		protected override void OnBarUpdate()
 		{
-			// Need enough bars for VWAP calculation
-			if (CurrentBar < Math.Max(VwapFastPeriod, VwapSlowPeriod))
-				return;
+            // CRITICAL FIX #3: Block ALL historical bar processing
+            // This ensures strategy NEVER processes historical data, only realtime
+            if (State == State.Historical)
+                return;
 
-			// Check if we need to close all positions at specific time
+            // =========================================================
+            // LÓGICA DE VISUALIZACIÓN (Funciona en Histórico y Realtime)
+            // =========================================================
+
+            // Need enough bars
+			if (CurrentBar < Math.Max(VwapFastPeriod, VwapSlowPeriod)) return;
+
+			// Get values
+			double currentPrice = Close[0];
+			double vwapFastValue = vwapFast[0];
+			double vwapSlowValue = vwapSlow[0];
+			double priceDistancePct = Math.Abs(currentPrice - vwapFastValue) / vwapFastValue;
+
+			bool greenDotSignal = false;
+			bool redDotSignal = false;
+
+			// Green Dot Calc
+			if (currentPrice > vwapFastValue && priceDistancePct >= PriceEjectionTrigger)
+			{
+				greenDotSignal = true;
+				Draw.Dot(this, "GreenDot_" + CurrentBar, false, 0, currentPrice, Brushes.LimeGreen);
+			}
+
+			// Red Dot Calc
+			if (currentPrice < vwapFastValue && priceDistancePct >= PriceEjectionTrigger)
+			{
+				redDotSignal = true;
+				Draw.Dot(this, "RedDot_" + CurrentBar, false, 0, currentPrice, Brushes.Red);
+			}
+
+            // =========================================================
+            // LÓGICA DE TRADING (SOLO REALTIME)
+            // =========================================================
+            
+            // 1. REGLA DE ORO: SI NO ES TIEMPO REAL, NO HACEMOS NADA DE TRADING
+            if (State != State.Realtime) return;
+
+            // 2. RETRASO DE SEGURIDAD (1 min)
+			if (DateTime.Now < enableTime.AddMinutes(1)) return;
+
+            // 3. RESTO DE FILTROS LÓGICOS
 			if (UseCloseAllAtTime && ShouldCloseAllPositions())
 			{
 				CloseAllPositions("Time_Close");
 				return;
 			}
+			if (!IsWithinTradingHours()) return;
+			if (UseHourFilter && IsHourExcluded()) return;
 
-			// Check if we're within trading hours
-			if (!IsWithinTradingHours())
-				return;
-
-			// Check if current hour is excluded (hour filter)
-			if (UseHourFilter && IsHourExcluded())
-				return;
-
-			// Get current values
-			double currentPrice = Close[0];
-			double vwapFastValue = vwapFast[0];
-			double vwapSlowValue = vwapSlow[0];
-
-			// Calculate price distance from VWAP Fast as percentage
-			double priceDistancePct = Math.Abs(currentPrice - vwapFastValue) / vwapFastValue;
-
-			// Determine trend direction (for trend filter)
 			bool isUptrend = vwapFastValue > vwapSlowValue;
 			bool isDowntrend = vwapFastValue < vwapSlowValue;
 
-			// GREEN DOT SIGNAL (Price ejection above VWAP Fast)
-			// Condition: Price is above VWAP Fast by at least PRICE_EJECTION_TRIGGER percentage
-			greenDotSignal = false;
-			if (currentPrice > vwapFastValue)
-			{
-				if (priceDistancePct >= PriceEjectionTrigger)
-				{
-					greenDotSignal = true;
-
-					// Draw green dot on chart
-					Draw.Dot(this, "GreenDot_" + CurrentBar, false, 0, currentPrice, Brushes.LimeGreen);
-				}
-			}
-
-			// RED DOT SIGNAL (Price ejection below VWAP Fast)
-			// Condition: Price is below VWAP Fast by at least PRICE_EJECTION_TRIGGER percentage
-			redDotSignal = false;
-			if (currentPrice < vwapFastValue)
-			{
-				if (priceDistancePct >= PriceEjectionTrigger)
-				{
-					redDotSignal = true;
-
-					// Draw red dot on chart
-					Draw.Dot(this, "RedDot_" + CurrentBar, false, 0, currentPrice, Brushes.Red);
-				}
-			}
-
-			// ENTRY LOGIC
+			// ENTRY EXECUTION
 			if (Position.MarketPosition == MarketPosition.Flat)
 			{
-				// LONG ENTRY (Green Dot)
+				// LONG
 				if (greenDotSignal && AllowLong)
 				{
-					// Apply trend filter if enabled
-					if (UseTrendFilter)
-					{
-						if (!isUptrend)
-							return; // Skip entry if not in uptrend
-					}
+					if (UseTrendFilter && !isUptrend) return;
 
-					// Enter LONG (main position)
+					Print(string.Format("{0} - ENTERING LONG", Time[0]));
 					EnterLong(1, "Green_Dot_Long");
+					Draw.ArrowUp(this, "EntryLong_" + CurrentBar, false, 0, Low[0] - 10 * TickSize, Brushes.LimeGreen);
 
-					// Place Grid Limit Orders if enabled
-					if (UseGridEntry && NumberOfGridSteps > 0)
-					{
-						PlaceGridOrders(true, currentPrice); // true = LONG
-					}
+					if (UseGridEntry && NumberOfGridSteps > 0) PlaceGridOrders(true, currentPrice);
 				}
 
-				// SHORT ENTRY (Red Dot)
+				// SHORT
 				if (redDotSignal && AllowShort)
 				{
-					// Apply trend filter if enabled
-					if (UseTrendFilter)
-					{
-						if (!isDowntrend)
-							return; // Skip entry if not in downtrend
-					}
+					if (UseTrendFilter && !isDowntrend) return;
 
-					// Enter SHORT (main position)
+					Print(string.Format("{0} - ENTERING SHORT", Time[0]));
 					EnterShort(1, "Red_Dot_Short");
+					Draw.ArrowDown(this, "EntryShort_" + CurrentBar, false, 0, High[0] + 10 * TickSize, Brushes.Red);
 
-					// Place Grid Limit Orders if enabled
-					if (UseGridEntry && NumberOfGridSteps > 0)
-					{
-						PlaceGridOrders(false, currentPrice); // false = SHORT
-					}
+					if (UseGridEntry && NumberOfGridSteps > 0) PlaceGridOrders(false, currentPrice);
 				}
 			}
 		}
@@ -232,14 +278,12 @@ namespace NinjaTrader.NinjaScript.Strategies
 			int quantity, int filled, double averageFillPrice,
 			OrderState orderState, DateTime time, ErrorCode error, string nativeError)
 		{
-			// Track entry price when MAIN position order is filled
 			if (order.Name == "Green_Dot_Long" || order.Name == "Red_Dot_Short")
 			{
 				if (orderState == OrderState.Filled)
 				{
 					entryPrice = averageFillPrice;
 
-					// Calculate and store main position SL level (shared by grid entries)
 					if (Position.MarketPosition == MarketPosition.Long)
 					{
 						mainPositionStopLoss = entryPrice - (StopLossPoints * TickSize);
@@ -254,275 +298,168 @@ namespace NinjaTrader.NinjaScript.Strategies
 					}
 				}
 			}
-
-			// Track GRID entry fills
-			if (gridOrderNames.Contains(order.Name))
+			
+			if (gridOrderNames.Contains(order.Name) && orderState == OrderState.Filled)
 			{
-				if (orderState == OrderState.Filled)
+				if (Position.MarketPosition == MarketPosition.Long)
 				{
-					double gridEntryPrice = averageFillPrice;
-
-					// Set TP for grid entry (calculated from its own fill price)
-					SetProfitTarget(order.Name, CalculationMode.Ticks, TakeProfitPoints);
-
-					// Set SL for grid entry (uses MAIN position's SL level, NOT from grid fill price)
-					if (Position.MarketPosition == MarketPosition.Long)
-					{
-						// Calculate SL distance from grid fill price to main SL level
-						double slDistance = gridEntryPrice - mainPositionStopLoss;
-						int slTicks = (int)(slDistance / TickSize);
-						SetStopLoss(order.Name, CalculationMode.Ticks, slTicks, false);
-					}
-					else if (Position.MarketPosition == MarketPosition.Short)
-					{
-						// Calculate SL distance from grid fill price to main SL level
-						double slDistance = mainPositionStopLoss - gridEntryPrice;
-						int slTicks = (int)(slDistance / TickSize);
-						SetStopLoss(order.Name, CalculationMode.Ticks, slTicks, false);
-					}
+					SetStopLoss(order.Name, CalculationMode.Price, mainPositionStopLoss, false);
+					SetProfitTarget(order.Name, CalculationMode.Ticks, TakeProfitPoints); 
+				}
+				else if (Position.MarketPosition == MarketPosition.Short)
+				{
+					SetStopLoss(order.Name, CalculationMode.Price, mainPositionStopLoss, false);
+					SetProfitTarget(order.Name, CalculationMode.Ticks, TakeProfitPoints); 
 				}
 			}
 		}
 
-		/// <summary>
-		/// Check if current time is within allowed trading hours
-		/// </summary>
-		private bool IsWithinTradingHours()
+		#region Helpers
+		private void PlaceGridOrders(bool isLong, double basePrice)
 		{
-			TimeSpan currentTime = Time[0].TimeOfDay;
-			TimeSpan startTime = new TimeSpan(StartHour, StartMinute, 0);
-			TimeSpan endTime = new TimeSpan(EndHour, EndMinute, 59);
-
-			return currentTime >= startTime && currentTime <= endTime;
-		}
-
-		/// <summary>
-		/// Check if we should close all positions (at specific time)
-		/// </summary>
-		private bool ShouldCloseAllPositions()
-		{
-			TimeSpan currentTime = Time[0].TimeOfDay;
-			TimeSpan closeTime = new TimeSpan(CloseAllHour, CloseAllMinute, 0);
-
-			// Close if current time is at or past the close time and we have positions
-			return currentTime >= closeTime && Position.MarketPosition != MarketPosition.Flat;
-		}
-
-		/// <summary>
-		/// Close all open positions
-		/// </summary>
-		private void CloseAllPositions(string signalName)
-		{
-			if (Position.MarketPosition == MarketPosition.Long)
-			{
-				ExitLong(signalName);
-			}
-			else if (Position.MarketPosition == MarketPosition.Short)
-			{
-				ExitShort(signalName);
-			}
-
-			// Cancel any pending grid limit orders
-			CancelAllGridOrders();
-		}
-
-		/// <summary>
-		/// Place grid limit orders
-		/// </summary>
-		private void PlaceGridOrders(bool isLong, double mainEntryPrice)
-		{
-			// Clear previous grid order tracking
-			gridOrderNames.Clear();
-
 			for (int i = 1; i <= NumberOfGridSteps; i++)
 			{
-				double limitPrice;
-				string orderName = "Grid_" + (++gridOrderCounter) + "_Step" + i;
-
 				if (isLong)
-				{
-					// For LONG: Place limit orders BELOW main entry
-					// Example: Main at 20000, Grid Step 60 pts → Grid 1 at 19940, Grid 2 at 19880
-					limitPrice = mainEntryPrice - (i * GridStepPoints * TickSize);
-					EnterLongLimit(1, limitPrice, orderName);
-				}
+					EnterLongLimit(1, basePrice - (GridStepPoints * i), "Grid_L_" + i);
 				else
-				{
-					// For SHORT: Place limit orders ABOVE main entry
-					// Example: Main at 20000, Grid Step 60 pts → Grid 1 at 20060, Grid 2 at 20120
-					limitPrice = mainEntryPrice + (i * GridStepPoints * TickSize);
-					EnterShortLimit(1, limitPrice, orderName);
-				}
-
-				// Track grid order names
-				gridOrderNames.Add(orderName);
-
-				// Draw horizontal line on chart for grid level
-				Draw.HorizontalLine(this, "GridLevel_" + orderName, limitPrice,
-					isLong ? Brushes.LimeGreen : Brushes.Red, DashStyleHelper.Dot, 1);
+					EnterShortLimit(1, basePrice + (GridStepPoints * i), "Grid_S_" + i);
 			}
 		}
 
-		/// <summary>
-		/// Cancel all pending grid limit orders
-		/// </summary>
-		private void CancelAllGridOrders()
+		private void CloseAllPositions(string reason)
 		{
-			// NinjaTrader will automatically cancel all pending orders when position is closed
-			// But we clear our tracking list
-			gridOrderNames.Clear();
-		}
-
-		/// <summary>
-		/// Parse the ExcludedHoursString into a HashSet for fast lookup
-		/// </summary>
-		private void ParseExcludedHours()
-		{
-			excludedHours.Clear();
-
-			if (string.IsNullOrWhiteSpace(ExcludedHoursString))
-				return;
-
-			// Split by comma and parse each hour
-			string[] hours = ExcludedHoursString.Split(',');
-			foreach (string hourStr in hours)
+			if (Position.MarketPosition != MarketPosition.Flat)
 			{
-				int hour;
-				if (int.TryParse(hourStr.Trim(), out hour))
-				{
-					// Validate hour is in valid range (0-23)
-					if (hour >= 0 && hour <= 23)
-					{
-						excludedHours.Add(hour);
-					}
-				}
+				Print("Closing All: " + reason);
+				ExitLong();
+				ExitShort();
 			}
 		}
+		
+		private bool ShouldCloseAllPositions()
+		{
+			if (Time[0].Hour == CloseAllHour && Time[0].Minute == CloseAllMinute) return true;
+			return false;
+		}
 
-		/// <summary>
-		/// Check if current hour is in the excluded hours list
-		/// </summary>
-		private bool IsHourExcluded()
+		private bool IsWithinTradingHours()
 		{
 			int currentHour = Time[0].Hour;
-			return excludedHours.Contains(currentHour);
+			int currentMinute = Time[0].Minute;
+			int currentTime = currentHour * 60 + currentMinute;
+			int startTime = StartHour * 60 + StartMinute;
+			int endTime = EndHour * 60 + EndMinute;
+
+			if (endTime < startTime) // Overnight
+				return currentTime >= startTime || currentTime <= endTime;
+			else
+				return currentTime >= startTime && currentTime <= endTime;
 		}
 
+		private bool IsHourExcluded()
+		{
+			return excludedHoursSet != null && excludedHoursSet.Contains(Time[0].Hour);
+		}
+
+		private void ParseExcludedHours()
+		{
+			excludedHoursSet = new HashSet<int>();
+			if (string.IsNullOrEmpty(ExcludedHoursString)) return;
+
+			string[] parts = ExcludedHoursString.Split(',');
+			foreach (string part in parts)
+			{
+				int h;
+				if (int.TryParse(part.Trim(), out h))
+					excludedHoursSet.Add(h);
+			}
+		}
+
+		private void CancelAllPendingOrders()
+		{
+			// Cancel all working orders (pending limit/stop orders)
+			foreach (var order in Account.Orders)
+			{
+				if (order.OrderState == OrderState.Working && order.Instrument == Instrument)
+				{
+					CancelOrder(order);
+				}
+			}
+		}
+		#endregion
+
 		#region Properties
+		[NinjaScriptProperty]
+		[Display(Name="VwapFastPeriod", Order=1, GroupName="Parameters")]
+		public int VwapFastPeriod { get; set; }
 
 		[NinjaScriptProperty]
-		[Range(1, int.MaxValue)]
-		[Display(Name="VWAP Fast Period", Description="Period for fast VWAP (magenta line)", Order=1, GroupName="1. VWAP Parameters")]
-		public int VwapFastPeriod
-		{ get; set; }
+		[Display(Name="VwapSlowPeriod", Order=2, GroupName="Parameters")]
+		public int VwapSlowPeriod { get; set; }
 
 		[NinjaScriptProperty]
-		[Range(1, int.MaxValue)]
-		[Display(Name="VWAP Slow Period", Description="Period for slow VWAP (green line)", Order=2, GroupName="1. VWAP Parameters")]
-		public int VwapSlowPeriod
-		{ get; set; }
+		[Display(Name="TakeProfitPoints", Order=3, GroupName="Parameters")]
+		public double TakeProfitPoints { get; set; }
 
 		[NinjaScriptProperty]
-		[Range(0.0001, 1)]
-		[Display(Name="Price Ejection Trigger %", Description="Minimum distance from VWAP Fast to trigger entry (0.001 = 0.1%)", Order=3, GroupName="1. VWAP Parameters")]
-		public double PriceEjectionTrigger
-		{ get; set; }
+		[Display(Name="StopLossPoints", Order=4, GroupName="Parameters")]
+		public double StopLossPoints { get; set; }
 
 		[NinjaScriptProperty]
-		[Range(1, int.MaxValue)]
-		[Display(Name="Take Profit (Points)", Description="Take profit in points", Order=1, GroupName="2. Exit Parameters")]
-		public int TakeProfitPoints
-		{ get; set; }
+		[Display(Name="PriceEjectionTrigger", Order=5, GroupName="Parameters")]
+		public double PriceEjectionTrigger { get; set; }
 
 		[NinjaScriptProperty]
-		[Range(1, int.MaxValue)]
-		[Display(Name="Stop Loss (Points)", Description="Stop loss in points", Order=2, GroupName="2. Exit Parameters")]
-		public int StopLossPoints
-		{ get; set; }
+		[Display(Name="UseTrendFilter", Order=6, GroupName="Parameters")]
+		public bool UseTrendFilter { get; set; }
 
 		[NinjaScriptProperty]
-		[Display(Name="Use Trend Filter", Description="Only trade with VWAP trend (Fast vs Slow)", Order=1, GroupName="3. Entry Filters")]
-		public bool UseTrendFilter
-		{ get; set; }
+		[Display(Name="AllowLong", Order=7, GroupName="Parameters")]
+		public bool AllowLong { get; set; }
 
 		[NinjaScriptProperty]
-		[Display(Name="Allow Long Trades", Description="Enable BUY entries (green dots)", Order=2, GroupName="3. Entry Filters")]
-		public bool AllowLong
-		{ get; set; }
+		[Display(Name="AllowShort", Order=8, GroupName="Parameters")]
+		public bool AllowShort { get; set; }
 
 		[NinjaScriptProperty]
-		[Display(Name="Allow Short Trades", Description="Enable SELL entries (red dots)", Order=3, GroupName="3. Entry Filters")]
-		public bool AllowShort
-		{ get; set; }
+		[Display(Name="StartHour", Order=9, GroupName="Trading Hours")]
+		public int StartHour { get; set; }
+		[NinjaScriptProperty]
+		[Display(Name="StartMinute", Order=10, GroupName="Trading Hours")]
+		public int StartMinute { get; set; }
+		[NinjaScriptProperty]
+		[Display(Name="EndHour", Order=11, GroupName="Trading Hours")]
+		public int EndHour { get; set; }
+		[NinjaScriptProperty]
+		[Display(Name="EndMinute", Order=12, GroupName="Trading Hours")]
+		public int EndMinute { get; set; }
 
 		[NinjaScriptProperty]
-		[Range(0, 23)]
-		[Display(Name="Start Hour", Description="Trading start hour (0-23)", Order=1, GroupName="4. Trading Hours")]
-		public int StartHour
-		{ get; set; }
+		[Display(Name="UseGridEntry", Order=13, GroupName="Grid")]
+		public bool UseGridEntry { get; set; }
+		[NinjaScriptProperty]
+		[Display(Name="GridStepPoints", Order=14, GroupName="Grid")]
+		public double GridStepPoints { get; set; }
+		[NinjaScriptProperty]
+		[Display(Name="NumberOfGridSteps", Order=15, GroupName="Grid")]
+		public int NumberOfGridSteps { get; set; }
 
 		[NinjaScriptProperty]
-		[Range(0, 59)]
-		[Display(Name="Start Minute", Description="Trading start minute (0-59)", Order=2, GroupName="4. Trading Hours")]
-		public int StartMinute
-		{ get; set; }
+		[Display(Name="UseCloseAllAtTime", Order=16, GroupName="Close All")]
+		public bool UseCloseAllAtTime { get; set; }
+		[NinjaScriptProperty]
+		[Display(Name="CloseAllHour", Order=17, GroupName="Close All")]
+		public int CloseAllHour { get; set; }
+		[NinjaScriptProperty]
+		[Display(Name="CloseAllMinute", Order=18, GroupName="Close All")]
+		public int CloseAllMinute { get; set; }
 
 		[NinjaScriptProperty]
-		[Range(0, 23)]
-		[Display(Name="End Hour", Description="Trading end hour (0-23)", Order=3, GroupName="4. Trading Hours")]
-		public int EndHour
-		{ get; set; }
-
+		[Display(Name="UseHourFilter", Order=19, GroupName="Hour Filter")]
+		public bool UseHourFilter { get; set; }
 		[NinjaScriptProperty]
-		[Range(0, 59)]
-		[Display(Name="End Minute", Description="Trading end minute (0-59)", Order=4, GroupName="4. Trading Hours")]
-		public int EndMinute
-		{ get; set; }
-
-		[NinjaScriptProperty]
-		[Display(Name="Use Grid Entry", Description="Enable grid entry system with multiple limit orders", Order=1, GroupName="5. Grid Entry System")]
-		public bool UseGridEntry
-		{ get; set; }
-
-		[NinjaScriptProperty]
-		[Range(1, int.MaxValue)]
-		[Display(Name="Grid Step (Points)", Description="Distance between grid levels in points (e.g., 60 points = 60 ticks for NQ)", Order=2, GroupName="5. Grid Entry System")]
-		public int GridStepPoints
-		{ get; set; }
-
-		[NinjaScriptProperty]
-		[Range(1, 10)]
-		[Display(Name="Number of Grid Steps", Description="Number of additional limit orders to place (1-10)", Order=3, GroupName="5. Grid Entry System")]
-		public int NumberOfGridSteps
-		{ get; set; }
-
-		[NinjaScriptProperty]
-		[Display(Name="Close All at Time", Description="Enable auto-close all positions at specific time", Order=1, GroupName="6. Time Management")]
-		public bool UseCloseAllAtTime
-		{ get; set; }
-
-		[NinjaScriptProperty]
-		[Range(0, 23)]
-		[Display(Name="Close All Hour", Description="Hour to close all positions (0-23, e.g., 22 = 10 PM)", Order=2, GroupName="6. Time Management")]
-		public int CloseAllHour
-		{ get; set; }
-
-		[NinjaScriptProperty]
-		[Range(0, 59)]
-		[Display(Name="Close All Minute", Description="Minute to close all positions (0-59)", Order=3, GroupName="6. Time Management")]
-		public int CloseAllMinute
-		{ get; set; }
-
-		[NinjaScriptProperty]
-		[Display(Name="Use Hour Filter", Description="Enable hour exclusion filter to avoid trading during specific hours", Order=1, GroupName="7. Hour Filter")]
-		public bool UseHourFilter
-		{ get; set; }
-
-		[NinjaScriptProperty]
-		[Display(Name="Excluded Hours", Description="Comma-separated list of hours to exclude (0-23). Example: \"0,5,23\" excludes midnight, 5 AM, and 11 PM", Order=2, GroupName="7. Hour Filter")]
-		public string ExcludedHoursString
-		{ get; set; }
-
+		[Display(Name="ExcludedHours", Order=20, GroupName="Hour Filter")]
+		public string ExcludedHoursString { get; set; }
 		#endregion
 	}
 }
