@@ -2,10 +2,11 @@
 
 ## 📋 Resumen de Nuevas Funcionalidades
 
-La estrategia `AAvwap_momentum.cs` ha sido actualizada con dos funcionalidades críticas:
+La estrategia `AAvwap_momentum.cs` ha sido actualizada con tres funcionalidades críticas:
 
 ### 1. **Grid Entry System** (Sistema de Entradas en Grid)
 ### 2. **Close All Trades at Time** (Cierre Automático por Hora)
+### 3. **Hour Filter** (Filtro de Horas Excluidas)
 
 ---
 
@@ -126,6 +127,104 @@ Close All Minute: 30
 
 ---
 
+## 🚫 3. HOUR FILTER (Filtro de Horas Excluidas)
+
+### ¿Qué es?
+
+Permite **excluir horas específicas** del trading. La estrategia NO abrirá nuevas posiciones durante las horas configuradas como excluidas. Útil para:
+
+- **Evitar horas de baja liquidez** (00:00-01:00, 05:00-06:00)
+- **Evitar eventos específicos** (apertura asiática, noticias económicas)
+- **Filtrar horas con bajo rendimiento** (según análisis histórico)
+- **Control granular** del horario de trading
+
+### Parámetros Configurables (Grupo 7: Hour Filter)
+
+| Parámetro | Tipo | Default | Descripción |
+|-----------|------|---------|-------------|
+| **Use Hour Filter** | bool | `False` | Activa/desactiva el filtro de horas |
+| **Excluded Hours** | string | `"0,5,23"` | Lista de horas separadas por comas (0-23) |
+
+### Cómo Funciona
+
+#### Ejemplo 1: Evitar Medianoche y Madrugada
+```
+Use Hour Filter: True
+Excluded Hours: "0,1,2,3,4,5"
+
+→ NO opera de 00:00-00:59, 01:00-01:59, ..., 05:00-05:59
+→ Opera normal el resto del día
+```
+
+#### Ejemplo 2: Evitar Solo Horas Problemáticas
+```
+Use Hour Filter: True
+Excluded Hours: "0,5,12,23"
+
+→ NO opera a las 00:xx, 05:xx, 12:xx, 23:xx
+→ Opera todas las demás horas
+```
+
+#### Ejemplo 3: Trading Solo Horario Europeo/US
+```
+Use Hour Filter: True
+Excluded Hours: "0,1,2,3,4,5,6,22,23"
+
+→ Opera SOLO de 07:00 a 21:59
+→ Excluye horario asiático y nocturno
+```
+
+### Formato del String
+
+- **Separador:** Coma (`,`)
+- **Formato:** Números enteros de 0-23
+- **Espacios:** Opcionales (se ignoran automáticamente)
+- **Validación:** Números fuera de rango 0-23 se ignoran
+
+**Ejemplos válidos:**
+```
+"0,5,23"           → Excluye 00:xx, 05:xx, 23:xx
+"0, 1, 2, 3"       → Excluye 00:xx, 01:xx, 02:xx, 03:xx (espacios OK)
+"12"               → Excluye solo 12:xx
+""                 → No excluye ninguna hora (vacío)
+```
+
+### Comportamiento
+
+1. **Parsing al inicio:** String se parsea en `State.Configure`
+2. **Validación cada barra:** Verifica si hora actual está excluida
+3. **Skip de señales:** Si hora excluida, NO genera entradas (green/red dots se ignoran)
+4. **Posiciones abiertas:** NO se cierran si fueron abiertas antes de hora excluida
+5. **Grid orders:** NO se colocan durante horas excluidas
+
+### 💡 Uso Avanzado: Análisis de Horas
+
+Para determinar qué horas excluir, usa el análisis Python:
+
+```bash
+python analyze_trades_by_hour.py
+```
+
+Esto genera `outputs/optimization/hourly_trade_analysis.html` con:
+- Win Rate por hora
+- P&L por hora
+- Sharpe/Sortino por hora
+- **Identifica las peores horas** (win rate <30%, P&L negativo)
+
+**Ejemplo de resultado:**
+```
+Hora | Trades | Win Rate | Total P&L | Sharpe
+-----|--------|----------|-----------|--------
+00   | 45     | 22.2%    | -$5,200   | -0.45  ← EXCLUIR
+05   | 38     | 28.9%    | -$2,100   | -0.22  ← EXCLUIR
+12   | 67     | 48.5%    | +$8,900   | 0.34   ← MANTENER
+23   | 52     | 31.0%    | -$1,800   | -0.15  ← EXCLUIR
+
+→ ExcludedHours: "0,5,23"
+```
+
+---
+
 ## 📊 CONFIGURACIÓN RECOMENDADA
 
 ### Perfil Conservador (Control de Riesgo)
@@ -139,6 +238,10 @@ Time Management:
 ✅ Close All at Time: True
    Close All Hour: 22    (10 PM - antes de overnight)
    Close All Minute: 0
+
+Hour Filter:
+✅ Use Hour Filter: True
+   Excluded Hours: "0,1,2,3,4,5,23"  (evita madrugada y noche)
 ```
 
 ### Perfil Agresivo (Máximo P&L)
@@ -150,6 +253,9 @@ Grid Entry System:
 
 Time Management:
 ❌ Close All at Time: False  (deja correr hasta TP/SL)
+
+Hour Filter:
+❌ Use Hour Filter: False  (opera 24h si hay señales)
 ```
 
 ### Perfil Sin Grid (Opción B del análisis)
@@ -161,6 +267,10 @@ Time Management:
 ✅ Close All at Time: True
    Close All Hour: 22
    Close All Minute: 0
+
+Hour Filter:
+✅ Use Hour Filter: True
+   Excluded Hours: "0,5,23"  (evita peores horas según análisis)
 ```
 
 ---
@@ -307,15 +417,22 @@ Para preguntas o problemas:
 - ✅ Cancela órdenes pendientes
 - ✅ Control total de exposición temporal
 
+**Hour Filter:**
+- ✅ Excluye horas específicas del trading
+- ✅ Formato simple: string separado por comas
+- ✅ Basado en análisis de performance histórica
+- ✅ Control granular de horario operativo
+
 **Beneficios combinados:**
-- 🎯 Mejor precio promedio de entrada
-- 🛡️ Control estricto de riesgo temporal
-- 📊 Flexibilidad total de configuración
+- 🎯 Mejor precio promedio de entrada (Grid)
+- 🛡️ Control estricto de riesgo temporal (Time Close)
+- 📊 Filtrado inteligente de horas (Hour Filter)
 - 🔄 Compatible con backtest Python
+- 💪 Máxima flexibilidad de configuración
 
 ---
 
-**Versión:** 2.0
+**Versión:** 2.1
 **Fecha:** 2026-01-02
 **Autor:** Claude Code
 **Estrategia Base:** VWAP Momentum (Green/Red Dots)

@@ -43,6 +43,9 @@ namespace NinjaTrader.NinjaScript.Strategies
 		// Grid tracking
 		private List<string> gridOrderNames = new List<string>();
 		private int gridOrderCounter = 0;
+
+		// Hour filter tracking
+		private HashSet<int> excludedHours = new HashSet<int>();
 		#endregion
 
 		protected override void OnStateChange()
@@ -93,9 +96,15 @@ namespace NinjaTrader.NinjaScript.Strategies
 				UseCloseAllAtTime	= false;	// Enable auto-close at specific time
 				CloseAllHour		= 22;		// Hour to close all positions (0-23)
 				CloseAllMinute		= 0;		// Minute to close all positions (0-59)
+
+				// Hour Filter (Avoid Trading During Specific Hours)
+				UseHourFilter		= false;	// Enable hour exclusion filter
+				ExcludedHoursString	= "0,5,23";	// Comma-separated list of hours to exclude (e.g., "0,5,23" = avoid 00:xx, 05:xx, 23:xx)
 			}
 			else if (State == State.Configure)
 			{
+				// Parse excluded hours string into HashSet
+				ParseExcludedHours();
 			}
 			else if (State == State.DataLoaded)
 			{
@@ -128,6 +137,10 @@ namespace NinjaTrader.NinjaScript.Strategies
 
 			// Check if we're within trading hours
 			if (!IsWithinTradingHours())
+				return;
+
+			// Check if current hour is excluded (hour filter)
+			if (UseHourFilter && IsHourExcluded())
 				return;
 
 			// Get current values
@@ -360,6 +373,41 @@ namespace NinjaTrader.NinjaScript.Strategies
 			gridOrderNames.Clear();
 		}
 
+		/// <summary>
+		/// Parse the ExcludedHoursString into a HashSet for fast lookup
+		/// </summary>
+		private void ParseExcludedHours()
+		{
+			excludedHours.Clear();
+
+			if (string.IsNullOrWhiteSpace(ExcludedHoursString))
+				return;
+
+			// Split by comma and parse each hour
+			string[] hours = ExcludedHoursString.Split(',');
+			foreach (string hourStr in hours)
+			{
+				int hour;
+				if (int.TryParse(hourStr.Trim(), out hour))
+				{
+					// Validate hour is in valid range (0-23)
+					if (hour >= 0 && hour <= 23)
+					{
+						excludedHours.Add(hour);
+					}
+				}
+			}
+		}
+
+		/// <summary>
+		/// Check if current hour is in the excluded hours list
+		/// </summary>
+		private bool IsHourExcluded()
+		{
+			int currentHour = Time[0].Hour;
+			return excludedHours.Contains(currentHour);
+		}
+
 		#region Properties
 
 		[NinjaScriptProperty]
@@ -463,6 +511,16 @@ namespace NinjaTrader.NinjaScript.Strategies
 		[Range(0, 59)]
 		[Display(Name="Close All Minute", Description="Minute to close all positions (0-59)", Order=3, GroupName="6. Time Management")]
 		public int CloseAllMinute
+		{ get; set; }
+
+		[NinjaScriptProperty]
+		[Display(Name="Use Hour Filter", Description="Enable hour exclusion filter to avoid trading during specific hours", Order=1, GroupName="7. Hour Filter")]
+		public bool UseHourFilter
+		{ get; set; }
+
+		[NinjaScriptProperty]
+		[Display(Name="Excluded Hours", Description="Comma-separated list of hours to exclude (0-23). Example: \"0,5,23\" excludes midnight, 5 AM, and 11 PM", Order=2, GroupName="7. Hour Filter")]
+		public string ExcludedHoursString
 		{ get; set; }
 
 		#endregion
