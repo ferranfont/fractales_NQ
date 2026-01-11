@@ -156,7 +156,7 @@ USE_SQUARE_VWAP_SLOW_TREND_FILTER = True     # True = solo opera a favor de la t
 # ============================================================================
 # TRADING PARAMETERS VWAP TIME STRATEGY (Specific Time Entry)
 # ============================================================================
-ENABLE_VWAP_TIME_STRATEGY = True              # True = ejecutar estrategia, False = NO ejecutar
+ENABLE_VWAP_TIME_STRATEGY = False              # True = ejecutar estrategia, False = NO ejecutar
 VWAP_TIME_ENTRY = "17:00:00"                  # Hora exacta de entrada
 VWAP_TIME_EXIT = "22:00:00"                   # Hora exacta de salida (Time-based exit)
 VWAP_TIME_TP_POINTS = 400.0                   # Take profit in points (Optional, mainly time-based)
@@ -169,7 +169,7 @@ VWAP_BANDS_START_TIME = "15:30:00"           # Hora de inicio para calcular band
 # ============================================================================
 # TRADING PARAMETERS VWAP WYCKOFF STRATEGY (Orange Dot Entry)
 # ============================================================================
-ENABLE_VWAP_WYCKOFF_STRATEGY = False           # True = ejecutar estrategia, False = NO ejecutar
+ENABLE_VWAP_WYCKOFF_STRATEGY = True           # True = ejecutar estrategia, False = NO ejecutar
 START_ORANGE_DOT_WYCKOFF_TIME = "06:00:00"    # Hora de inicio para buscar Orange Dots
 END_ORANGE_DOT_WYCKOFF_TIME = "10:50:00"      # Hora de fin para buscar Orange Dots
 VWAP_WYCKOFF_EXIT_TIME = "15:29:00"           # Hora de cierre forzoso
@@ -186,14 +186,14 @@ WYCKOFF_ATR_MULTIPLIER = 10                    # Multiplier for ATR to determine
 # ============================================================================
 # TRADING PARAMETERS VWAP BAND REVERSAL STRATEGY (Blue Dot Entry)
 # ============================================================================
-ENABLE_VWAP_BAND_REVERSAL_STRATEGY = False    # True = ejecutar estrategia, False = NO ejecutar
+ENABLE_VWAP_BAND_REVERSAL_STRATEGY = True    # True = ejecutar estrategia, False = NO ejecutar
 VWAP_BAND_REVERSAL_START_TIME = "17:00:00"   # Hora de inicio para buscar señales (después de Entry Time)
 VWAP_BAND_REVERSAL_EXIT_TIME = "22:00:00"    # Hora de cierre forzoso
 VWAP_BAND_REVERSAL_TP_POINTS = 400.0          # Take profit in points
 VWAP_BAND_REVERSAL_SL_POINTS = 400.0          # Stop loss in points
 
 # OPENING RANGE CHANNEL
-ENABLE_OPENING_RANGE_PLOT = False
+ENABLE_OPENING_RANGE_PLOT = True
 OPENING_RANGE_START = "14:00:00"
 OPENING_RANGE_END = "15:29:00"
 

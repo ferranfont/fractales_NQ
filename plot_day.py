@@ -42,6 +42,7 @@ from config import (
     PLOT_VWAP_BANDS, VWAP_BANDS_START_TIME,
     # VWAP Wyckoff Strategy
     ENABLE_VWAP_WYCKOFF_STRATEGY, USE_WYCKOFF_ATR_TRAILING_STOP,
+    START_ORANGE_DOT_WYCKOFF_TIME,
     ENABLE_OPENING_RANGE_PLOT, OPENING_RANGE_START, OPENING_RANGE_END
 )
 from calculate_vwap import calculate_vwap
@@ -1405,6 +1406,30 @@ def plot_range_chart(df, df_fractals_minor, df_fractals_major, start_date, end_d
                          annotation_position="top right",
                          annotation_font_color="blue")
             print(f"[INFO] Entry Time line added at {VWAP_TIME_ENTRY}")
+
+    # ========================================================================
+    # WAKE UP TIME (START_ORANGE_DOT_WYCKOFF_TIME)
+    # ========================================================================
+    if ENABLE_VWAP_WYCKOFF_STRATEGY:
+        # Encontrar el índice más cercano a la hora de Wake up Time
+        if start_date == end_date:
+            target_wakeup_time = pd.to_datetime(f"{start_date} {START_ORANGE_DOT_WYCKOFF_TIME}")
+        else:
+            target_wakeup_time = pd.to_datetime(f"{start_date} {START_ORANGE_DOT_WYCKOFF_TIME}")
+
+        # Buscar el registro más cercano a Wake up Time
+        df_wakeup_time = df[df['timestamp'].dt.time == pd.to_datetime(START_ORANGE_DOT_WYCKOFF_TIME).time()]
+
+        if not df_wakeup_time.empty:
+            wakeup_time_index = df_wakeup_time.iloc[0]['index']
+
+            # Añadir línea vertical AZUL
+            fig.add_vline(x=wakeup_time_index, line_width=2, line_dash="solid",
+                         line_color="blue", row=price_row, col=1,
+                         annotation_text="Wake up Time",
+                         annotation_position="top left",
+                         annotation_font_color="blue")
+            print(f"[INFO] Wake up Time line added at {START_ORANGE_DOT_WYCKOFF_TIME}")
 
     # ========================================================================
     # VWAP BANDS (Standard Deviation)
