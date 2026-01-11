@@ -44,7 +44,7 @@ print("="*80)
 print("VWAP BAND REVERSAL STRATEGY - ENABLED")
 print("="*80)
 print(f"Configuration:")
-print(f"  - Signal Detection: Close beyond 3σ → Cross back through 2σ")
+print(f"  - Signal Detection: Close beyond 3-sigma -> Cross back through 2-sigma")
 print(f"  - Signal Window: After {VWAP_BAND_REVERSAL_START_TIME}")
 print(f"  - Exit Time: {VWAP_BAND_REVERSAL_EXIT_TIME}")
 print(f"  - TP/SL: {VWAP_BAND_REVERSAL_TP_POINTS}/{VWAP_BAND_REVERSAL_SL_POINTS} points")
@@ -64,7 +64,7 @@ if df.empty:
     exit(1)
 
 # Calculate VWAP Fast
-df = calculate_vwap(df, period=VWAP_FAST)
+df['vwap_fast'] = calculate_vwap(df, period=VWAP_FAST)
 
 # Calculate VWAP bands starting from VWAP_BANDS_START_TIME
 bands_start_time = pd.to_datetime(VWAP_BANDS_START_TIME).time()
