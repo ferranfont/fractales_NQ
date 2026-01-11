@@ -14,6 +14,7 @@ from config import (
     START_DATE, END_DATE, FRACTALS_DIR, CHARTS_DIR,
     PLOT_MINOR_FRACTALS, PLOT_MAJOR_FRACTALS, PLOT_MINOR_DOTS, PLOT_MAJOR_DOTS,
     SHOW_FREQUENCY_INDICATOR, PLOT_VWAP, SHOW_FAST_VWAP, SHOW_SLOW_VWAP,
+    SHOW_VWAP_2SIGMA, SHOW_VWAP_3SIGMA, SHOW_BAND_REVERSAL_INDICATOR,
     VWAP_FAST, VWAP_SLOW, SHOW_REGRESSION_CHANNEL,
     PRICE_EJECTION_TRIGGER, OVER_PRICE_EJECTION_TRIGGER, OUTPUTS_DIR,
     VWAP_SLOPE_DEGREE_WINDOW, SHOW_SUBPLOT_VWAP_SLOPE_INDICATOR,
@@ -45,9 +46,12 @@ from config import (
     START_ORANGE_DOT_WYCKOFF_TIME,
     # VWAP Band Reversal Strategy
     ENABLE_VWAP_BAND_REVERSAL_STRATEGY, VWAP_BAND_REVERSAL_START_TIME,
-    ENABLE_OPENING_RANGE_PLOT, OPENING_RANGE_START, OPENING_RANGE_END
+    ENABLE_OPENING_RANGE_PLOT, OPENING_RANGE_START, OPENING_RANGE_END,
+    # Clenow Momentum
+    ENABLE_CLENOW_MOMENTUM, CLENOW_WINDOW, CLENOW_PROJECTION, CLENOW_THRESHOLD
 )
 from calculate_vwap import calculate_vwap
+from calculate_clenow_momentum import calculate_clenow_momentum
 import numpy as np
 
 # ============================================================================
@@ -249,49 +253,43 @@ def plot_range_chart(df, df_fractals_minor, df_fractals_major, start_date, end_d
     has_metrics = df_metrics is not None and not df_metrics.empty
     show_frequency_subplot = has_metrics and SHOW_FREQUENCY_INDICATOR
     show_slope_subplot = SHOW_SUBPLOT_VWAP_SLOPE_INDICATOR
+    show_clenow_subplot = ENABLE_CLENOW_MOMENTUM
+    
+    # Dynamic Subplot Allocation
+    # List of (ID, Weight)
+    subplots = [('price', 0.6)] 
+    
+    if show_slope_subplot:
+        subplots.append(('slope', 0.2))
+    if show_frequency_subplot:
+        subplots.append(('metrics', 0.2))
+    if show_clenow_subplot:
+        subplots.append(('clenow', 0.2))
+        
+    n_rows = len(subplots)
+    
+    # Normalize heights
+    total_weight = sum(s[1] for s in subplots)
+    row_heights = [s[1]/total_weight for s in subplots]
 
-    if show_frequency_subplot and show_slope_subplot:
-        # Crear figura con 3 subplots: Price, Slope, Frequency
-        fig = make_subplots(
-            rows=3, cols=1,
-            shared_xaxes=True,
-            vertical_spacing=0.03,
-            row_heights=[0.6, 0.2, 0.2]
-        )
-        price_row = 1
-        slope_row = 2
-        metrics_row = 3
-    elif show_slope_subplot:
-        # Crear figura con 2 subplots: Price y Slope
-        fig = make_subplots(
-            rows=2, cols=1,
-            shared_xaxes=True,
-            vertical_spacing=0.05,
-            row_heights=[0.75, 0.25]
-        )
-        price_row = 1
-        slope_row = 2
-        metrics_row = None
-    elif show_frequency_subplot:
-        # Crear figura con 2 subplots: Price y Frequency
-        fig = make_subplots(
-            rows=2, cols=1,
-            shared_xaxes=True,
-            vertical_spacing=0.05,
-            row_heights=[0.75, 0.25]
-        )
-        price_row = 1
-        slope_row = None
-        metrics_row = 2
-    else:
-        # Crear figura con 1 solo subplot: Price
-        fig = make_subplots(
-            rows=1, cols=1,
-            shared_xaxes=True
-        )
-        price_row = 1
-        slope_row = None
-        metrics_row = None
+    fig = make_subplots(
+        rows=n_rows, cols=1,
+        shared_xaxes=True,
+        vertical_spacing=0.03,
+        row_heights=row_heights
+    )
+    
+    # Map rows
+    price_row = 1
+    slope_row = None
+    metrics_row = None
+    clenow_row = None
+    
+    for i, (name, _) in enumerate(subplots):
+        r = i + 1
+        if name == 'slope': slope_row = r
+        elif name == 'metrics': metrics_row = r
+        elif name == 'clenow': clenow_row = r
         
     print("[DEBUG] Step 3: Adding price trace...")
 
@@ -1495,49 +1493,58 @@ def plot_range_chart(df, df_fractals_minor, df_fractals_major, start_date, end_d
             lower_band_3sigma = df_bands['vwap_fast'] - 3 * std_dev
 
             # Dibujar bandas 2 sigma (líneas sólidas naranja)
-            fig.add_trace(go.Scatter(
-                x=df_bands['index'],
-                y=upper_band_2sigma,
-                mode='lines',
-                name='VWAP +2σ',
-                line=dict(color='rgba(255, 165, 0, 0.4)', width=1, dash='solid'),
-                showlegend=True
-            ), row=price_row, col=1)
+            if SHOW_VWAP_2SIGMA:
+                fig.add_trace(go.Scatter(
+                    x=df_bands['index'],
+                    y=upper_band_2sigma,
+                    mode='lines',
+                    name='VWAP +2σ',
+                    line=dict(color='rgba(255, 165, 0, 0.4)', width=1, dash='solid'),
+                    showlegend=True
+                ), row=price_row, col=1)
 
-            fig.add_trace(go.Scatter(
-                x=df_bands['index'],
-                y=lower_band_2sigma,
-                mode='lines',
-                name='VWAP -2σ',
-                line=dict(color='rgba(255, 165, 0, 0.4)', width=1, dash='solid'),
-                showlegend=True
-            ), row=price_row, col=1)
+                fig.add_trace(go.Scatter(
+                    x=df_bands['index'],
+                    y=lower_band_2sigma,
+                    mode='lines',
+                    name='VWAP -2σ',
+                    line=dict(color='rgba(255, 165, 0, 0.4)', width=1, dash='solid'),
+                    showlegend=True
+                ), row=price_row, col=1)
 
             # Dibujar bandas 3 sigma (líneas sólidas rojas)
-            fig.add_trace(go.Scatter(
-                x=df_bands['index'],
-                y=upper_band_3sigma,
-                mode='lines',
-                name='VWAP +3σ',
-                line=dict(color='rgba(255, 0, 0, 0.3)', width=1, dash='solid'),
-                showlegend=True
-            ), row=price_row, col=1)
+            if SHOW_VWAP_3SIGMA:
+                fig.add_trace(go.Scatter(
+                    x=df_bands['index'],
+                    y=upper_band_3sigma,
+                    mode='lines',
+                    name='VWAP +3σ',
+                    line=dict(color='rgba(255, 0, 0, 0.3)', width=1, dash='solid'),
+                    showlegend=True
+                ), row=price_row, col=1)
 
-            fig.add_trace(go.Scatter(
-                x=df_bands['index'],
-                y=lower_band_3sigma,
-                mode='lines',
-                name='VWAP -3σ',
-                line=dict(color='rgba(255, 0, 0, 0.3)', width=1, dash='solid'),
-                showlegend=True
-            ), row=price_row, col=1)
+                fig.add_trace(go.Scatter(
+                    x=df_bands['index'],
+                    y=lower_band_3sigma,
+                    mode='lines',
+                    name='VWAP -3σ',
+                    line=dict(color='rgba(255, 0, 0, 0.3)', width=1, dash='solid'),
+                    showlegend=True
+                ), row=price_row, col=1)
 
-            print(f"[INFO] VWAP bands (2σ and 3σ) added from {VWAP_BANDS_START_TIME}")
+            # Log which bands were added
+            bands_added = []
+            if SHOW_VWAP_2SIGMA:
+                bands_added.append("2σ")
+            if SHOW_VWAP_3SIGMA:
+                bands_added.append("3σ")
+            if bands_added:
+                print(f"[INFO] VWAP bands ({' and '.join(bands_added)}) added from {VWAP_BANDS_START_TIME}")
 
             # ========================================================================
-            # DETECT BLUE DOTS: Price touches 2σ band and crosses back through 1σ band
+            # DETECT BLUE DOTS: Price touches 3σ band and crosses back through 2σ band
             # ========================================================================
-            if VWAP_TIME_ENTRY:
+            if SHOW_BAND_REVERSAL_INDICATOR and VWAP_TIME_ENTRY:
                 entry_time = pd.to_datetime(VWAP_TIME_ENTRY).time()
 
                 # Calcular bandas 1 sigma para detección
@@ -1631,12 +1638,77 @@ def plot_range_chart(df, df_fractals_minor, df_fractals_major, start_date, end_d
 
     # Configurar layout general
     # Calcular altura según subplots activos
-    if show_frequency_subplot and show_slope_subplot:
-        height = 1200
-    elif show_slope_subplot or show_frequency_subplot:
-        height = 900
-    else:
-        height = 800  # Increased from 600 to 800 for better visibility when no subplots
+    # ========================================================================
+    # CLENOW SYSTEMATIC MOMENTUM INDICATOR
+    # ========================================================================
+    if clenow_row is not None:
+        print(f"[DEBUG] Calculating Clenow Momentum (Window={CLENOW_WINDOW}, Projection={CLENOW_PROJECTION})...")
+        df = calculate_clenow_momentum(df, window=CLENOW_WINDOW, projection_factor=CLENOW_PROJECTION)
+        
+        if 'clenow_score' in df.columns:
+            # Color logic: Green if > Threshold or just plot line
+            
+            # Plot the Score Line
+            fig.add_trace(go.Scatter(
+                x=df['index'], y=df['clenow_score'],
+                mode='lines', name='Momentum Score',
+                line=dict(color='blue', width=1.5),
+                hovertemplate='<b>Score</b>: %{y:.2f}<br>Slope: %{text:.4f}%<br>R2: %{customdata:.2f}<extra></extra>',
+                text=df['clenow_slope'],
+                customdata=df['clenow_r2']
+            ), row=clenow_row, col=1)
+            
+            # Plot Thresholds
+            fig.add_hline(y=CLENOW_THRESHOLD, row=clenow_row, col=1, 
+                          line_dash="solid", line_width=1, line_color="green", 
+                          annotation_text=f"Long (> {CLENOW_THRESHOLD})")
+            
+            fig.add_hline(y=-CLENOW_THRESHOLD, row=clenow_row, col=1, 
+                          line_dash="solid", line_width=1, line_color="red", 
+                          annotation_text=f"Short (< -{CLENOW_THRESHOLD})",
+                          annotation_position="bottom right")
+
+            # Zero Line (Neutral)
+            fig.add_hline(y=0, row=clenow_row, col=1, 
+                          line_color="gray", line_width=1, opacity=0.5)
+            
+            # --- Signal Detection for Price Chart ---
+            prev_score = df['clenow_score'].shift(1)
+            
+            # Long Signal: Crossed > 20
+            long_signals = df[(prev_score <= CLENOW_THRESHOLD) & (df['clenow_score'] > CLENOW_THRESHOLD)]
+            if not long_signals.empty:
+                fig.add_trace(go.Scatter(
+                    x=long_signals['index'], y=long_signals['close'],
+                    mode='markers', name='Clenow Long',
+                    marker=dict(color='green', size=8, symbol='circle'),
+                    hovertemplate='<b>Clenow Long</b><br>Score: %{customdata:.2f}<extra></extra>',
+                    customdata=long_signals['clenow_score']
+                ), row=price_row, col=1)
+
+            # Short Signal: Crossed < -20
+            short_signals = df[(prev_score >= -CLENOW_THRESHOLD) & (df['clenow_score'] < -CLENOW_THRESHOLD)]
+            if not short_signals.empty:
+                fig.add_trace(go.Scatter(
+                    x=short_signals['index'], y=short_signals['close'],
+                    mode='markers', name='Clenow Short',
+                    marker=dict(color='red', size=8, symbol='circle'),
+                    hovertemplate='<b>Clenow Short</b><br>Score: %{customdata:.2f}<extra></extra>',
+                    customdata=short_signals['clenow_score']
+                ), row=price_row, col=1)
+            
+            print(f"[INFO] Plotting Clenow Momentum")
+
+
+    # Configurar layout general
+    # Calcular altura según subplots activos
+    num_extra_plots = (1 if show_slope_subplot else 0) + (1 if show_frequency_subplot else 0) + (1 if show_clenow_subplot else 0)
+    
+    # Compact Height Logic (User Request: "Fit to window" but "+5% main")
+    # Base (Price only) = 600 (was 550)
+    # Each Extra Subplot = +200
+    # Total with 1 extra = 800
+    height = 600 + (200 * num_extra_plots)
 
     fig.update_layout(
         title=title_text,
@@ -1681,6 +1753,16 @@ def plot_range_chart(df, df_fractals_minor, df_fractals_major, start_date, end_d
             showline=True, linewidth=1, linecolor='#d3d3d3',
             tickcolor='gray', tickfont=dict(color='gray'),
             row=metrics_row, col=1
+        )
+
+    # Eje Y para Clenow Momentum (solo si existe)
+    if show_clenow_subplot:
+        fig.update_yaxes(
+            title=f'Score (+/- {CLENOW_THRESHOLD})',
+            showgrid=True, gridcolor='#e0e0e0', gridwidth=0.5,
+            showline=True, linewidth=1, linecolor='#d3d3d3',
+            tickcolor='blue', tickfont=dict(color='blue'),
+            row=clenow_row, col=1
         )
 
     # Crear carpeta de salida si no existe

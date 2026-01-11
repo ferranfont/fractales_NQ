@@ -7,7 +7,7 @@ from pathlib import Path
 # CONFIGURACIÓN DE FECHAS (single day analysis)
 # ============================================================================
 # Opción 1: Fecha única (descomentar para usar una sola fecha)
-DATE = "20251016"  # Fecha en formato YYYYMMDD
+DATE = "20251011"  # Fecha en formato YYYYMMDD
 START_DATE = DATE
 END_DATE = DATE
 
@@ -25,6 +25,26 @@ ENABLE_VWAP_MOMENTUM_STRATEGY = False        # True = ejecutar estrategia, False
 VWAP_MOMENTUM_TP_POINTS = 125.0             # Take profit in points
 VWAP_MOMENTUM_SL_POINTS = 75.0            # Stop loss in points
 VWAP_MOMENTUM_MAX_POSITIONS = 1             # Maximum number of positions open simultaneously
+
+# ============================================================================
+# CLENOW SYSTEMATIC MOMENTUM INDICATOR (Trend Strength)
+# ============================================================================
+ENABLE_CLENOW_MOMENTUM = True           # Calculate and plot Clenow Momentum
+CLENOW_WINDOW = 125                     # Rolling window size (minutes)
+CLENOW_PROJECTION = 1440                # Projection factor (minutes in a day)
+ENABLE_CLENOW_MOMENTUM = True           # Calculate and plot Clenow Momentum
+CLENOW_WINDOW = 125                     # Rolling window size (minutes)
+CLENOW_PROJECTION = 1440                # Projection factor (minutes in a day)
+CLENOW_THRESHOLD = 20                   # Go/No-Go Threshold
+
+# ============================================================================
+# VWAP SCORE STRATEGY (Clenow Signals)
+# ============================================================================
+ENABLE_STRAT_VWAP_SCORE = True
+VWAP_SCORE_TP_POINTS = 400              # Take Profit (Points)
+VWAP_SCORE_SL_POINTS = 300               # Stop Loss (Points)
+VWAP_SCORE_EXIT_TIME = "22:00:00"       # EOD Exit Time
+
 
 # ============================================================================
 # CONFIGURACIÓN DE HORARIO DE TRADING 
@@ -169,7 +189,7 @@ VWAP_BANDS_START_TIME = "15:30:00"           # Hora de inicio para calcular band
 # ============================================================================
 # TRADING PARAMETERS VWAP WYCKOFF STRATEGY (Orange Dot Entry)
 # ============================================================================
-ENABLE_VWAP_WYCKOFF_STRATEGY = True           # True = ejecutar estrategia, False = NO ejecutar
+ENABLE_VWAP_WYCKOFF_STRATEGY = False           # True = ejecutar estrategia, False = NO ejecutar
 START_ORANGE_DOT_WYCKOFF_TIME = "06:00:00"    # Hora de inicio para buscar Orange Dots
 END_ORANGE_DOT_WYCKOFF_TIME = "10:50:00"      # Hora de fin para buscar Orange Dots
 VWAP_WYCKOFF_EXIT_TIME = "15:29:00"           # Hora de cierre forzoso
@@ -186,7 +206,7 @@ WYCKOFF_ATR_MULTIPLIER = 10                    # Multiplier for ATR to determine
 # ============================================================================
 # TRADING PARAMETERS VWAP BAND REVERSAL STRATEGY (Blue Dot Entry)
 # ============================================================================
-ENABLE_VWAP_BAND_REVERSAL_STRATEGY = True    # True = ejecutar estrategia, False = NO ejecutar
+ENABLE_VWAP_BAND_REVERSAL_STRATEGY = False    # True = ejecutar estrategia, False = NO ejecutar
 VWAP_BAND_REVERSAL_START_TIME = "17:00:00"   # Hora de inicio para buscar señales (después de Entry Time)
 VWAP_BAND_REVERSAL_EXIT_TIME = "22:00:00"    # Hora de cierre forzoso
 VWAP_BAND_REVERSAL_TP_POINTS = 400.0          # Take profit in points
@@ -276,13 +296,16 @@ SHOW_REGRESSION_CHANNEL = False   # True = mostrar canal de regresión en el gr�
 SHOW_SUBPLOT_VWAP_SLOPE_INDICATOR = False      # True = mostrar subplot de VWAP Slope, False = ocultar subplot
 SHOW_VWAP_INDICATOR_CROSSOVER= True        # True = mostrar señales de cruce VWAP en el gráfico
 SHOW_ORANGE_DOT = True         # True = mostrar puntos naranjas (VWAP Slope crossover) en el gráfico de precio
-SHOW_BLUE_SQUARE = True         # True = mostrar cuadrados azules (VWAP Slope crossdown) en el gráfico de precio
+SHOW_BLUE_SQUARE = False         # True = mostrar cuadrados azules (VWAP Slope crossdown) en el gráfico de precio
 SHOW_GREEN_DOT = False          # True = mostrar puntos verdes (Price Ejection) en el gráfico de precio
 SHOW_RED_DOT = False             # True = mostrar puntos rojos (OVER Price Ejection) en el gráfico de precio
 
 PLOT_VWAP = True                 # True = dibujar indicador VWAP en el gráfico
 SHOW_FAST_VWAP = True            # True = mostrar VWAP Fast (magenta)
 SHOW_SLOW_VWAP = True            # True = mostrar VWAP Slow (verde)
+SHOW_VWAP_2SIGMA = False          # True = mostrar bandas 2-sigma (upper/lower)
+SHOW_VWAP_3SIGMA = False          # True = mostrar bandas 3-sigma (upper/lower)
+SHOW_BAND_REVERSAL_INDICATOR = False  # True = mostrar Blue Dots (Band Reversal signals)
 
 # ============================================================================
 # ITERATION PARAMETERS

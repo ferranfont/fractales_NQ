@@ -1,11 +1,12 @@
 import pandas as pd
 import os
 from pathlib import Path
+from normaliza_columns_csv import normalize_columns
 
-def segregate_csv_by_date(input_file='data/time_and_sales_20251224_080632.csv'):
+def segregate_csv_by_date(input_file='data/time_and_sales_20251225_090830.csv'):
     """
     Segrega un archivo CSV por fecha, creando un archivo CSV por cada día único.
-    Normaliza automáticamente los nombres de columnas (mayúsculas/minúsculas).
+    Normaliza automáticamente los nombres de columnas usando normaliza_columns_csv.py
 
     Args:
         input_file: Ruta al archivo CSV de entrada
@@ -14,25 +15,10 @@ def segregate_csv_by_date(input_file='data/time_and_sales_20251224_080632.csv'):
     print(f"Leyendo archivo: {input_file}")
     df = pd.read_csv(input_file, sep=';', decimal=',')
 
-    # Normalizar nombres de columnas (soportar mayúsculas y minúsculas)
-    # Siempre convertir a minúsculas para el formato de salida
-    column_mapping = {}
-    for col in df.columns:
-        col_lower = col.lower()
-        if col_lower in ('timestamp', 'date'):
-            column_mapping[col] = 'timestamp'
-        elif col_lower == 'precio':
-            column_mapping[col] = 'precio'
-        elif col_lower in ('volumen', 'volume'):
-            column_mapping[col] = 'volume'
-        elif col_lower == 'lado':
-            column_mapping[col] = 'lado'
-        elif col_lower == 'bid':
-            column_mapping[col] = 'bid'
-        elif col_lower == 'ask':
-            column_mapping[col] = 'ask'
+    print(f"[INFO] Columnas originales: {list(df.columns)}")
 
-    df.rename(columns=column_mapping, inplace=True)
+    # Normalizar columnas usando la función compartida
+    df = normalize_columns(df)
 
     print(f"[INFO] Columnas normalizadas: {list(df.columns)}")
 

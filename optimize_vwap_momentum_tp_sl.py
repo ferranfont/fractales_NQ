@@ -14,7 +14,8 @@ import re
 from config import (
     VWAP_MOMENTUM_MAX_POSITIONS,
     VWAP_MOMENTUM_STRAT_START_HOUR, VWAP_MOMENTUM_STRAT_END_HOUR,
-    VWAP_FAST, PRICE_EJECTION_TRIGGER, VWAP_SLOPE_DEGREE_WINDOW,
+    VWAP_FAST, VWAP_SLOW, PRICE_EJECTION_TRIGGER, VWAP_SLOPE_DEGREE_WINDOW,
+    USE_VWAP_SLOW_TREND_FILTER,
     DATA_DIR, OUTPUTS_DIR
 )
 from calculate_vwap import calculate_vwap
@@ -109,6 +110,10 @@ def backtest_single_day(
         # Calculate VWAP
         df['vwap_fast'] = calculate_vwap(df, period=VWAP_FAST)
 
+        # Calculate VWAP Slow if trend filter is enabled
+        if USE_VWAP_SLOW_TREND_FILTER:
+            df['vwap_slow'] = calculate_vwap(df, period=VWAP_SLOW)
+
         # Calculate price-VWAP distance
         df['price_vwap_distance'] = abs((df['close'] - df['vwap_fast']) / df['vwap_fast'])
 
@@ -119,9 +124,17 @@ def backtest_single_day(
         df['price_above_vwap'] = (df['close'] > df['vwap_fast']).astype(bool)
         df['price_below_vwap'] = (df['close'] < df['vwap_fast']).astype(bool)
 
-        # Entry signals
-        df['long_signal'] = df['price_ejection'] & df['price_above_vwap']
-        df['short_signal'] = df['price_ejection'] & df['price_below_vwap']
+        # Entry signals (with optional trend filter)
+        if USE_VWAP_SLOW_TREND_FILTER:
+            # Only trade when VWAP Fast confirms the trend direction
+            df['trend_allows_long'] = (df['vwap_fast'] > df['vwap_slow']).astype(bool)
+            df['trend_allows_short'] = (df['vwap_fast'] < df['vwap_slow']).astype(bool)
+            df['long_signal'] = df['price_ejection'] & df['price_above_vwap'] & df['trend_allows_long']
+            df['short_signal'] = df['price_ejection'] & df['price_below_vwap'] & df['trend_allows_short']
+        else:
+            # No trend filter - trade all price ejections
+            df['long_signal'] = df['price_ejection'] & df['price_above_vwap']
+            df['short_signal'] = df['price_ejection'] & df['price_below_vwap']
 
         # Parse trading time range
         start_time = datetime.strptime(start_hour, "%H:%M:%S").time()
@@ -365,6 +378,7 @@ def optimize_parameters_multiday(
                     'max_drawdown': 0.0,
                     'sharpe_ratio': 0.0,
                     'sortino_ratio': 0.0,
+                    'ulcer_index': 0.0,
                     'profit_factor': 0.0,
                     'avg_trades_per_day': 0.0
                 })
@@ -415,6 +429,13 @@ def optimize_parameters_multiday(
             else:
                 sortino_ratio = 0.0
 
+            # Ulcer Index (measures drawdown pain)
+            if len(cum_pnl) > 0:
+                drawdown_pct = (drawdown / (running_max + 1e-10)) * 100  # Avoid division by zero
+                ulcer_index = np.sqrt((drawdown_pct ** 2).mean())
+            else:
+                ulcer_index = 0.0
+
             # Profit Factor
             gross_profit = profit_trades['pnl_usd'].sum() if len(profit_trades) > 0 else 0
             gross_loss = abs(stop_trades['pnl_usd'].sum()) if len(stop_trades) > 0 else 0
@@ -423,7 +444,7 @@ def optimize_parameters_multiday(
             # Average trades per day
             avg_trades_per_day = total_trades / days_processed if days_processed > 0 else 0
 
-            print(f"    Days: {days_processed}, Trades: {total_trades}, Win Rate: {win_rate:.1f}%, P&L: ${total_pnl_usd:,.0f}, Sharpe: {sharpe_ratio:.2f}")
+            print(f"    Days: {days_processed}, Trades: {total_trades}, Win Rate: {win_rate:.1f}%, P&L: ${total_pnl_usd:,.0f}, Sharpe: {sharpe_ratio:.2f}, Sortino: {sortino_ratio:.2f}, Ulcer: {ulcer_index:.2f}%")
 
             results.append({
                 'tp': tp,
@@ -440,6 +461,7 @@ def optimize_parameters_multiday(
                 'max_drawdown': max_drawdown,
                 'sharpe_ratio': sharpe_ratio,
                 'sortino_ratio': sortino_ratio,
+                'ulcer_index': ulcer_index,
                 'profit_factor': profit_factor if profit_factor < 999 else 999.99,
                 'avg_trades_per_day': avg_trades_per_day
             })
@@ -475,6 +497,8 @@ def generate_optimization_report(df_results: pd.DataFrame, dates: list):
 
     # Find best by different criteria
     best_sharpe = df_results.loc[df_results['sharpe_ratio'].idxmax()] if df_results['sharpe_ratio'].max() > 0 else None
+    best_sortino = df_results.loc[df_results['sortino_ratio'].idxmax()] if df_results['sortino_ratio'].max() > 0 else None
+    best_ulcer = df_results.loc[df_results['ulcer_index'].idxmin()] if df_results['ulcer_index'].min() >= 0 else None  # Lower is better
     best_pnl = df_results.loc[df_results['total_pnl_usd'].idxmax()]
     best_win_rate = df_results.loc[df_results['win_rate'].idxmax()] if df_results['win_rate'].max() > 0 else None
     best_profit_factor = df_results.loc[df_results['profit_factor'].idxmax()] if df_results['profit_factor'].max() > 0 else None
@@ -686,7 +710,7 @@ def generate_optimization_report(df_results: pd.DataFrame, dates: list):
         </div>
     """
 
-    # Top 10 Results Table
+    # Top 10 Results Table (by Sharpe)
     html += """
         <div class="section">
             <h2>Top 10 Combinations (by Sharpe Ratio)</h2>
@@ -705,6 +729,7 @@ def generate_optimization_report(df_results: pd.DataFrame, dates: list):
                         <th>Avg/Trade</th>
                         <th>Sharpe</th>
                         <th>Sortino</th>
+                        <th>Ulcer%</th>
                         <th>PF</th>
                         <th>Max DD</th>
                     </tr>
@@ -729,6 +754,131 @@ def generate_optimization_report(df_results: pd.DataFrame, dates: list):
                         <td class="{pnl_class}">${row['avg_pnl_usd']:,.2f}</td>
                         <td><strong>{row['sharpe_ratio']:.2f}</strong></td>
                         <td>{row['sortino_ratio']:.2f}</td>
+                        <td>{row['ulcer_index']:.2f}%</td>
+                        <td>{pf_display}</td>
+                        <td class="negative">${row['max_drawdown']:,.0f}</td>
+                    </tr>
+        """
+
+    html += """
+                </tbody>
+            </table>
+        </div>
+    """
+
+    # Top 10 Results Table (by Sortino)
+    top_10_sortino = df_results.sort_values('sortino_ratio', ascending=False).head(10)
+    html += """
+        <div class="section">
+            <h2>Top 10 Combinations (by Sortino Ratio)</h2>
+            <div class="info-box">
+                <strong>Sortino Ratio:</strong> Like Sharpe but only penalizes downside volatility (losses), ignoring upside volatility.
+                More realistic for trading strategies. Higher is better: >1.0 is good, >2.0 is excellent.
+            </div>
+            <table>
+                <thead>
+                    <tr>
+                        <th>Rank</th>
+                        <th>TP</th>
+                        <th>SL</th>
+                        <th>R:R</th>
+                        <th>Days</th>
+                        <th>Trades</th>
+                        <th>Avg/Day</th>
+                        <th>Win%</th>
+                        <th>Total P&L</th>
+                        <th>Avg/Trade</th>
+                        <th>Sortino</th>
+                        <th>Sharpe</th>
+                        <th>Ulcer%</th>
+                        <th>PF</th>
+                        <th>Max DD</th>
+                    </tr>
+                </thead>
+                <tbody>
+    """
+
+    for idx, row in top_10_sortino.iterrows():
+        pnl_class = "positive" if row['total_pnl_usd'] > 0 else "negative"
+        pf_display = f"{row['profit_factor']:.2f}" if row['profit_factor'] < 999 else '&infin;'
+        rank = df_results.index.get_loc(idx) + 1
+        html += f"""
+                    <tr>
+                        <td><span class="rank">#{rank}</span></td>
+                        <td>{row['tp']:.0f}</td>
+                        <td>{row['sl']:.0f}</td>
+                        <td>{row['rr_ratio']:.2f}</td>
+                        <td>{row['days_traded']:.0f}</td>
+                        <td>{row['total_trades']:.0f}</td>
+                        <td>{row['avg_trades_per_day']:.1f}</td>
+                        <td>{row['win_rate']:.1f}%</td>
+                        <td class="{pnl_class}">${row['total_pnl_usd']:,.0f}</td>
+                        <td class="{pnl_class}">${row['avg_pnl_usd']:,.2f}</td>
+                        <td><strong>{row['sortino_ratio']:.2f}</strong></td>
+                        <td>{row['sharpe_ratio']:.2f}</td>
+                        <td>{row['ulcer_index']:.2f}%</td>
+                        <td>{pf_display}</td>
+                        <td class="negative">${row['max_drawdown']:,.0f}</td>
+                    </tr>
+        """
+
+    html += """
+                </tbody>
+            </table>
+        </div>
+    """
+
+    # Top 10 Results Table (by Ulcer Index - Lower is Better)
+    top_10_ulcer = df_results.sort_values('ulcer_index', ascending=True).head(10)
+    html += """
+        <div class="section">
+            <h2>Top 10 Combinations (by Ulcer Index - Lower is Better)</h2>
+            <div class="info-box">
+                <strong>Ulcer Index:</strong> Measures the depth and duration of drawdowns (pain from losses).
+                Lower is better: <10% is excellent, 10-20% is good, 20-30% is acceptable for futures trading.
+            </div>
+            <table>
+                <thead>
+                    <tr>
+                        <th>Rank</th>
+                        <th>TP</th>
+                        <th>SL</th>
+                        <th>R:R</th>
+                        <th>Days</th>
+                        <th>Trades</th>
+                        <th>Avg/Day</th>
+                        <th>Win%</th>
+                        <th>Total P&L</th>
+                        <th>Avg/Trade</th>
+                        <th>Ulcer%</th>
+                        <th>Sortino</th>
+                        <th>Sharpe</th>
+                        <th>PF</th>
+                        <th>Max DD</th>
+                    </tr>
+                </thead>
+                <tbody>
+    """
+
+    for idx, row in top_10_ulcer.iterrows():
+        pnl_class = "positive" if row['total_pnl_usd'] > 0 else "negative"
+        pf_display = f"{row['profit_factor']:.2f}" if row['profit_factor'] < 999 else '&infin;'
+        rank = df_results.index.get_loc(idx) + 1
+        html += f"""
+                    <tr>
+                        <td><span class="rank">#{rank}</span></td>
+                        <td>{row['tp']:.0f}</td>
+                        <td>{row['sl']:.0f}</td>
+                        <td>{row['rr_ratio']:.2f}</td>
+                        <td>{row['days_traded']:.0f}</td>
+                        <td>{row['total_trades']:.0f}</td>
+                        <td>{row['avg_trades_per_day']:.1f}</td>
+                        <td>{row['win_rate']:.1f}%</td>
+                        <td class="{pnl_class}">${row['total_pnl_usd']:,.0f}</td>
+                        <td class="{pnl_class}">${row['avg_pnl_usd']:,.2f}</td>
+                        <td><strong>{row['ulcer_index']:.2f}%</strong></td>
+                        <td>{row['sortino_ratio']:.2f}</td>
+                        <td>{row['sharpe_ratio']:.2f}</td>
                         <td>{pf_display}</td>
                         <td class="negative">${row['max_drawdown']:,.0f}</td>
                     </tr>
@@ -760,6 +910,7 @@ def generate_optimization_report(df_results: pd.DataFrame, dates: list):
                             <th>Avg/Trade</th>
                             <th>Sharpe</th>
                             <th>Sortino</th>
+                            <th>Ulcer%</th>
                             <th>PF</th>
                             <th>Max DD</th>
                         </tr>
@@ -784,6 +935,7 @@ def generate_optimization_report(df_results: pd.DataFrame, dates: list):
                             <td class="{pnl_class}">${row['avg_pnl_usd']:,.2f}</td>
                             <td><strong>{row['sharpe_ratio']:.2f}</strong></td>
                             <td>{row['sortino_ratio']:.2f}</td>
+                            <td>{row['ulcer_index']:.2f}%</td>
                             <td>{pf_display}</td>
                             <td class="negative">${row['max_drawdown']:,.0f}</td>
                         </tr>
@@ -800,7 +952,8 @@ def generate_optimization_report(df_results: pd.DataFrame, dates: list):
             <p><strong>Metric Definitions:</strong></p>
             <p style="font-size: 12px; margin: 5px 0;">
                 <strong>Sharpe Ratio:</strong> Risk-adjusted return (higher is better, >1.0 is good, >2.0 is excellent)<br>
-                <strong>Sortino Ratio:</strong> Like Sharpe but only penalizes downside volatility<br>
+                <strong>Sortino Ratio:</strong> Like Sharpe but only penalizes downside volatility (higher is better, more realistic for trading)<br>
+                <strong>Ulcer Index:</strong> Measures depth and duration of drawdowns (lower is better, <10% excellent, 10-20% good, 20-30% acceptable)<br>
                 <strong>Profit Factor:</strong> Gross profit / Gross loss (>1.5 is good)<br>
                 <strong>Max DD:</strong> Maximum drawdown from peak equity
             </p>

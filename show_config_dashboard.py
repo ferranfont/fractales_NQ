@@ -84,6 +84,11 @@ def generate_dashboard_html(config):
     use_vwap_slow_trend_filter = get_config_value(config, 'USE_VWAP_SLOW_TREND_FILTER', False)
     vwap_slow = get_config_value(config, 'VWAP_SLOW', 200)
 
+    # Grid Entry System
+    use_entry_grid = get_config_value(config, 'USE_ENTRY_GRID', False)
+    grid_step = get_config_value(config, 'GRID_STEP', 30)
+    number_of_grid_steps = get_config_value(config, 'NUMBER_OF_GRID_STEPS', 2)
+
     use_vwap_slope_sl = get_config_value(config, 'USE_VWAP_SLOPE_INDICATOR_STOP_LOSS', False)
     use_trail_cash = get_config_value(config, 'USE_TRAIL_CASH', False)
     trail_cash_trigger = get_config_value(config, 'TRAIL_CASH_TRIGGER_POINTS', 100)
@@ -612,6 +617,38 @@ def generate_dashboard_html(config):
                 <tr>
                     <td>VWAP_MOMENTUM_SHORT_ALLOWED</td>
                     <td><span class="param-value {'true' if short_allowed else 'false'}">{str(short_allowed)}</span> - {"Trades SELL habilitadas" if short_allowed else "Trades SELL DESHABILITADAS"}</td>
+                </tr>
+            </table>
+
+            <!-- 3.5. GRID ENTRY SYSTEM -->
+            <h3 style="margin: 30px 0 15px 0; color: #1e293b;">🔢 GRID ENTRY SYSTEM (Multiple entries at different price levels)</h3>
+            <table class="params-table" style="{'opacity: 1; background: #fff3cd;' if use_entry_grid else 'opacity: 0.5; background: #f8fafc;'}">
+                <tr>
+                    <td>USE_ENTRY_GRID</td>
+                    <td><span class="param-value {'true' if use_entry_grid else 'false'}">{str(use_entry_grid)}</span> - {"Grid Entry System ENABLED" if use_entry_grid else "Grid Entry System DISABLED"}</td>
+                </tr>
+                <tr style="{'opacity: 1;' if use_entry_grid else 'opacity: 0.6;'}">
+                    <td>GRID_STEP</td>
+                    <td><span class="param-value {'inactive' if not use_entry_grid else ''}">{grid_step} pts</span> - {("Distance between grid levels (${grid_step * point_value:,.0f})" if use_entry_grid else "Not used (grid disabled)")}</td>
+                </tr>
+                <tr style="{'opacity: 1;' if use_entry_grid else 'opacity: 0.6;'}">
+                    <td>NUMBER_OF_GRID_STEPS</td>
+                    <td><span class="param-value {'inactive' if not use_entry_grid else ''}">{number_of_grid_steps}</span> - {("Number of additional limit orders to place" if use_entry_grid else "Not used (grid disabled)")}</td>
+                </tr>
+                <tr style="{'opacity: 1;' if use_entry_grid else 'opacity: 0.6;'}">
+                    <td colspan="2" style="background: #fef3c7; padding: 10px; font-size: 0.85rem; line-height: 1.5;">
+                        <strong>Grid Logic:</strong><br>
+                        • <strong>BUY:</strong> Places {number_of_grid_steps} limit orders BELOW entry price at -{grid_step}pts, -{grid_step*2}pts, etc.<br>
+                        • <strong>SELL:</strong> Places {number_of_grid_steps} limit orders ABOVE entry price at +{grid_step}pts, +{grid_step*2}pts, etc.<br>
+                        • <strong>Stop Loss:</strong> All grid positions share the SAME SL level as main position<br>
+                        • <strong>Take Profit:</strong> Each grid position has its own TP calculated from fill price<br>
+                        • <strong>Max Positions:</strong> Grid orders do NOT count toward VWAP_MOMENTUM_MAX_POSITIONS<br>
+                        <br>
+                        <strong>Example (BUY @ 25000, TP={tp_points}, SL={sl_points}):</strong><br>
+                        - Main entry 25000 → SL {25000-sl_points} → TP {25000+tp_points}<br>
+                        - Grid 1 fills @ {25000-grid_step} → SL {25000-sl_points} (SAME) → TP {25000-grid_step+tp_points}<br>
+                        - Grid 2 fills @ {25000-grid_step*2} → SL {25000-sl_points} (SAME) → TP {25000-grid_step*2+tp_points}
+                    </td>
                 </tr>
             </table>
 

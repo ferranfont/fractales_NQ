@@ -1,0 +1,2 @@
+entry_time;entry_price;type;exit_time;exit_price;pnl_points;pnl_usd;exit_reason
+2025-10-10 17:44:00;24861,25;sell;2025-10-10 18:03:00;24761,25;100,0;2000,0;profit

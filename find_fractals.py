@@ -307,8 +307,8 @@ def load_nq_tick_data(date_str: str) -> pd.DataFrame:
             col_lower = col.lower()
             if col_lower == 'timestamp':
                 column_mapping[col] = 'timestamp'
-            elif col_lower == 'precio':
-                column_mapping[col] = 'precio'
+            elif col_lower in ('precio', 'price'):
+                column_mapping[col] = 'price'
             elif col_lower in ('volumen', 'volume'):
                 column_mapping[col] = 'volume'
             elif col_lower == 'lado':
@@ -325,7 +325,7 @@ def load_nq_tick_data(date_str: str) -> pd.DataFrame:
 
         print(f"[OK] Cargados {len(df):,} ticks")
         print(f"[INFO] Rango temporal: {df['timestamp'].min()} -> {df['timestamp'].max()}")
-        print(f"[INFO] Rango de precios: {df['precio'].min():.2f} -> {df['precio'].max():.2f}")
+        print(f"[INFO] Rango de precios: {df['price'].min():.2f} -> {df['price'].max():.2f}")
 
         return df
 
@@ -339,7 +339,7 @@ def aggregate_ticks_to_ohlc(df_ticks: pd.DataFrame, timeframe: str = '1min') -> 
     Agrega datos de tick a barras OHLC
 
     Args:
-        df_ticks: DataFrame con datos de tick (columnas: timestamp, precio, volume)
+        df_ticks: DataFrame con datos de tick (columnas: timestamp, price, volume)
         timeframe: Timeframe para agregación (ej: '1min', '5min', '1H')
 
     Returns:
@@ -352,7 +352,7 @@ def aggregate_ticks_to_ohlc(df_ticks: pd.DataFrame, timeframe: str = '1min') -> 
     df_ticks.set_index('timestamp', inplace=True)
 
     # Agregar a OHLC
-    ohlc = df_ticks['precio'].resample(timeframe).ohlc()
+    ohlc = df_ticks['price'].resample(timeframe).ohlc()
     volume = df_ticks['volume'].resample(timeframe).sum()
 
     # Combinar OHLC y volumen

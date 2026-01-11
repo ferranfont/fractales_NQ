@@ -425,19 +425,26 @@ for i, date_str in enumerate(available_dates, 1):
                 plot_script = project_root / "plot_day.py"
                 if plot_script.exists():
                     print(f"[INFO] Generating chart for {date_str}...")
-                    plot_result = subprocess.run(
-                        [sys.executable, str(plot_script), '--no-browser'],
-                        capture_output=True,
-                        text=True,
-                        encoding='utf-8',
-                        cwd=str(project_root)
-                    )
-                    if plot_result.returncode == 0:
-                        print(f"[OK] Chart generated for {date_str}")
-                    else:
-                        print(f"[WARN] Chart generation failed for {date_str}")
-                        if plot_result.stderr:
-                             print(f"[ERROR Plot] {plot_result.stderr}")
+                    try:
+                        plot_result = subprocess.run(
+                            [sys.executable, str(plot_script)],  # Removed --no-browser to allow auto-opening
+                            capture_output=True,
+                            text=True,
+                            encoding='utf-8',
+                            cwd=str(project_root),
+                            timeout=120  # Prevent freeze
+                        )
+                        if plot_result.returncode == 0:
+                            print(f"[OK] Chart generated for {date_str}")
+                        else:
+                            print(f"[WARN] Chart generation failed for {date_str}")
+                            if plot_result.stderr:
+                                print(f"[ERROR] {plot_result.stderr[:200]}")
+
+                    except subprocess.TimeoutExpired:
+                        print(f"[ERROR] Chart generation timed out for {date_str}")
+                    except Exception as e:
+                        print(f"[ERROR] Failed to run plot_day.py: {e}")
                 else:
                     print(f"[WARN] plot_day.py not found, skipping chart generation")
 

@@ -1,0 +1,389 @@
+
+    <!DOCTYPE html>
+    <html>
+    <head>
+        <meta charset="utf-8">
+        <title>Hourly Trade Analysis</title>
+        <script src="https://cdn.plot.ly/plotly-latest.min.js"></script>
+        <style>
+            body {
+                font-family: Arial, sans-serif;
+                margin: 20px;
+                background-color: #f5f5f5;
+            }
+            h1 {
+                text-align: center;
+                color: #2c3e50;
+            }
+            .summary {
+                background: white;
+                padding: 20px;
+                margin: 20px 0;
+                border-radius: 8px;
+                box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+            }
+            table {
+                width: 100%;
+                border-collapse: collapse;
+                margin: 20px 0;
+                background: white;
+                box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+            }
+            th, td {
+                padding: 12px;
+                text-align: left;
+                border-bottom: 1px solid #ddd;
+            }
+            th {
+                background-color: #34495e;
+                color: white;
+                font-weight: bold;
+            }
+            tr:hover {
+                background-color: #f5f5f5;
+            }
+            .positive {
+                color: #27ae60;
+                font-weight: bold;
+            }
+            .negative {
+                color: #e74c3c;
+                font-weight: bold;
+            }
+            .neutral {
+                color: #95a5a6;
+            }
+        </style>
+    </head>
+    <body>
+        <h1>Hourly Trading Performance Analysis</h1>
+
+        <div class="summary">
+            <h3>Summary Statistics</h3>
+            <p><strong>Total Trades:</strong> 397</p>
+            <p><strong>Date Range:</strong> 2025-10-01 to 2025-12-19</p>
+            <p><strong>Total Days:</strong> 57</p>
+            <p><strong>Total P&L:</strong> $67,100.00</p>
+            <p><strong>Overall Win Rate:</strong> 44.8%</p>
+        </div>
+
+        <div id="chart"></div>
+
+        
+    <div style="overflow-x: auto;">
+        <table>
+            <thead>
+                <tr>
+                    <th>Hour</th>
+                    <th>Total Trades</th>
+                    <th>Winners</th>
+                    <th>Losers</th>
+                    <th>Win Rate</th>
+                    <th>Total P&L</th>
+                    <th>Avg P&L</th>
+                    <th>Best Trade</th>
+                    <th>Worst Trade</th>
+                </tr>
+            </thead>
+            <tbody>
+                
+        <tr>
+            <td><strong>00:00</strong></td>
+            <td>0</td>
+            <td>0</td>
+            <td>0</td>
+            <td class="neutral">0.0%</td>
+            <td class="neutral">$0.00</td>
+            <td>$0.00</td>
+            <td class="positive">$0.00</td>
+            <td class="negative">$0.00</td>
+        </tr>
+        
+        <tr>
+            <td><strong>01:00</strong></td>
+            <td>21</td>
+            <td>7</td>
+            <td>14</td>
+            <td class="negative">33.3%</td>
+            <td class="negative">$-3,500.00</td>
+            <td>$-166.67</td>
+            <td class="positive">$2,500.00</td>
+            <td class="negative">$-1,500.00</td>
+        </tr>
+        
+        <tr>
+            <td><strong>02:00</strong></td>
+            <td>20</td>
+            <td>6</td>
+            <td>14</td>
+            <td class="negative">30.0%</td>
+            <td class="negative">$-10,560.00</td>
+            <td>$-528.00</td>
+            <td class="positive">$2,500.00</td>
+            <td class="negative">$-1,500.00</td>
+        </tr>
+        
+        <tr>
+            <td><strong>03:00</strong></td>
+            <td>5</td>
+            <td>1</td>
+            <td>4</td>
+            <td class="negative">20.0%</td>
+            <td class="negative">$-3,500.00</td>
+            <td>$-700.00</td>
+            <td class="positive">$2,500.00</td>
+            <td class="negative">$-1,500.00</td>
+        </tr>
+        
+        <tr>
+            <td><strong>04:00</strong></td>
+            <td>5</td>
+            <td>3</td>
+            <td>2</td>
+            <td class="positive">60.0%</td>
+            <td class="positive">$4,500.00</td>
+            <td>$900.00</td>
+            <td class="positive">$2,500.00</td>
+            <td class="negative">$-1,500.00</td>
+        </tr>
+        
+        <tr>
+            <td><strong>05:00</strong></td>
+            <td>7</td>
+            <td>3</td>
+            <td>4</td>
+            <td class="negative">42.9%</td>
+            <td class="positive">$1,500.00</td>
+            <td>$214.29</td>
+            <td class="positive">$2,500.00</td>
+            <td class="negative">$-1,500.00</td>
+        </tr>
+        
+        <tr>
+            <td><strong>06:00</strong></td>
+            <td>4</td>
+            <td>3</td>
+            <td>1</td>
+            <td class="positive">75.0%</td>
+            <td class="positive">$6,000.00</td>
+            <td>$1,500.00</td>
+            <td class="positive">$2,500.00</td>
+            <td class="negative">$-1,500.00</td>
+        </tr>
+        
+        <tr>
+            <td><strong>07:00</strong></td>
+            <td>10</td>
+            <td>4</td>
+            <td>6</td>
+            <td class="negative">40.0%</td>
+            <td class="negative">$-855.00</td>
+            <td>$-85.50</td>
+            <td class="positive">$2,500.00</td>
+            <td class="negative">$-1,500.00</td>
+        </tr>
+        
+        <tr>
+            <td><strong>08:00</strong></td>
+            <td>9</td>
+            <td>5</td>
+            <td>4</td>
+            <td class="positive">55.6%</td>
+            <td class="positive">$6,500.00</td>
+            <td>$722.22</td>
+            <td class="positive">$2,500.00</td>
+            <td class="negative">$-1,500.00</td>
+        </tr>
+        
+        <tr>
+            <td><strong>09:00</strong></td>
+            <td>12</td>
+            <td>3</td>
+            <td>9</td>
+            <td class="negative">25.0%</td>
+            <td class="negative">$-6,000.00</td>
+            <td>$-500.00</td>
+            <td class="positive">$2,500.00</td>
+            <td class="negative">$-1,500.00</td>
+        </tr>
+        
+        <tr>
+            <td><strong>10:00</strong></td>
+            <td>10</td>
+            <td>7</td>
+            <td>3</td>
+            <td class="positive">70.0%</td>
+            <td class="positive">$13,000.00</td>
+            <td>$1,300.00</td>
+            <td class="positive">$2,500.00</td>
+            <td class="negative">$-1,500.00</td>
+        </tr>
+        
+        <tr>
+            <td><strong>11:00</strong></td>
+            <td>14</td>
+            <td>5</td>
+            <td>9</td>
+            <td class="negative">35.7%</td>
+            <td class="negative">$-2,570.00</td>
+            <td>$-183.57</td>
+            <td class="positive">$2,500.00</td>
+            <td class="negative">$-1,500.00</td>
+        </tr>
+        
+        <tr>
+            <td><strong>12:00</strong></td>
+            <td>6</td>
+            <td>5</td>
+            <td>1</td>
+            <td class="positive">83.3%</td>
+            <td class="positive">$11,000.00</td>
+            <td>$1,833.33</td>
+            <td class="positive">$2,500.00</td>
+            <td class="negative">$-1,500.00</td>
+        </tr>
+        
+        <tr>
+            <td><strong>13:00</strong></td>
+            <td>13</td>
+            <td>5</td>
+            <td>8</td>
+            <td class="negative">38.5%</td>
+            <td class="positive">$500.00</td>
+            <td>$38.46</td>
+            <td class="positive">$2,500.00</td>
+            <td class="negative">$-1,500.00</td>
+        </tr>
+        
+        <tr>
+            <td><strong>14:00</strong></td>
+            <td>15</td>
+            <td>5</td>
+            <td>10</td>
+            <td class="negative">33.3%</td>
+            <td class="negative">$-5,430.00</td>
+            <td>$-362.00</td>
+            <td class="positive">$2,500.00</td>
+            <td class="negative">$-1,500.00</td>
+        </tr>
+        
+        <tr>
+            <td><strong>15:00</strong></td>
+            <td>47</td>
+            <td>19</td>
+            <td>28</td>
+            <td class="negative">40.4%</td>
+            <td class="positive">$7,475.00</td>
+            <td>$159.04</td>
+            <td class="positive">$2,500.00</td>
+            <td class="negative">$-1,500.00</td>
+        </tr>
+        
+        <tr>
+            <td><strong>16:00</strong></td>
+            <td>44</td>
+            <td>21</td>
+            <td>23</td>
+            <td class="negative">47.7%</td>
+            <td class="positive">$16,475.00</td>
+            <td>$374.43</td>
+            <td class="positive">$2,500.00</td>
+            <td class="negative">$-1,500.00</td>
+        </tr>
+        
+        <tr>
+            <td><strong>17:00</strong></td>
+            <td>39</td>
+            <td>21</td>
+            <td>18</td>
+            <td class="positive">53.8%</td>
+            <td class="positive">$17,805.00</td>
+            <td>$456.54</td>
+            <td class="positive">$2,500.00</td>
+            <td class="negative">$-1,500.00</td>
+        </tr>
+        
+        <tr>
+            <td><strong>18:00</strong></td>
+            <td>34</td>
+            <td>16</td>
+            <td>18</td>
+            <td class="negative">47.1%</td>
+            <td class="positive">$14,130.00</td>
+            <td>$415.59</td>
+            <td class="positive">$2,500.00</td>
+            <td class="negative">$-1,500.00</td>
+        </tr>
+        
+        <tr>
+            <td><strong>19:00</strong></td>
+            <td>31</td>
+            <td>12</td>
+            <td>19</td>
+            <td class="negative">38.7%</td>
+            <td class="positive">$290.00</td>
+            <td>$9.35</td>
+            <td class="positive">$2,500.00</td>
+            <td class="negative">$-1,500.00</td>
+        </tr>
+        
+        <tr>
+            <td><strong>20:00</strong></td>
+            <td>22</td>
+            <td>9</td>
+            <td>13</td>
+            <td class="negative">40.9%</td>
+            <td class="negative">$-7,895.00</td>
+            <td>$-358.86</td>
+            <td class="positive">$2,500.00</td>
+            <td class="negative">$-1,500.00</td>
+        </tr>
+        
+        <tr>
+            <td><strong>21:00</strong></td>
+            <td>17</td>
+            <td>9</td>
+            <td>8</td>
+            <td class="positive">52.9%</td>
+            <td class="positive">$5,640.00</td>
+            <td>$331.76</td>
+            <td class="positive">$2,500.00</td>
+            <td class="negative">$-1,500.00</td>
+        </tr>
+        
+        <tr>
+            <td><strong>22:00</strong></td>
+            <td>12</td>
+            <td>9</td>
+            <td>3</td>
+            <td class="positive">75.0%</td>
+            <td class="positive">$2,595.00</td>
+            <td>$216.25</td>
+            <td class="positive">$1,695.00</td>
+            <td class="negative">$-1,140.00</td>
+        </tr>
+        
+        <tr>
+            <td><strong>23:00</strong></td>
+            <td>0</td>
+            <td>0</td>
+            <td>0</td>
+            <td class="neutral">0.0%</td>
+            <td class="neutral">$0.00</td>
+            <td>$0.00</td>
+            <td class="positive">$0.00</td>
+            <td class="negative">$0.00</td>
+        </tr>
+        
+            </tbody>
+        </table>
+    </div>
+    
+
+        <script>
+            var plotData = {"data":[{"hovertemplate":"\u003cb\u003e%{x}\u003c\u002fb\u003e\u003cbr\u003eTrades: %{y}\u003cextra\u003e\u003c\u002fextra\u003e","marker":{"color":["#95a5a6","#2ecc71","#2ecc71","#2ecc71","#2ecc71","#2ecc71","#2ecc71","#2ecc71","#2ecc71","#2ecc71","#2ecc71","#2ecc71","#2ecc71","#2ecc71","#2ecc71","#2ecc71","#2ecc71","#2ecc71","#2ecc71","#2ecc71","#2ecc71","#2ecc71","#2ecc71","#95a5a6"]},"name":"Total Trades","text":[0.0,21.0,20.0,5.0,5.0,7.0,4.0,10.0,9.0,12.0,10.0,14.0,6.0,13.0,15.0,47.0,44.0,39.0,34.0,31.0,22.0,17.0,12.0,0.0],"textposition":"outside","x":["00:00","01:00","02:00","03:00","04:00","05:00","06:00","07:00","08:00","09:00","10:00","11:00","12:00","13:00","14:00","15:00","16:00","17:00","18:00","19:00","20:00","21:00","22:00","23:00"],"y":[0,21,20,5,5,7,4,10,9,12,10,14,6,13,15,47,44,39,34,31,22,17,12,0],"type":"bar","xaxis":"x","yaxis":"y"},{"hovertemplate":"\u003cb\u003e%{x}\u003c\u002fb\u003e\u003cbr\u003eP&L: $%{y:,.2f}\u003cextra\u003e\u003c\u002fextra\u003e","marker":{"color":["#e74c3c","#e74c3c","#e74c3c","#e74c3c","#2ecc71","#2ecc71","#2ecc71","#e74c3c","#2ecc71","#e74c3c","#2ecc71","#e74c3c","#2ecc71","#2ecc71","#e74c3c","#2ecc71","#2ecc71","#2ecc71","#2ecc71","#2ecc71","#e74c3c","#2ecc71","#2ecc71","#e74c3c"]},"name":"Total P&L (USD)","text":["","$-3,500","$-10,560","$-3,500","$4,500","$1,500","$6,000","$-855","$6,500","$-6,000","$13,000","$-2,570","$11,000","$500","$-5,430","$7,475","$16,475","$17,805","$14,130","$290","$-7,895","$5,640","$2,595",""],"textposition":"outside","x":["00:00","01:00","02:00","03:00","04:00","05:00","06:00","07:00","08:00","09:00","10:00","11:00","12:00","13:00","14:00","15:00","16:00","17:00","18:00","19:00","20:00","21:00","22:00","23:00"],"y":[0.0,-3500.0,-10560.0,-3500.0,4500.0,1500.0,6000.0,-855.0,6500.0,-6000.0,13000.0,-2570.0,11000.0,500.0,-5430.0,7475.0,16475.0,17805.0,14130.0,290.0,-7895.0,5640.0,2595.0,0.0],"type":"bar","xaxis":"x2","yaxis":"y2"},{"hovertemplate":"\u003cb\u003e%{x}\u003c\u002fb\u003e\u003cbr\u003eWin Rate: %{y:.1f}%\u003cextra\u003e\u003c\u002fextra\u003e","marker":{"color":["#95a5a6","#e74c3c","#e74c3c","#e74c3c","#2ecc71","#e74c3c","#2ecc71","#e74c3c","#2ecc71","#e74c3c","#2ecc71","#e74c3c","#2ecc71","#e74c3c","#e74c3c","#e74c3c","#e74c3c","#2ecc71","#e74c3c","#e74c3c","#e74c3c","#2ecc71","#2ecc71","#95a5a6"]},"name":"Win Rate (%)","text":["","33.3%","30.0%","20.0%","60.0%","42.9%","75.0%","40.0%","55.6%","25.0%","70.0%","35.7%","83.3%","38.5%","33.3%","40.4%","47.7%","53.8%","47.1%","38.7%","40.9%","52.9%","75.0%",""],"textposition":"outside","x":["00:00","01:00","02:00","03:00","04:00","05:00","06:00","07:00","08:00","09:00","10:00","11:00","12:00","13:00","14:00","15:00","16:00","17:00","18:00","19:00","20:00","21:00","22:00","23:00"],"y":[0.0,33.33333333333333,30.0,20.0,60.0,42.857142857142854,75.0,40.0,55.55555555555556,25.0,70.0,35.714285714285715,83.33333333333334,38.46153846153847,33.33333333333333,40.42553191489361,47.72727272727273,53.84615384615385,47.05882352941176,38.70967741935484,40.909090909090914,52.94117647058824,75.0,0.0],"type":"bar","xaxis":"x3","yaxis":"y3"}],"layout":{"template":{"data":{"barpolar":[{"marker":{"line":{"color":"white","width":0.5},"pattern":{"fillmode":"overlay","size":10,"solidity":0.2}},"type":"barpolar"}],"bar":[{"error_x":{"color":"#2a3f5f"},"error_y":{"color":"#2a3f5f"},"marker":{"line":{"color":"white","width":0.5},"pattern":{"fillmode":"overlay","size":10,"solidity":0.2}},"type":"bar"}],"carpet":[{"aaxis":{"endlinecolor":"#2a3f5f","gridcolor":"#C8D4E3","linecolor":"#C8D4E3","minorgridcolor":"#C8D4E3","startlinecolor":"#2a3f5f"},"baxis":{"endlinecolor":"#2a3f5f","gridcolor":"#C8D4E3","linecolor":"#C8D4E3","minorgridcolor":"#C8D4E3","startlinecolor":"#2a3f5f"},"type":"carpet"}],"choropleth":[{"colorbar":{"outlinewidth":0,"ticks":""},"type":"choropleth"}],"contourcarpet":[{"colorbar":{"outlinewidth":0,"ticks":""},"type":"contourcarpet"}],"contour":[{"colorbar":{"outlinewidth":0,"ticks":""},"colorscale":[[0.0,"#0d0887"],[0.1111111111111111,"#46039f"],[0.2222222222222222,"#7201a8"],[0.3333333333333333,"#9c179e"],[0.4444444444444444,"#bd3786"],[0.5555555555555556,"#d8576b"],[0.6666666666666666,"#ed7953"],[0.7777777777777778,"#fb9f3a"],[0.8888888888888888,"#fdca26"],[1.0,"#f0f921"]],"type":"contour"}],"heatmapgl":[{"colorbar":{"outlinewidth":0,"ticks":""},"colorscale":[[0.0,"#0d0887"],[0.1111111111111111,"#46039f"],[0.2222222222222222,"#7201a8"],[0.3333333333333333,"#9c179e"],[0.4444444444444444,"#bd3786"],[0.5555555555555556,"#d8576b"],[0.6666666666666666,"#ed7953"],[0.7777777777777778,"#fb9f3a"],[0.8888888888888888,"#fdca26"],[1.0,"#f0f921"]],"type":"heatmapgl"}],"heatmap":[{"colorbar":{"outlinewidth":0,"ticks":""},"colorscale":[[0.0,"#0d0887"],[0.1111111111111111,"#46039f"],[0.2222222222222222,"#7201a8"],[0.3333333333333333,"#9c179e"],[0.4444444444444444,"#bd3786"],[0.5555555555555556,"#d8576b"],[0.6666666666666666,"#ed7953"],[0.7777777777777778,"#fb9f3a"],[0.8888888888888888,"#fdca26"],[1.0,"#f0f921"]],"type":"heatmap"}],"histogram2dcontour":[{"colorbar":{"outlinewidth":0,"ticks":""},"colorscale":[[0.0,"#0d0887"],[0.1111111111111111,"#46039f"],[0.2222222222222222,"#7201a8"],[0.3333333333333333,"#9c179e"],[0.4444444444444444,"#bd3786"],[0.5555555555555556,"#d8576b"],[0.6666666666666666,"#ed7953"],[0.7777777777777778,"#fb9f3a"],[0.8888888888888888,"#fdca26"],[1.0,"#f0f921"]],"type":"histogram2dcontour"}],"histogram2d":[{"colorbar":{"outlinewidth":0,"ticks":""},"colorscale":[[0.0,"#0d0887"],[0.1111111111111111,"#46039f"],[0.2222222222222222,"#7201a8"],[0.3333333333333333,"#9c179e"],[0.4444444444444444,"#bd3786"],[0.5555555555555556,"#d8576b"],[0.6666666666666666,"#ed7953"],[0.7777777777777778,"#fb9f3a"],[0.8888888888888888,"#fdca26"],[1.0,"#f0f921"]],"type":"histogram2d"}],"histogram":[{"marker":{"pattern":{"fillmode":"overlay","size":10,"solidity":0.2}},"type":"histogram"}],"mesh3d":[{"colorbar":{"outlinewidth":0,"ticks":""},"type":"mesh3d"}],"parcoords":[{"line":{"colorbar":{"outlinewidth":0,"ticks":""}},"type":"parcoords"}],"pie":[{"automargin":true,"type":"pie"}],"scatter3d":[{"line":{"colorbar":{"outlinewidth":0,"ticks":""}},"marker":{"colorbar":{"outlinewidth":0,"ticks":""}},"type":"scatter3d"}],"scattercarpet":[{"marker":{"colorbar":{"outlinewidth":0,"ticks":""}},"type":"scattercarpet"}],"scattergeo":[{"marker":{"colorbar":{"outlinewidth":0,"ticks":""}},"type":"scattergeo"}],"scattergl":[{"marker":{"colorbar":{"outlinewidth":0,"ticks":""}},"type":"scattergl"}],"scattermapbox":[{"marker":{"colorbar":{"outlinewidth":0,"ticks":""}},"type":"scattermapbox"}],"scatterpolargl":[{"marker":{"colorbar":{"outlinewidth":0,"ticks":""}},"type":"scatterpolargl"}],"scatterpolar":[{"marker":{"colorbar":{"outlinewidth":0,"ticks":""}},"type":"scatterpolar"}],"scatter":[{"fillpattern":{"fillmode":"overlay","size":10,"solidity":0.2},"type":"scatter"}],"scatterternary":[{"marker":{"colorbar":{"outlinewidth":0,"ticks":""}},"type":"scatterternary"}],"surface":[{"colorbar":{"outlinewidth":0,"ticks":""},"colorscale":[[0.0,"#0d0887"],[0.1111111111111111,"#46039f"],[0.2222222222222222,"#7201a8"],[0.3333333333333333,"#9c179e"],[0.4444444444444444,"#bd3786"],[0.5555555555555556,"#d8576b"],[0.6666666666666666,"#ed7953"],[0.7777777777777778,"#fb9f3a"],[0.8888888888888888,"#fdca26"],[1.0,"#f0f921"]],"type":"surface"}],"table":[{"cells":{"fill":{"color":"#EBF0F8"},"line":{"color":"white"}},"header":{"fill":{"color":"#C8D4E3"},"line":{"color":"white"}},"type":"table"}]},"layout":{"annotationdefaults":{"arrowcolor":"#2a3f5f","arrowhead":0,"arrowwidth":1},"autotypenumbers":"strict","coloraxis":{"colorbar":{"outlinewidth":0,"ticks":""}},"colorscale":{"diverging":[[0,"#8e0152"],[0.1,"#c51b7d"],[0.2,"#de77ae"],[0.3,"#f1b6da"],[0.4,"#fde0ef"],[0.5,"#f7f7f7"],[0.6,"#e6f5d0"],[0.7,"#b8e186"],[0.8,"#7fbc41"],[0.9,"#4d9221"],[1,"#276419"]],"sequential":[[0.0,"#0d0887"],[0.1111111111111111,"#46039f"],[0.2222222222222222,"#7201a8"],[0.3333333333333333,"#9c179e"],[0.4444444444444444,"#bd3786"],[0.5555555555555556,"#d8576b"],[0.6666666666666666,"#ed7953"],[0.7777777777777778,"#fb9f3a"],[0.8888888888888888,"#fdca26"],[1.0,"#f0f921"]],"sequentialminus":[[0.0,"#0d0887"],[0.1111111111111111,"#46039f"],[0.2222222222222222,"#7201a8"],[0.3333333333333333,"#9c179e"],[0.4444444444444444,"#bd3786"],[0.5555555555555556,"#d8576b"],[0.6666666666666666,"#ed7953"],[0.7777777777777778,"#fb9f3a"],[0.8888888888888888,"#fdca26"],[1.0,"#f0f921"]]},"colorway":["#636efa","#EF553B","#00cc96","#ab63fa","#FFA15A","#19d3f3","#FF6692","#B6E880","#FF97FF","#FECB52"],"font":{"color":"#2a3f5f"},"geo":{"bgcolor":"white","lakecolor":"white","landcolor":"white","showlakes":true,"showland":true,"subunitcolor":"#C8D4E3"},"hoverlabel":{"align":"left"},"hovermode":"closest","mapbox":{"style":"light"},"paper_bgcolor":"white","plot_bgcolor":"white","polar":{"angularaxis":{"gridcolor":"#EBF0F8","linecolor":"#EBF0F8","ticks":""},"bgcolor":"white","radialaxis":{"gridcolor":"#EBF0F8","linecolor":"#EBF0F8","ticks":""}},"scene":{"xaxis":{"backgroundcolor":"white","gridcolor":"#DFE8F3","gridwidth":2,"linecolor":"#EBF0F8","showbackground":true,"ticks":"","zerolinecolor":"#EBF0F8"},"yaxis":{"backgroundcolor":"white","gridcolor":"#DFE8F3","gridwidth":2,"linecolor":"#EBF0F8","showbackground":true,"ticks":"","zerolinecolor":"#EBF0F8"},"zaxis":{"backgroundcolor":"white","gridcolor":"#DFE8F3","gridwidth":2,"linecolor":"#EBF0F8","showbackground":true,"ticks":"","zerolinecolor":"#EBF0F8"}},"shapedefaults":{"line":{"color":"#2a3f5f"}},"ternary":{"aaxis":{"gridcolor":"#DFE8F3","linecolor":"#A2B1C6","ticks":""},"baxis":{"gridcolor":"#DFE8F3","linecolor":"#A2B1C6","ticks":""},"bgcolor":"white","caxis":{"gridcolor":"#DFE8F3","linecolor":"#A2B1C6","ticks":""}},"title":{"x":0.05},"xaxis":{"automargin":true,"gridcolor":"#EBF0F8","linecolor":"#EBF0F8","ticks":"","title":{"standoff":15},"zerolinecolor":"#EBF0F8","zerolinewidth":2},"yaxis":{"automargin":true,"gridcolor":"#EBF0F8","linecolor":"#EBF0F8","ticks":"","title":{"standoff":15},"zerolinecolor":"#EBF0F8","zerolinewidth":2}}},"xaxis":{"anchor":"y","domain":[0.0,1.0]},"yaxis":{"anchor":"x","domain":[0.7492000000000001,1.0],"title":{"text":"Number of Trades"}},"xaxis2":{"anchor":"y2","domain":[0.0,1.0]},"yaxis2":{"anchor":"x2","domain":[0.3784,0.6292],"title":{"text":"Total P&L (USD)"}},"xaxis3":{"anchor":"y3","domain":[0.0,1.0],"title":{"text":"Hour of Day"}},"yaxis3":{"anchor":"x3","domain":[0.0,0.2584],"title":{"text":"Win Rate (%)"}},"annotations":[{"font":{"size":16},"showarrow":false,"text":"Trade Count by Hour","x":0.5,"xanchor":"center","xref":"paper","y":1.0,"yanchor":"bottom","yref":"paper"},{"font":{"size":16},"showarrow":false,"text":"Total P&L by Hour","x":0.5,"xanchor":"center","xref":"paper","y":0.6292,"yanchor":"bottom","yref":"paper"},{"font":{"size":16},"showarrow":false,"text":"Win Rate by Hour","x":0.5,"xanchor":"center","xref":"paper","y":0.2584,"yanchor":"bottom","yref":"paper"}],"shapes":[{"line":{"color":"gray","dash":"dash"},"opacity":0.5,"type":"line","x0":0,"x1":1,"xref":"x3 domain","y0":50,"y1":50,"yref":"y3"}],"title":{"text":"Trading Performance by Hour of Day\u003cbr\u003e\u003csub\u003eTotal Trades: 397 | Date Range: 2025-10-01 to 2025-12-19\u003c\u002fsub\u003e","x":0.5},"font":{"size":12},"height":1200,"showlegend":false}};
+            Plotly.newPlot('chart', plotData.data, plotData.layout);
+        </script>
+    </body>
+    </html>
+    

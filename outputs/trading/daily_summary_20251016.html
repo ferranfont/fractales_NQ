@@ -1,0 +1,175 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="UTF-8">
+    <title>Daily Summary - 20251016</title>
+    <style>
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            margin: 20px;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: #333;
+        }
+        .container {
+            max-width: 1400px;
+            margin: 0 auto;
+            background: white;
+            padding: 30px;
+            border-radius: 10px;
+            box-shadow: 0 10px 40px rgba(0,0,0,0.3);
+        }
+        h1 {
+            color: #667eea;
+            text-align: center;
+            margin-bottom: 10px;
+        }
+        .date {
+            text-align: center;
+            font-size: 18px;
+            color: #666;
+            margin-bottom: 30px;
+        }
+        .summary-box {
+            background: #f8f9fa;
+            padding: 20px;
+            border-radius: 8px;
+            margin-bottom: 30px;
+        }
+        .metric {
+            display: inline-block;
+            margin: 10px 20px;
+        }
+        .metric-label {
+            font-weight: bold;
+            color: #666;
+        }
+        .metric-value {
+            font-size: 24px;
+            font-weight: bold;
+        }
+        .positive {
+            color: #28a745;
+        }
+        .negative {
+            color: #dc3545;
+        }
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: 20px;
+        }
+        th {
+            background: #667eea;
+            color: white;
+            padding: 12px;
+            text-align: left;
+        }
+        td {
+            padding: 10px;
+            border-bottom: 1px solid #ddd;
+        }
+        tr:hover {
+            background: #f8f9fa;
+        }
+        h2 {
+            color: #667eea;
+            margin-top: 40px;
+            border-bottom: 2px solid #667eea;
+            padding-bottom: 10px;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>📊 Daily Trading Summary</h1>
+        <div class="date">2025-10-16 (Thursday)</div>
+
+        <div class="summary-box">
+            <div class="metric">
+                <div class="metric-label">Total Trades</div>
+                <div class="metric-value">2</div>
+            </div>
+            <div class="metric">
+                <div class="metric-label">Win Rate</div>
+                <div class="metric-value">0.0%</div>
+            </div>
+            <div class="metric">
+                <div class="metric-label">Total P&L</div>
+                <div class="metric-value negative">$-85</div>
+            </div>
+            <div class="metric">
+                <div class="metric-label">Avg per Trade</div>
+                <div class="metric-value negative">$-42</div>
+            </div>
+            <div class="metric">
+                <div class="metric-label">TP / SL / EOD</div>
+                <div class="metric-value">0 / 2 / 0</div>
+            </div>
+        </div>
+
+        <h2>Strategy Breakdown</h2>
+        <table>
+            <tr>
+                <th>Strategy</th>
+                <th>Trades</th>
+                <th>Win Rate</th>
+                <th>P&L (USD)</th>
+                <th>TP / SL</th>
+            </tr>
+            
+        <tr>
+            <td>VWAP Wyckoff</td>
+            <td>2</td>
+            <td>0.0%</td>
+            <td class="negative">$-85</td>
+            <td>325 / 175</td>
+        </tr>
+        
+        </table>
+
+        <h2>All Trades</h2>
+        <table>
+            <tr>
+                <th>#</th>
+                <th>Strategy</th>
+                <th>Dir</th>
+                <th>Entry Time</th>
+                <th>Exit Time</th>
+                <th>Entry</th>
+                <th>Exit</th>
+                <th>Reason</th>
+                <th>P&L (USD)</th>
+            </tr>
+            
+        <tr>
+            <td>1</td>
+            <td>Wyckoff</td>
+            <td>BUY</td>
+            <td>2025-10-16 07:30:00</td>
+            <td>2025-10-16 09:35:00</td>
+            <td>24972.75</td>
+            <td>24974.22</td>
+            <td>sl_exit</td>
+            <td class="positive">$29</td>
+        </tr>
+        
+        <tr>
+            <td>2</td>
+            <td>Wyckoff</td>
+            <td>BUY</td>
+            <td>2025-10-16 09:56:00</td>
+            <td>2025-10-16 14:14:00</td>
+            <td>25039.25</td>
+            <td>25033.56</td>
+            <td>sl_exit</td>
+            <td class="negative">$-114</td>
+        </tr>
+        
+        </table>
+
+        <div style="margin-top: 40px; text-align: center; color: #999;">
+            Generated on 2026-01-11 19:02:30
+        </div>
+    </div>
+</body>
+</html>

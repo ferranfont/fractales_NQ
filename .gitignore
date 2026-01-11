@@ -10,6 +10,8 @@ __pycache__/
 *.pyo
 *.pyd
 .Python
+.env
+
 
 # Outputs
 outputs/*.html

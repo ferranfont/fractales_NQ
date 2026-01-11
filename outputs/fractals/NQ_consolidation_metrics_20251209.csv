@@ -1,0 +1,5 @@
+timestamp,price,type,direction,tag,time_from_prev_seconds,price_diff_from_prev,inverted_frequency,above_threshold,consecutive_above,choppiness_trigger
+2025-12-09 00:34:00,25692.0,VALLE,down,minor,,,,0,,0
+2025-12-09 02:22:00,25729.5,PICO,up,minor,6480.0,37.5,0.0,0,0.0,0
+2025-12-09 03:13:00,25675.25,VALLE,down,minor,3060.0,54.25,3420.0,0,0.0,0
+2025-12-09 03:23:00,25708.5,PICO,up,minor,600.0,33.25,5880.0,1,1.0,0

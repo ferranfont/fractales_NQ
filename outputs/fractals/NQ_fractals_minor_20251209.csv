@@ -1,0 +1,5 @@
+timestamp,price,type,direction,tag
+2025-12-09 00:34:00,25692.0,VALLE,down,minor
+2025-12-09 02:22:00,25729.5,PICO,up,minor
+2025-12-09 03:13:00,25675.25,VALLE,down,minor
+2025-12-09 03:23:00,25708.5,PICO,up,minor

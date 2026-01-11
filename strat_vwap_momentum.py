@@ -26,8 +26,12 @@ from config import (
     USE_TP_ALLOWED_IN_TIME_IN_MARKET, TP_IN_TIME_IN_MARKET,
     USE_TRAIL_CASH, TRAIL_CASH_TRIGGER_POINTS, TRAIL_CASH_BREAK_EVEN_POINTS_PROFIT,
     USE_KEEP_PUSHING_GREEN_DOTS, TIME_OUT_AFTER_LAST_GREEN_DOT_MINUTES,
-    KEEP_POSITION_OPEN_IF_MARKET_PRICE_OVER_LAST_DOT
+    USE_KEEP_PUSHING_GREEN_DOTS, TIME_OUT_AFTER_LAST_GREEN_DOT_MINUTES,
+    KEEP_POSITION_OPEN_IF_MARKET_PRICE_OVER_LAST_DOT,
+    USE_ATR_TRAILING_STOP, ATR_PERIOD, ATR_MULTIPLIER,
+    USE_ENTRY_GRID, GRID_STEP, NUMBER_OF_GRID_STEPS
 )
+from calculate_atr import calculate_atr
 from optimize_time_in_market import load_optimal_duration
 from show_config_dashboard import update_dashboard
 
@@ -159,11 +163,28 @@ else:
         if KEEP_POSITION_OPEN_IF_MARKET_PRICE_OVER_LAST_DOT:
             print(f"    * Price protection: Keep LONG if price > last dot, SHORT if price < last dot")
             print(f"    * Exit only when price crosses to wrong side of last dot price")
+            print(f"    * Price protection: Keep LONG if price > last dot, SHORT if price < last dot")
+            print(f"    * Exit only when price crosses to wrong side of last dot price")
+    if USE_ATR_TRAILING_STOP:
+        print(f"  - ATR Trailing Stop: ENABLED")
+        print(f"    * Period: {ATR_PERIOD}")
+        print(f"    * Multiplier: {ATR_MULTIPLIER}")
+        print(f"    * Logic: Ratchet (only moves in favor of trade)")
 print(f"  - Max Positions: {MAXIMUM_POSITIONS_OPEN}")
 print(f"  - VWAP Fast Period: {VWAP_FAST}")
 print(f"  - Price Ejection Trigger: {PRICE_EJECTION_TRIGGER*100:.1f}%")
 print(f"  - Trading Hours: {START_TRADING_HOUR} to {END_TRADING_HOUR}")
 print(f"  - Point Value: ${POINT_VALUE:.0f} per point")
+if USE_ENTRY_GRID:
+    print(f"\n  GRID ENTRY SYSTEM:")
+    print(f"  - Grid Entry: ENABLED")
+    print(f"  - Grid Step: {GRID_STEP} points")
+    print(f"  - Number of Grid Steps: {NUMBER_OF_GRID_STEPS}")
+    print(f"  - Grid orders do NOT count toward max positions")
+    print(f"  - All grid positions share SAME stop loss level as main position")
+    print(f"  - Each grid position has its own TP calculated from fill price")
+else:
+    print(f"\n  GRID ENTRY SYSTEM: DISABLED")
 print(f"\n  ENTRY FILTERS:")
 print(f"  - Time Range: {START_TRADING_HOUR} to {END_TRADING_HOUR} (generic filter)")
 if USE_SELECTED_ALLOWED_HOURS:
@@ -249,6 +270,14 @@ print(f"[INFO] Calculating VWAP Slope for all bars...")
 df['vwap_slope'] = [abs(calculate_vwap_slope_at_bar(df, idx, window=VWAP_SLOPE_DEGREE_WINDOW)) for idx in df.index]
 print(f"[OK] VWAP Slope calculated for {len(df[df['vwap_slope'].notna()])} bars")
 
+# Calculate ATR for Trailing Stop
+if USE_ATR_TRAILING_STOP:
+    print(f"[INFO] Calculating ATR ({ATR_PERIOD})...")
+    df['atr'] = calculate_atr(df, period=ATR_PERIOD)
+    print(f"[OK] ATR calculated")
+    
+# Calculate price-VWAP distance (this creates the green dots)
+
 # Calculate price-VWAP distance (this creates the green dots)
 df['price_vwap_distance'] = abs((df['close'] - df['vwap_fast']) / df['vwap_fast'])
 
@@ -275,7 +304,10 @@ print(f"[INFO] SHORT entry signals (green dots below VWAP): {df['short_signal'].
 # STRATEGY EXECUTION
 # ============================================================================
 trades = []
+sl_history = []  # List to store SL evolution
 open_position = None
+grid_orders = []  # List to store pending grid limit orders
+grid_positions = []  # List to store filled grid positions (separate from main position)
 
 print(f"\n[INFO] Processing trades...")
 
@@ -376,6 +408,48 @@ for idx, bar in df.iterrows():
                     open_position['sl_price'] = new_sl
                     open_position['trailing_activated'] = True
                     sl_price = new_sl  # Update local variable
+            
+            # ATR Trailing Stop Logic
+            # Move SL dynamically based on ATR
+            if USE_ATR_TRAILING_STOP and not pd.isna(bar.get('atr')):
+                current_atr = bar['atr']
+                
+                if direction == 'BUY':
+                    # For LONG: Potential SL is High - (ATR * Multiplier)
+                    # We use 'high' because we want to trail the price moving up
+                    # Some implementations use 'close', here using 'high' for tighter trail on peaks or 'close' for stability
+                    # VIX implementation uses close, let's use close to be consistent/stable
+                    potential_sl = bar['close'] - (current_atr * ATR_MULTIPLIER)
+                    
+                    # Ratchet: Only move SL UP
+                    # Ratchet: Only move SL UP
+                    if potential_sl > sl_price:
+                        sl_price = potential_sl
+                        open_position['sl_price'] = sl_price
+                        open_position['atr_trailing_activated'] = True # Mark as moved by ATR
+                        # Note: We don't change 'trailing_activated' here as this is a different mechanism, 
+                        # or we could set it to indicate *some* trailing is active. 
+                        # For now, we update the price directly.
+                        
+                else: # CELL
+                    # For SHORT: Potential SL is Low + (ATR * Multiplier)
+                    potential_sl = bar['close'] + (current_atr * ATR_MULTIPLIER)
+                    
+                    # Ratchet: Only move SL DOWN
+                    # Ratchet: Only move SL DOWN
+                    if potential_sl < sl_price:
+                        sl_price = potential_sl
+                        open_position['sl_price'] = sl_price
+                        open_position['atr_trailing_activated'] = True # Mark as moved by ATR
+
+            # Record SL history for visualization (regardless of update)
+            # This is recorded every bar while position is open
+            if open_position is not None:
+                sl_history.append({
+                    'timestamp': bar['timestamp'],
+                    'sl_price': sl_price,
+                    'direction': direction
+                })
 
             # PRIORITY 1: Check regular TP/SL first (highest priority)
             if direction == 'BUY':
@@ -384,7 +458,10 @@ for idx, bar in df.iterrows():
                     exit_reason = 'tp_exit'
                     exit_price = tp_price
                 elif bar['low'] <= sl_price:
-                    exit_reason = 'sl_exit'
+                    if open_position.get('atr_trailing_activated', False):
+                        exit_reason = 'trail_stop'
+                    else:
+                        exit_reason = 'sl_exit'
                     exit_price = sl_price
             else:  # SELL
                 # SHORT position: TP when price goes down, SL when price goes up
@@ -392,7 +469,10 @@ for idx, bar in df.iterrows():
                     exit_reason = 'tp_exit'
                     exit_price = tp_price
                 elif bar['high'] >= sl_price:
-                    exit_reason = 'sl_exit'
+                    if open_position.get('atr_trailing_activated', False):
+                        exit_reason = 'trail_stop'
+                    else:
+                        exit_reason = 'sl_exit'
                     exit_price = sl_price
 
             # PRIORITY 2: Check Price Ejection Timeout (if enabled)
@@ -496,7 +576,128 @@ for idx, bar in df.iterrows():
             })
 
             open_position = None
+            # Cancel all pending grid orders when main position closes
+            grid_orders = []
             continue
+
+    # ========================================================================
+    # CHECK GRID POSITIONS EXITS (if any grid positions are open)
+    # ========================================================================
+    if USE_ENTRY_GRID and grid_positions:
+        closed_grids = []
+
+        for i, grid_pos in enumerate(grid_positions):
+            grid_direction = grid_pos['direction']
+            grid_entry_price = grid_pos['entry_price']
+            grid_tp_price = grid_pos['tp_price']
+            grid_sl_price = grid_pos['sl_price']
+
+            # Check exit conditions (same logic as main position)
+            exit_reason = None
+            exit_price = None
+
+            if grid_direction == 'BUY':
+                # LONG grid position
+                if bar['high'] >= grid_tp_price:
+                    exit_reason = 'tp_exit'
+                    exit_price = grid_tp_price
+                elif bar['low'] <= grid_sl_price:
+                    exit_reason = 'sl_exit'
+                    exit_price = grid_sl_price
+            else:  # SELL
+                # SHORT grid position
+                if bar['low'] <= grid_tp_price:
+                    exit_reason = 'tp_exit'
+                    exit_price = grid_tp_price
+                elif bar['high'] >= grid_sl_price:
+                    exit_reason = 'sl_exit'
+                    exit_price = grid_sl_price
+
+            if exit_reason:
+                # Calculate P&L
+                if grid_direction == 'BUY':
+                    pnl = exit_price - grid_entry_price
+                else:  # SELL
+                    pnl = grid_entry_price - exit_price
+
+                pnl_usd = pnl * POINT_VALUE
+
+                # Calculate time in market
+                time_in_market = (bar['timestamp'] - grid_pos['entry_time']).total_seconds() / 60.0
+
+                # Calculate VWAP slope at exit
+                vwap_slope_exit = calculate_vwap_slope_at_bar(df, idx, VWAP_SLOPE_DEGREE_WINDOW)
+
+                # Add to trades with grid indicator
+                trades.append({
+                    'entry_time': grid_pos['entry_time'],
+                    'exit_time': bar['timestamp'],
+                    'direction': grid_direction,
+                    'entry_price': grid_entry_price,
+                    'exit_price': exit_price,
+                    'entry_vwap': grid_pos['entry_vwap'],
+                    'exit_vwap': bar['vwap_fast'],
+                    'tp_price': grid_tp_price,
+                    'sl_price': grid_sl_price,
+                    'exit_reason': f'{exit_reason}_grid',
+                    'pnl': pnl,
+                    'pnl_usd': pnl_usd,
+                    'time_in_market': time_in_market,
+                    'vwap_slope_entry': grid_pos['vwap_slope_entry'],
+                    'vwap_slope_exit': vwap_slope_exit
+                })
+
+                closed_grids.append(i)
+
+        # Remove closed grid positions
+        for i in reversed(closed_grids):
+            grid_positions.pop(i)
+
+    # ========================================================================
+    # CHECK GRID ORDERS (if enabled and position is open)
+    # ========================================================================
+    if USE_ENTRY_GRID and open_position is not None and grid_orders:
+        filled_grids = []
+
+        for i, grid_order in enumerate(grid_orders):
+            grid_direction = grid_order['direction']
+            grid_limit_price = grid_order['limit_price']
+
+            # Check if limit order was filled
+            order_filled = False
+            fill_price = None
+
+            if grid_direction == 'BUY':
+                # BUY limit fills when price touches or goes below limit price
+                if bar['low'] <= grid_limit_price:
+                    order_filled = True
+                    fill_price = grid_limit_price
+            else:  # SELL
+                # SELL limit fills when price touches or goes above limit price
+                if bar['high'] >= grid_limit_price:
+                    order_filled = True
+                    fill_price = grid_limit_price
+
+            if order_filled:
+                # Grid order filled - create grid position
+                vwap_slope_entry = calculate_vwap_slope_at_bar(df, idx, VWAP_SLOPE_DEGREE_WINDOW)
+
+                grid_positions.append({
+                    'direction': grid_direction,
+                    'entry_time': bar['timestamp'],
+                    'entry_price': fill_price,
+                    'entry_vwap': bar['vwap_fast'],
+                    'tp_price': grid_order['tp_price'],
+                    'sl_price': grid_order['sl_price'],
+                    'step': grid_order['step'],
+                    'vwap_slope_entry': vwap_slope_entry
+                })
+
+                filled_grids.append(i)
+
+        # Remove filled orders from pending grid_orders
+        for i in reversed(filled_grids):
+            grid_orders.pop(i)
 
     # Check for new entry signals (only if no position open AND within trading hours)
     if open_position is None and MAXIMUM_POSITIONS_OPEN > 0 and within_trading_hours:
@@ -552,8 +753,29 @@ for idx, bar in df.iterrows():
                 'sl_price': sl_price,
                 'vwap_slope_entry': vwap_slope_entry,
                 'trailing_activated': False,
+                'atr_trailing_activated': False, # Initialize ATR trailing flag
                 'time_in_market_minutes': time_in_market_minutes  # Store duration for this specific trade
             }
+
+            # Place grid limit orders if enabled
+            if USE_ENTRY_GRID:
+                for step in range(1, NUMBER_OF_GRID_STEPS + 1):
+                    # BUY grid: Place limit orders BELOW entry price
+                    grid_limit_price = entry_price - (GRID_STEP * step)
+                    # IMPORTANT: All grid positions use SAME TP/SL as main position
+                    # TP is calculated from grid fill price, but SL is shared with main position
+                    grid_tp_price = grid_limit_price + TP_POINTS
+                    grid_sl_price = sl_price  # Use main position's SL level
+
+                    grid_orders.append({
+                        'direction': 'BUY',
+                        'limit_price': grid_limit_price,
+                        'tp_price': grid_tp_price,
+                        'sl_price': grid_sl_price,
+                        'step': step,
+                        'filled': False,
+                        'entry_time': bar['timestamp']  # When the order was placed
+                    })
 
         # SHORT signal: Price ejection (green dot) below VWAP
         # Check trend filter if enabled
@@ -597,8 +819,29 @@ for idx, bar in df.iterrows():
                 'sl_price': sl_price,
                 'vwap_slope_entry': vwap_slope_entry,
                 'trailing_activated': False,
+                'atr_trailing_activated': False, # Initialize ATR trailing flag
                 'time_in_market_minutes': time_in_market_minutes  # Store duration for this specific trade
             }
+
+            # Place grid limit orders if enabled
+            if USE_ENTRY_GRID:
+                for step in range(1, NUMBER_OF_GRID_STEPS + 1):
+                    # SELL grid: Place limit orders ABOVE entry price
+                    grid_limit_price = entry_price + (GRID_STEP * step)
+                    # IMPORTANT: All grid positions use SAME TP/SL as main position
+                    # TP is calculated from grid fill price, but SL is shared with main position
+                    grid_tp_price = grid_limit_price - TP_POINTS
+                    grid_sl_price = sl_price  # Use main position's SL level
+
+                    grid_orders.append({
+                        'direction': 'SELL',
+                        'limit_price': grid_limit_price,
+                        'tp_price': grid_tp_price,
+                        'sl_price': grid_sl_price,
+                        'step': step,
+                        'filled': False,
+                        'entry_time': bar['timestamp']  # When the order was placed
+                    })
 
 # Close any remaining open position at end of day
 if open_position is not None:
@@ -640,6 +883,46 @@ if open_position is not None:
         'vwap_slope_exit': vwap_slope_exit
     })
 
+# Close any remaining grid positions at end of day
+if USE_ENTRY_GRID and grid_positions:
+    last_bar = df.iloc[-1]
+    last_bar_idx = df.index[-1]
+    vwap_slope_exit = calculate_vwap_slope_at_bar(df, last_bar_idx, VWAP_SLOPE_DEGREE_WINDOW)
+
+    for grid_pos in grid_positions:
+        grid_direction = grid_pos['direction']
+        grid_entry_price = grid_pos['entry_price']
+        exit_price = last_bar['close']
+
+        # Calculate P&L
+        if grid_direction == 'BUY':
+            pnl = exit_price - grid_entry_price
+        else:  # SELL
+            pnl = grid_entry_price - exit_price
+
+        pnl_usd = pnl * POINT_VALUE
+
+        # Calculate time in market
+        time_in_market = (last_bar['timestamp'] - grid_pos['entry_time']).total_seconds() / 60.0
+
+        trades.append({
+            'entry_time': grid_pos['entry_time'],
+            'exit_time': last_bar['timestamp'],
+            'direction': grid_direction,
+            'entry_price': grid_entry_price,
+            'exit_price': exit_price,
+            'entry_vwap': grid_pos['entry_vwap'],
+            'exit_vwap': last_bar['vwap_fast'],
+            'tp_price': grid_pos['tp_price'],
+            'sl_price': grid_pos['sl_price'],
+            'exit_reason': 'eod_exit_grid',
+            'pnl': pnl,
+            'pnl_usd': pnl_usd,
+            'time_in_market': time_in_market,
+            'vwap_slope_entry': grid_pos['vwap_slope_entry'],
+            'vwap_slope_exit': vwap_slope_exit
+        })
+
 # ============================================================================
 # SAVE RESULTS
 # ============================================================================
@@ -658,12 +941,26 @@ if len(trades) > 0:
     print(f"\n[OK] Strategy completed: {len(trades)} trades executed")
     print(f"[OK] Trades saved to: {OUTPUT_FILE}")
 
+    # Save SL history to CSV for visualization
+    if sl_history:
+        try:
+            df_sl_history = pd.DataFrame(sl_history)
+            sl_history_file = OUTPUTS_DIR / "trading" / f"sl_history_vwap_momentum_{DATE}.csv"
+            # Maintain same format as other logs
+            df_sl_history.to_csv(sl_history_file, sep=';', decimal=',', index=False)
+            print(f"[SUCCESS] Saved SL history ({len(df_sl_history)} records) to {sl_history_file}")
+        except Exception as e:
+            print(f"[WARN] Failed to save SL history: {e}")
+
     # Statistics
     profit_trades = df_trades[df_trades['exit_reason'] == 'tp_exit']
     stop_trades = df_trades[df_trades['exit_reason'] == 'sl_exit']
+    trail_stop_trades = df_trades[df_trades['exit_reason'] == 'trail_stop']
     slope_exit_trades = df_trades[df_trades['exit_reason'] == 'slope_exit']
     eod_trades = df_trades[df_trades['exit_reason'] == 'eod_exit']
     green_dot_timeout_trades = df_trades[df_trades['exit_reason'] == 'green_dot_timeout']
+    # Check for simple SL vs Trailing Stop if we want to distinguish (requires adding specific exit reason, 
+    # currently both are 'sl_exit' but the price would be different)
 
     total_pnl = df_trades['pnl'].sum()
     total_pnl_usd = df_trades['pnl_usd'].sum()
@@ -675,7 +972,8 @@ if len(trades) > 0:
     slope_exit_count = len(slope_exit_trades)
     eod_count = len(eod_trades)
     green_dot_timeout_count = len(green_dot_timeout_trades)
-    denom = profit_count + stop_count + slope_exit_count + green_dot_timeout_count
+    trail_stop_count = len(trail_stop_trades)
+    denom = profit_count + stop_count + slope_exit_count + green_dot_timeout_count + trail_stop_count
     win_rate = (profit_count / denom * 100) if denom > 0 else 0.0
 
     avg_points = total_pnl / total_trades if total_trades > 0 else 0.0
@@ -689,12 +987,26 @@ if len(trades) > 0:
 
     print("\n" + "Test Results (" + DATE + "):" )
     print("Total trades: {:d}".format(total_trades))
-    print("Exit breakdown: {} TP / {} SL / {} Slope / {} GreenDot / {} EOD".format(profit_count, stop_count, slope_exit_count, green_dot_timeout_count, eod_count))
-    print("Win rate: {0:.1f}% ({1} profits / {2} stops+slope+timeout)".format(win_rate, profit_count, stop_count + slope_exit_count + green_dot_timeout_count))
+    print("Exit breakdown: {} TP / {} SL / {} Trail / {} Slope / {} GreenDot / {} EOD".format(profit_count, stop_count, trail_stop_count, slope_exit_count, green_dot_timeout_count, eod_count))
+    print("Win rate: {0:.1f}% ({1} profits / {2} losses)".format(win_rate, profit_count, stop_count + trail_stop_count + slope_exit_count + green_dot_timeout_count))
     print("Total P&L: {0:+.0f} points (${1:,.0f})".format(total_pnl, total_pnl_usd))
     print("Average per trade: {0:+.2f} points (${1:,.2f})".format(avg_points, avg_usd))
     print("BUY trades: {:d} (${:,.0f})".format(len(buy_trades), buy_pnl_usd))
     print("SELL trades: {:d} (${:,.0f})".format(len(sell_trades), sell_pnl_usd))
+
+    # Grid trades breakdown (if enabled)
+    if USE_ENTRY_GRID:
+        grid_trades = df_trades[df_trades['exit_reason'].str.contains('_grid', na=False)]
+        main_trades = df_trades[~df_trades['exit_reason'].str.contains('_grid', na=False)]
+
+        grid_count = len(grid_trades)
+        main_count = len(main_trades)
+        grid_pnl_usd = grid_trades['pnl_usd'].sum() if grid_count > 0 else 0.0
+        main_pnl_usd = main_trades['pnl_usd'].sum() if main_count > 0 else 0.0
+
+        print("\nGrid Entry Breakdown:")
+        print("Main position trades: {:d} (${:,.0f})".format(main_count, main_pnl_usd))
+        print("Grid entry trades: {:d} (${:,.0f})".format(grid_count, grid_pnl_usd))
 
     print("\nThe strategy is ready to use")
 
@@ -724,7 +1036,7 @@ if len(trades) > 0:
 
         # Win/Loss
         winners = profit_count
-        losers = stop_count + slope_exit_count
+        losers = stop_count + slope_exit_count + trail_stop_count
         avg_winner = df_trades[df_trades['pnl'] > 0]['pnl_usd'].mean() if winners > 0 else 0
         avg_loser = df_trades[df_trades['pnl'] < 0]['pnl_usd'].mean() if losers > 0 else 0
         largest_winner = df_trades['pnl_usd'].max()
@@ -852,6 +1164,7 @@ if len(trades) > 0:
             <h3 class="text-center" style="font-size:1.25rem; margin-bottom:4px;">{get_strategy_info_compact()}</h3>
             <p class="text-center small-muted mb-2" style="margin-bottom:4px;"><strong>{DATE}</strong> ({day_name}, DoW={day_of_week})</p>
             <p class="text-center small-muted mb-2" style="margin-bottom:4px;"><strong>Hours:</strong> {START_TRADING_HOUR} - {END_TRADING_HOUR} &nbsp;|&nbsp; <strong>VWAP Fast:</strong> {VWAP_FAST} &nbsp;|&nbsp; <strong>Ejection:</strong> {PRICE_EJECTION_TRIGGER*100:.1f}%</p>
+            {'<p class="text-center small-muted mb-2" style="margin-bottom:4px; background: #fff3cd; padding: 4px; border-radius: 4px;"><strong>🔢 Grid Entry:</strong> Enabled ({NUMBER_OF_GRID_STEPS} steps @ {GRID_STEP}pts) | All positions share SAME SL level</p>' if USE_ENTRY_GRID else ''}
 
             <div class="row compact">
                 <div class="col-md-6">

@@ -253,6 +253,10 @@ namespace NinjaTrader.NinjaScript.Strategies
 				{
 					if (UseTrendFilter && !isUptrend) return;
 
+					// Define OCO BEFORE entry for correct attachment
+					SetProfitTarget("Green_Dot_Long", CalculationMode.Ticks, TakeProfitPoints);
+					SetStopLoss("Green_Dot_Long", CalculationMode.Ticks, StopLossPoints, false);
+
 					Print(string.Format("{0} - ENTERING LONG", Time[0]));
 					EnterLong(1, "Green_Dot_Long");
 					Draw.ArrowUp(this, "EntryLong_" + CurrentBar, false, 0, Low[0] - 10 * TickSize, Brushes.LimeGreen);
@@ -264,6 +268,10 @@ namespace NinjaTrader.NinjaScript.Strategies
 				if (redDotSignal && AllowShort)
 				{
 					if (UseTrendFilter && !isDowntrend) return;
+
+					// Define OCO BEFORE entry for correct attachment
+					SetProfitTarget("Red_Dot_Short", CalculationMode.Ticks, TakeProfitPoints);
+					SetStopLoss("Red_Dot_Short", CalculationMode.Ticks, StopLossPoints, false);
 
 					Print(string.Format("{0} - ENTERING SHORT", Time[0]));
 					EnterShort(1, "Red_Dot_Short");
@@ -287,30 +295,17 @@ namespace NinjaTrader.NinjaScript.Strategies
 					if (Position.MarketPosition == MarketPosition.Long)
 					{
 						mainPositionStopLoss = entryPrice - (StopLossPoints * TickSize);
-						SetProfitTarget("Green_Dot_Long", CalculationMode.Ticks, TakeProfitPoints);
-						SetStopLoss("Green_Dot_Long", CalculationMode.Ticks, StopLossPoints, false);
 					}
 					else if (Position.MarketPosition == MarketPosition.Short)
 					{
 						mainPositionStopLoss = entryPrice + (StopLossPoints * TickSize);
-						SetProfitTarget("Red_Dot_Short", CalculationMode.Ticks, TakeProfitPoints);
-						SetStopLoss("Red_Dot_Short", CalculationMode.Ticks, StopLossPoints, false);
 					}
 				}
 			}
 			
 			if (gridOrderNames.Contains(order.Name) && orderState == OrderState.Filled)
 			{
-				if (Position.MarketPosition == MarketPosition.Long)
-				{
-					SetStopLoss(order.Name, CalculationMode.Price, mainPositionStopLoss, false);
-					SetProfitTarget(order.Name, CalculationMode.Ticks, TakeProfitPoints); 
-				}
-				else if (Position.MarketPosition == MarketPosition.Short)
-				{
-					SetStopLoss(order.Name, CalculationMode.Price, mainPositionStopLoss, false);
-					SetProfitTarget(order.Name, CalculationMode.Ticks, TakeProfitPoints); 
-				}
+				// Grid orders managed on placement. No action needed here.
 			}
 		}
 
@@ -319,10 +314,23 @@ namespace NinjaTrader.NinjaScript.Strategies
 		{
 			for (int i = 1; i <= NumberOfGridSteps; i++)
 			{
+				// Calculate reduced Stop Loss distance for grid steps to match main stop level
+				double gridStepDistTicks = (GridStepPoints * i) / TickSize; 
+				double remainingTicks = StopLossPoints - gridStepDistTicks;
+				if (remainingTicks <= 1) remainingTicks = 10; // Safety floor
+
 				if (isLong)
+				{
+					SetProfitTarget("Grid_L_" + i, CalculationMode.Ticks, TakeProfitPoints);
+					SetStopLoss("Grid_L_" + i, CalculationMode.Ticks, remainingTicks, false);
 					EnterLongLimit(1, basePrice - (GridStepPoints * i), "Grid_L_" + i);
+				}
 				else
+				{
+					SetProfitTarget("Grid_S_" + i, CalculationMode.Ticks, TakeProfitPoints);
+					SetStopLoss("Grid_S_" + i, CalculationMode.Ticks, remainingTicks, false);
 					EnterShortLimit(1, basePrice + (GridStepPoints * i), "Grid_S_" + i);
+				}
 			}
 		}
 
