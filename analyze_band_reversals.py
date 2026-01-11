@@ -87,6 +87,8 @@ for i, date_str in enumerate(available_dates, 1):
             print(f"  [WARN] No data after {VWAP_BANDS_START_TIME} for {date_str}")
             continue
 
+        print(f"  [DEBUG] Total bars after {VWAP_BANDS_START_TIME}: {len(df_bands)}")
+
         # Calculate standard deviation bands
         df_bands['price_deviation'] = df_bands['close'] - df_bands['vwap_fast']
         std_dev = df_bands['price_deviation'].expanding().std()
@@ -101,8 +103,10 @@ for i, date_str in enumerate(available_dates, 1):
         if VWAP_TIME_ENTRY:
             entry_time = pd.to_datetime(VWAP_TIME_ENTRY).time()
             df_after_entry = df_bands[df_bands['timestamp'].dt.time > entry_time].copy()
+            print(f"  [DEBUG] Bars after entry time {VWAP_TIME_ENTRY}: {len(df_after_entry)}")
         else:
             df_after_entry = df_bands.copy()
+            print(f"  [DEBUG] No entry time filter - using all {len(df_after_entry)} bars")
 
         if df_after_entry.empty:
             print(f"  [INFO] No data after entry time for {date_str}")
@@ -113,6 +117,11 @@ for i, date_str in enumerate(available_dates, 1):
         df_after_entry['lower_2sigma'] = lower_band_2sigma[df_after_entry.index]
         df_after_entry['upper_3sigma'] = upper_band_3sigma[df_after_entry.index]
         df_after_entry['lower_3sigma'] = lower_band_3sigma[df_after_entry.index]
+
+        # Check if 3σ is ever touched
+        upper_3sigma_touches = (df_after_entry['close'] > df_after_entry['upper_3sigma']).sum()
+        lower_3sigma_touches = (df_after_entry['close'] < df_after_entry['lower_3sigma']).sum()
+        print(f"  [DEBUG] 3σ touches - Upper: {upper_3sigma_touches}, Lower: {lower_3sigma_touches}")
 
         # Estado de seguimiento
         touched_upper_3sigma = False
