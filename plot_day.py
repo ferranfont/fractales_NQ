@@ -1361,19 +1361,24 @@ def plot_range_chart(df, df_fractals_minor, df_fractals_major, start_date, end_d
                 if not df_open.empty:
                     open_price = df_open.iloc[0]['close']
 
-                    # Obtener máximo y mínimo del período
+                    # Obtener máximo y mínimo HASTA el momento de entrada
                     day_high = df_range['high'].max()
                     day_low = df_range['low'].min()
 
-                    # Calcular porcentajes de movimiento desde apertura
-                    pct_up = ((day_high - open_price) / open_price) * 100 if open_price > 0 else 0
-                    pct_down = ((open_price - day_low) / open_price) * 100 if open_price > 0 else 0
+                    # Calcular porcentajes del MÁXIMO movimiento alcista y bajista
+                    # desde apertura hasta el momento de entrada
+                    pct_up_move = ((day_high - open_price) / open_price) * 100 if open_price > 0 else 0
+                    pct_down_move = ((open_price - day_low) / open_price) * 100 if open_price > 0 else 0
 
-                    annotation_text = f"Entry Time {pct_up:.1f}%/{pct_down:.1f}%"
+                    # Asegurarse de que los porcentajes negativos sean 0 (no hubo movimiento en esa dirección)
+                    pct_up_move = max(0, pct_up_move)
+                    pct_down_move = max(0, pct_down_move)
+
+                    annotation_text = f"Entry Time {pct_up_move:.1f}%/{pct_down_move:.1f}%"
 
                     print(f"[INFO] Period: {bands_start_time} to {entry_time}")
                     print(f"[INFO] Open: {open_price:.2f}, High: {day_high:.2f}, Low: {day_low:.2f}")
-                    print(f"[INFO] Movement from open: Up {pct_up:.1f}%, Down {pct_down:.1f}%")
+                    print(f"[INFO] Max upward move: +{pct_up_move:.1f}%, Max downward move: -{pct_down_move:.1f}%")
                 else:
                     annotation_text = "Entry Time"
             else:
