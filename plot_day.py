@@ -1361,9 +1361,17 @@ def plot_range_chart(df, df_fractals_minor, df_fractals_major, start_date, end_d
                 if not df_open.empty:
                     open_price = df_open.iloc[0]['close']
 
-                    # Obtener máximo y mínimo HASTA el momento de entrada
-                    day_high = df_range['high'].max()
-                    day_low = df_range['low'].min()
+                    # Obtener máximo y mínimo DESPUÉS de la apertura (excluir el bar de apertura)
+                    # Para evitar incluir precios que ocurrieron ANTES de las 15:30
+                    df_after_open = df_range[df_range['timestamp'] > df_open.iloc[0]['timestamp']]
+
+                    if not df_after_open.empty:
+                        day_high = df_after_open['high'].max()
+                        day_low = df_after_open['low'].min()
+                    else:
+                        # Si no hay datos después del open, usar el precio de apertura
+                        day_high = open_price
+                        day_low = open_price
 
                     # Calcular porcentajes del MÁXIMO movimiento alcista y bajista
                     # desde apertura hasta el momento de entrada
