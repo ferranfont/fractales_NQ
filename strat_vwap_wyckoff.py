@@ -1,13 +1,17 @@
 """
 VWAP Wyckoff Strategy
 Strategy that enters at the first "Orange Dot" (Trend Divergence) within a specific time window.
+
 Logic:
-- Window: START_ORANGE_DOT_WYCKOFF_TIME to END_ORANGE_DOT_WYCKOFF_TIME
-- Trigger: Orange Dot occurs (First detected in window)
-- Direction:
-    - If Price > VWAP Fast -> LONG
-    - If Price < VWAP Fast -> SHORT
-- Exit: TP, SL, or Time (22:00)
+- Entry Window: START_ORANGE_DOT_WYCKOFF_TIME to END_ORANGE_DOT_WYCKOFF_TIME
+- Entry Trigger: Orange Dot occurs (First detected in window)
+- Entry Direction:
+    - If Close > VWAP Slow -> LONG
+    - If Close < VWAP Slow -> SHORT
+- Reversal Mode (REVERSE_AT_EACH_ORANGE_DOT):
+    - True: Reverse position at each Orange Dot crossing VWAP Slow
+    - False: Hold position until exit (no reversals)
+- Exit: TP, SL, or Time (VWAP_WYCKOFF_EXIT_TIME)
 """
 
 import pandas as pd
@@ -23,6 +27,7 @@ from config import (
     VWAP_FAST, VWAP_SLOW, DATA_DIR, OUTPUTS_DIR,
     OPENING_RANGE_START, OPENING_RANGE_END, PRICE_EJECTION_TRIGGER,
     MAX_NUM_TRADES_PER_DAY,
+    REVERSE_AT_EACH_ORANGE_DOT,
     USE_WYCKOFF_ATR_TRAILING_STOP, WYCKOFF_ATR_PERIOD, WYCKOFF_ATR_MULTIPLIER
 )
 import pandas_ta as ta
@@ -55,6 +60,7 @@ print(f"Configuration:")
 print(f"  - Entry Window: {START_ORANGE_DOT_WYCKOFF_TIME} to {END_ORANGE_DOT_WYCKOFF_TIME}")
 print(f"  - Exit Time: {VWAP_WYCKOFF_EXIT_TIME}")
 print(f"  - TP/SL: {TP_ORANGE_DOT_WYCKOFF}/{SL_ORANGE_DOT_WYCKOFF}")
+print(f"  - Reverse at each Orange Dot: {REVERSE_AT_EACH_ORANGE_DOT}")
 
 # ============================================================================
 # LOAD DATA
@@ -258,99 +264,105 @@ for idx, bar in df.iterrows():
 
     # Check for REVERSAL (position is open)
     else:
-        # No time window restriction for reversals - can reverse until end of day
-        if pd.isna(vwap_slow_val):
-            continue
+        # Only process reversals if REVERSE_AT_EACH_ORANGE_DOT is enabled
+        if REVERSE_AT_EACH_ORANGE_DOT:
+            # Check time window for REVERSAL usage too
+            if not (start_time_obj <= current_time <= end_time_obj):
+                 # Outside trading hours => Do not reverse, just let position run/manage exits
+                 continue
 
-        is_chart_dot = bar['is_chart_dot']
-        close_price = bar['close']
+            if pd.isna(vwap_slow_val):
+                continue
 
-        # REVERSAL LOGIC: Orange Dot on opposite side of VWAP Slow
-        # Long -> Short: Orange Dot + Close < VWAP Slow
-        if open_position['direction'] == 'BUY' and is_chart_dot and close_price < vwap_slow_val:
-            print(f"[REVERSAL] {current_time} Long -> Short: Orange Dot + Close({close_price:.2f}) < Slow VWAP({vwap_slow_val:.2f})")
+            is_chart_dot = bar['is_chart_dot']
+            close_price = bar['close']
 
-            # Close Long
-            exit_price = close_price
-            pnl = exit_price - open_position['entry_price']
-            pnl_usd = pnl * POINT_VALUE
+            # REVERSAL LOGIC: Orange Dot on opposite side of VWAP Slow
+            # Long -> Short: Orange Dot + Close < VWAP Slow
+            if open_position['direction'] == 'BUY' and is_chart_dot and close_price < vwap_slow_val:
+                print(f"[REVERSAL] {current_time} Long -> Short: Orange Dot + Close({close_price:.2f}) < Slow VWAP({vwap_slow_val:.2f})")
 
-            trades.append({
-                'entry_time': open_position['entry_time'],
-                'exit_time': bar['timestamp'],
-                'direction': 'BUY',
-                'entry_price': open_position['entry_price'],
-                'exit_price': exit_price,
-                'pnl': pnl,
-                'pnl_usd': pnl_usd,
-                'exit_reason': 'Reversal_to_Short',
-                'entry_vwap': open_position['entry_vwap'],
-                'exit_vwap': vwap_fast_val,
-                'tp_price': open_position['tp_price'],
-                'sl_price': open_position['sl_price'],
-                'time_in_market': (bar['timestamp'] - open_position['entry_time']).total_seconds()/60,
-                'vwap_slope_entry': open_position['vwap_slope_entry'],
-                'vwap_slope_exit': 0
-            })
+                # Close Long
+                exit_price = close_price
+                pnl = exit_price - open_position['entry_price']
+                pnl_usd = pnl * POINT_VALUE
 
-            # Open Short
-            direction = 'SELL'
-            entry_price = exit_price
-            sl_price = entry_price + SL_ORANGE_DOT_WYCKOFF
-            tp_price = None
+                trades.append({
+                    'entry_time': open_position['entry_time'],
+                    'exit_time': bar['timestamp'],
+                    'direction': 'BUY',
+                    'entry_price': open_position['entry_price'],
+                    'exit_price': exit_price,
+                    'pnl': pnl,
+                    'pnl_usd': pnl_usd,
+                    'exit_reason': 'Reversal_to_Short',
+                    'entry_vwap': open_position['entry_vwap'],
+                    'exit_vwap': vwap_fast_val,
+                    'tp_price': open_position['tp_price'],
+                    'sl_price': open_position['sl_price'],
+                    'time_in_market': (bar['timestamp'] - open_position['entry_time']).total_seconds()/60,
+                    'vwap_slope_entry': open_position['vwap_slope_entry'],
+                    'vwap_slope_exit': 0
+                })
 
-            open_position = {
-                'direction': direction,
-                'entry_time': bar['timestamp'],
-                'entry_price': entry_price,
-                'tp_price': tp_price,
-                'sl_price': sl_price,
-                'entry_vwap': vwap_fast_val,
-                'vwap_slope_entry': 0
-            }
+                # Open Short
+                direction = 'SELL'
+                entry_price = exit_price
+                sl_price = entry_price + SL_ORANGE_DOT_WYCKOFF
+                tp_price = None
 
-        # Short -> Long: Orange Dot + Close > VWAP Slow
-        elif open_position['direction'] == 'SELL' and is_chart_dot and close_price > vwap_slow_val:
-            print(f"[REVERSAL] {current_time} Short -> Long: Orange Dot + Close({close_price:.2f}) > Slow VWAP({vwap_slow_val:.2f})")
+                open_position = {
+                    'direction': direction,
+                    'entry_time': bar['timestamp'],
+                    'entry_price': entry_price,
+                    'tp_price': tp_price,
+                    'sl_price': sl_price,
+                    'entry_vwap': vwap_fast_val,
+                    'vwap_slope_entry': 0
+                }
 
-            # Close Short
-            exit_price = close_price
-            pnl = open_position['entry_price'] - exit_price
-            pnl_usd = pnl * POINT_VALUE
+            # Short -> Long: Orange Dot + Close > VWAP Slow
+            elif open_position['direction'] == 'SELL' and is_chart_dot and close_price > vwap_slow_val:
+                print(f"[REVERSAL] {current_time} Short -> Long: Orange Dot + Close({close_price:.2f}) > Slow VWAP({vwap_slow_val:.2f})")
 
-            trades.append({
-                'entry_time': open_position['entry_time'],
-                'exit_time': bar['timestamp'],
-                'direction': 'SELL',
-                'entry_price': open_position['entry_price'],
-                'exit_price': exit_price,
-                'pnl': pnl,
-                'pnl_usd': pnl_usd,
-                'exit_reason': 'Reversal_to_Long',
-                'entry_vwap': open_position['entry_vwap'],
-                'exit_vwap': vwap_fast_val,
-                'tp_price': open_position['tp_price'],
-                'sl_price': open_position['sl_price'],
-                'time_in_market': (bar['timestamp'] - open_position['entry_time']).total_seconds()/60,
-                'vwap_slope_entry': open_position['vwap_slope_entry'],
-                'vwap_slope_exit': 0
-            })
+                # Close Short
+                exit_price = close_price
+                pnl = open_position['entry_price'] - exit_price
+                pnl_usd = pnl * POINT_VALUE
 
-            # Open Long
-            direction = 'BUY'
-            entry_price = exit_price
-            sl_price = entry_price - SL_ORANGE_DOT_WYCKOFF
-            tp_price = None
+                trades.append({
+                    'entry_time': open_position['entry_time'],
+                    'exit_time': bar['timestamp'],
+                    'direction': 'SELL',
+                    'entry_price': open_position['entry_price'],
+                    'exit_price': exit_price,
+                    'pnl': pnl,
+                    'pnl_usd': pnl_usd,
+                    'exit_reason': 'Reversal_to_Long',
+                    'entry_vwap': open_position['entry_vwap'],
+                    'exit_vwap': vwap_fast_val,
+                    'tp_price': open_position['tp_price'],
+                    'sl_price': open_position['sl_price'],
+                    'time_in_market': (bar['timestamp'] - open_position['entry_time']).total_seconds()/60,
+                    'vwap_slope_entry': open_position['vwap_slope_entry'],
+                    'vwap_slope_exit': 0
+                })
 
-            open_position = {
-                'direction': direction,
-                'entry_time': bar['timestamp'],
-                'entry_price': entry_price,
-                'tp_price': tp_price,
-                'sl_price': sl_price,
-                'entry_vwap': vwap_fast_val,
-                'vwap_slope_entry': 0
-            }
+                # Open Long
+                direction = 'BUY'
+                entry_price = exit_price
+                sl_price = entry_price - SL_ORANGE_DOT_WYCKOFF
+                tp_price = None
+
+                open_position = {
+                    'direction': direction,
+                    'entry_time': bar['timestamp'],
+                    'entry_price': entry_price,
+                    'tp_price': tp_price,
+                    'sl_price': sl_price,
+                    'entry_vwap': vwap_fast_val,
+                    'vwap_slope_entry': 0
+                }
 
 # Save trades
 if trades:

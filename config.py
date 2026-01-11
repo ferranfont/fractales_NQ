@@ -7,7 +7,7 @@ from pathlib import Path
 # CONFIGURACIÓN DE FECHAS (single day analysis)
 # ============================================================================
 # Opción 1: Fecha única (descomentar para usar una sola fecha)
-DATE = "20251215"  # Fecha en formato YYYYMMDD
+DATE = "20251211"  # Fecha en formato YYYYMMDD
 START_DATE = DATE
 END_DATE = DATE
 
@@ -21,7 +21,7 @@ ALL_DAYS_SEGMENT_END = "20251219"           # Fecha final del segmento (solo si 
 # ============================================================================
 # MAIN TRADING PARAMETERS VWAP MOMENTUM STRATEGY (Price Ejection - Green Dots)
 # ============================================================================
-ENABLE_VWAP_MOMENTUM_STRATEGY = True        # True = ejecutar estrategia, False = NO ejecutar
+ENABLE_VWAP_MOMENTUM_STRATEGY = False        # True = ejecutar estrategia, False = NO ejecutar
 VWAP_MOMENTUM_TP_POINTS = 125.0             # Take profit in points
 VWAP_MOMENTUM_SL_POINTS = 75.0            # Stop loss in points
 VWAP_MOMENTUM_MAX_POSITIONS = 1             # Maximum number of positions open simultaneously
@@ -31,19 +31,19 @@ VWAP_MOMENTUM_MAX_POSITIONS = 1             # Maximum number of positions open s
 # ============================================================================
 # Filtro global general de horario de trading
 VWAP_MOMENTUM_STRAT_START_HOUR = "00:00:00" # Hora de inicio de trading
-VWAP_MOMENTUM_STRAT_END_HOUR = "22:59:59"   # Hora de fin de trading
+VWAP_MOMENTUM_STRAT_END_HOUR = "22:00:00"   # Hora de fin de trading
 # Filtro específico según hora del dia
 # These filters work together (both must pass):
 # 1. Generic time range filter: START_HOUR to END_HOUR (always active)
 # 2. Specific hours filter: ALLOWED_HOURS (only if USE_SELECTED_ALLOWED_HOURS = True)
-USE_SELECTED_ALLOWED_HOURS = True          # True = only trade in specific hours from list below, False = trade in any hour within START/END range
-VWAP_MOMENTUM_ALLOWED_HOURS = [0, 4, 5, 6, 7, 8, 10, 12, 13, 15, 16, 17, 18, 19, 21, 22]  # Optimized: Removed toxic hours (1, 2, 3, 9, 11, 14, 20)
+USE_SELECTED_ALLOWED_HOURS = False          # True = only trade in specific hours from list below, False = trade in any hour within START/END range
+VWAP_MOMENTUM_ALLOWED_HOURS = [15, 16]  # Optimized: Removed toxic hours (1, 2, 3, 9, 11, 14, 20)
 
 # ============================================================================
 # FILTROS DE ENTRADA A FAVOR TENDENCIA VWAP MOMENTUM STRATEGY
 # ============================================================================
 # Trade only with the trend defined by VWAP FAST vs VWAP SLOW
-USE_VWAP_SLOW_TREND_FILTER = True          # True = only trade with trend, False = ignore trend
+USE_VWAP_SLOW_TREND_FILTER = False          # True = only trade with trend, False = ignore trend
 # When enabled:
 #   - LONG (BUY): only if VWAP_FAST > VWAP_SLOW (uptrend)
 #   - SHORT (SELL): only if VWAP_FAST < VWAP_SLOW (downtrend)
@@ -153,6 +153,37 @@ VWAP_SQUARE_LISTENING_TIME = 60              # Minutes to listen for breakout af
 VWAP_SQUARE_SHIFT_POINTS = 0                 # Puntos adicionales de margen: BUY = MAX + shift, SELL = MIN - shift
 USE_SQUARE_VWAP_SLOW_TREND_FILTER = True     # True = solo opera a favor de la tendencia (VWAP Fast vs Slow)
 
+# ============================================================================
+# TRADING PARAMETERS VWAP TIME STRATEGY (Specific Time Entry)
+# ============================================================================
+ENABLE_VWAP_TIME_STRATEGY = False              # True = ejecutar estrategia, False = NO ejecutar
+VWAP_TIME_ENTRY = "17:00:00"                  # Hora exacta de entrada
+VWAP_TIME_EXIT = "22:00:00"                   # Hora exacta de salida (Time-based exit)
+VWAP_TIME_TP_POINTS = 400.0                   # Take profit in points (Optional, mainly time-based)
+VWAP_TIME_SL_POINTS = 400.0                   # Stop loss in points (Optional)
+
+# ============================================================================
+# TRADING PARAMETERS VWAP WYCKOFF STRATEGY (Orange Dot Entry)
+# ============================================================================
+ENABLE_VWAP_WYCKOFF_STRATEGY = True           # True = ejecutar estrategia, False = NO ejecutar
+START_ORANGE_DOT_WYCKOFF_TIME = "09:00:00"    # Hora de inicio para buscar Orange Dots
+END_ORANGE_DOT_WYCKOFF_TIME = "15:15:00"      # Hora de fin para buscar Orange Dots
+VWAP_WYCKOFF_EXIT_TIME = "15:29:00"           # Hora de cierre forzoso
+TP_ORANGE_DOT_WYCKOFF = 325.0                 # Take profit
+SL_ORANGE_DOT_WYCKOFF = 175.0                  # Stop loss
+MAX_NUM_TRADES_PER_DAY = 99                    # Max trades per day
+REVERSE_AT_EACH_ORANGE_DOT = False            # True = reverse at each orange dot, False = hold position until exit time
+
+# ATR Trailing Stop for Wyckoff Strategy (Dynamic Volatility Based)
+USE_WYCKOFF_ATR_TRAILING_STOP = True          # True = use ATR based trailing stop, False = use fixed stop
+WYCKOFF_ATR_PERIOD = 21                        # Period for ATR calculation
+WYCKOFF_ATR_MULTIPLIER = 10                    # Multiplier for ATR to determine stop distance
+
+# OPENING RANGE CHANNEL
+ENABLE_OPENING_RANGE_PLOT = False
+OPENING_RANGE_START = "14:00:00"
+OPENING_RANGE_END = "15:29:00"
+
 # ATR Trailing Stop for Square Strategy (Dynamic Volatility Based)
 USE_SQUARE_ATR_TRAILING_STOP = False          # True = use ATR based trailing stop, False = use fixed stop
 SQUARE_ATR_PERIOD = 21                       # Period for ATR calculation
@@ -233,8 +264,8 @@ SHOW_SUBPLOT_VWAP_SLOPE_INDICATOR = False      # True = mostrar subplot de VWAP 
 SHOW_VWAP_INDICATOR_CROSSOVER= True        # True = mostrar señales de cruce VWAP en el gráfico
 SHOW_ORANGE_DOT = True         # True = mostrar puntos naranjas (VWAP Slope crossover) en el gráfico de precio
 SHOW_BLUE_SQUARE = True         # True = mostrar cuadrados azules (VWAP Slope crossdown) en el gráfico de precio
-SHOW_GREEN_DOT = True          # True = mostrar puntos verdes (Price Ejection) en el gráfico de precio
-SHOW_RED_DOT = True             # True = mostrar puntos rojos (OVER Price Ejection) en el gráfico de precio
+SHOW_GREEN_DOT = False          # True = mostrar puntos verdes (Price Ejection) en el gráfico de precio
+SHOW_RED_DOT = False             # True = mostrar puntos rojos (OVER Price Ejection) en el gráfico de precio
 
 PLOT_VWAP = True                 # True = dibujar indicador VWAP en el gráfico
 SHOW_FAST_VWAP = True            # True = mostrar VWAP Fast (magenta)
@@ -243,6 +274,6 @@ SHOW_SLOW_VWAP = True            # True = mostrar VWAP Slow (verde)
 # ============================================================================
 # ITERATION PARAMETERS
 # ============================================================================
-SHOW_CHART_DURING_ITERATION = True           # True = generate and open chart for each day during iteration
+SHOW_CHART_DURING_ITERATION = True             # True = generate and open chart for each day during iteration
 
 
