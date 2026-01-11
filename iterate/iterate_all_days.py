@@ -20,12 +20,24 @@ from config import (
     DATA_DIR, OUTPUTS_DIR,
     ENABLE_VWAP_MOMENTUM_STRATEGY, ENABLE_VWAP_SQUARE_STRATEGY,
     ENABLE_VWAP_CROSSOVER_STRATEGY, ENABLE_VWAP_PULLBACK_STRATEGY,
+    ENABLE_VWAP_TIME_STRATEGY,
+    ENABLE_VWAP_WYCKOFF_STRATEGY,
+    ENABLE_VWAP_BAND_REVERSAL_STRATEGY,
     USE_ALL_DAYS_AVAILABLE, ALL_DAYS_SEGMENT_START, ALL_DAYS_SEGMENT_END,
     SHOW_CHART_DURING_ITERATION,
     VWAP_MOMENTUM_STRAT_START_HOUR, VWAP_MOMENTUM_STRAT_END_HOUR,
     VWAP_MOMENTUM_TP_POINTS, VWAP_MOMENTUM_SL_POINTS,
     VWAP_SQUARE_START_HOUR, VWAP_SQUARE_END_HOUR,
     VWAP_SQUARE_TP_POINTS, VWAP_SQUARE_SL_POINTS,
+    # VWAP Time Params
+    VWAP_TIME_ENTRY, VWAP_TIME_EXIT, VWAP_TIME_TP_POINTS, VWAP_TIME_SL_POINTS,
+    # VWAP Wyckoff Params
+    START_ORANGE_DOT_WYCKOFF_TIME, END_ORANGE_DOT_WYCKOFF_TIME,
+    VWAP_WYCKOFF_EXIT_TIME, TP_ORANGE_DOT_WYCKOFF, SL_ORANGE_DOT_WYCKOFF,
+    USE_WYCKOFF_ATR_TRAILING_STOP, WYCKOFF_ATR_MULTIPLIER,
+    # VWAP Band Reversal Params
+    VWAP_BAND_REVERSAL_START_TIME, VWAP_BAND_REVERSAL_EXIT_TIME,
+    VWAP_BAND_REVERSAL_TP_POINTS, VWAP_BAND_REVERSAL_SL_POINTS,
     # Filter configurations
     USE_VWAP_SLOW_TREND_FILTER,
     USE_TRAIL_CASH, USE_ATR_TRAILING_STOP,
@@ -125,7 +137,9 @@ for i, date_str in enumerate(available_dates, 1):
 
         # Check if at least one strategy is enabled
         if not (ENABLE_VWAP_MOMENTUM_STRATEGY or ENABLE_VWAP_SQUARE_STRATEGY or
-                ENABLE_VWAP_CROSSOVER_STRATEGY or ENABLE_VWAP_PULLBACK_STRATEGY):
+                ENABLE_VWAP_CROSSOVER_STRATEGY or ENABLE_VWAP_PULLBACK_STRATEGY or
+                ENABLE_VWAP_TIME_STRATEGY or ENABLE_VWAP_WYCKOFF_STRATEGY or
+                ENABLE_VWAP_BAND_REVERSAL_STRATEGY):
             print(f"[INFO] All strategies disabled, no trades to collect")
             continue
 
@@ -135,6 +149,9 @@ for i, date_str in enumerate(available_dates, 1):
         square_script = project_root / "strat_vwap_square.py"
         crossover_script = project_root / "strat_vwap_crossover.py"
         pullback_script = project_root / "strat_vwap_pullback.py"
+        time_script = project_root / "strat_vwap_time.py"
+        wyckoff_script = project_root / "strat_vwap_wyckoff.py"
+        band_reversal_script = project_root / "strat_vwap_band_reversal.py"
 
         # Temporarily modify config.py to set the date
         config_file = project_root / "config.py"
@@ -302,21 +319,125 @@ for i, date_str in enumerate(available_dates, 1):
                 else:
                     print(f"[ERROR] Pullback strategy file not found: {pullback_script}")
 
+            # Execute VWAP Time Strategy if enabled
+            if ENABLE_VWAP_TIME_STRATEGY:
+                if time_script.exists():
+                    print(f"[INFO] Executing VWAP Time strategy...")
+                    result = subprocess.run(
+                        [sys.executable, str(time_script)],
+                        capture_output=True,
+                        text=True,
+                        cwd=str(project_root)
+                    )
+
+                    if result.returncode == 0:
+                        print(f"[OK] VWAP Time executed for {date_str}")
+
+                        # Load the tracking record CSV for this date
+                        csv_file = trading_dir / f"tracking_record_vwap_time_{date_str}.csv"
+
+                        if csv_file.exists():
+                            df_day = pd.read_csv(csv_file, sep=';', decimal=',')
+                            if len(df_day) > 0:
+                                print(f"[OK] Collected {len(df_day)} Time trades from {date_str}")
+                                all_trades.append(df_day)
+                            else:
+                                print(f"[INFO] No Time trades generated for {date_str}")
+                        else:
+                            print(f"[INFO] No Time tracking record found for {date_str}")
+                    else:
+                        print(f"[WARN] VWAP Time returned code {result.returncode} for {date_str}")
+                        if result.stderr:
+                            print(f"[ERROR] {result.stderr[:200]}")
+                else:
+                    print(f"[ERROR] Time strategy file not found: {time_script}")
+
+            # Execute VWAP Wyckoff Strategy if enabled
+            if ENABLE_VWAP_WYCKOFF_STRATEGY:
+                if wyckoff_script.exists():
+                    print(f"[INFO] Executing VWAP Wyckoff strategy...")
+                    result = subprocess.run(
+                        [sys.executable, str(wyckoff_script)],
+                        capture_output=True,
+                        text=True,
+                        cwd=str(project_root)
+                    )
+
+                    if result.returncode == 0:
+                        print(f"[OK] VWAP Wyckoff executed for {date_str}")
+
+                        # Load the tracking record CSV for this date
+                        csv_file = trading_dir / f"tracking_record_vwap_wyckoff_{date_str}.csv"
+
+                        if csv_file.exists():
+                            df_day = pd.read_csv(csv_file, sep=';', decimal=',')
+                            if len(df_day) > 0:
+                                df_day['strategy'] = 'Wyckoff'  # Add strategy label
+                                print(f"[OK] Collected {len(df_day)} Wyckoff trades from {date_str}")
+                                all_trades.append(df_day)
+                            else:
+                                print(f"[INFO] No Wyckoff trades generated for {date_str}")
+                        else:
+                            print(f"[INFO] No Wyckoff tracking record found for {date_str}")
+                    else:
+                        print(f"[WARN] VWAP Wyckoff returned code {result.returncode} for {date_str}")
+                        if result.stderr:
+                            print(f"[ERROR] {result.stderr[:200]}")
+                else:
+                    print(f"[ERROR] Wyckoff strategy file not found: {wyckoff_script}")
+
+            # Execute VWAP Band Reversal Strategy if enabled
+            if ENABLE_VWAP_BAND_REVERSAL_STRATEGY:
+                if band_reversal_script.exists():
+                    print(f"[INFO] Executing VWAP Band Reversal strategy...")
+                    result = subprocess.run(
+                        [sys.executable, str(band_reversal_script)],
+                        capture_output=True,
+                        text=True,
+                        cwd=str(project_root)
+                    )
+
+                    if result.returncode == 0:
+                        print(f"[OK] VWAP Band Reversal executed for {date_str}")
+
+                        # Load the tracking record CSV for this date
+                        csv_file = trading_dir / f"tracking_record_vwap_band_reversal_{date_str}.csv"
+
+                        if csv_file.exists():
+                            df_day = pd.read_csv(csv_file, sep=';', decimal=',')
+                            if len(df_day) > 0:
+                                df_day['strategy'] = 'BandReversal'  # Add strategy label
+                                print(f"[OK] Collected {len(df_day)} Band Reversal trades from {date_str}")
+                                all_trades.append(df_day)
+                            else:
+                                print(f"[INFO] No Band Reversal trades generated for {date_str}")
+                        else:
+                            print(f"[INFO] No Band Reversal tracking record found for {date_str}")
+                    else:
+                        print(f"[WARN] VWAP Band Reversal returned code {result.returncode} for {date_str}")
+                        if result.stderr:
+                            print(f"[ERROR] {result.stderr[:200]}")
+                else:
+                    print(f"[ERROR] Band Reversal strategy file not found: {band_reversal_script}")
+
             # Generate chart if enabled (after all strategies)
             if SHOW_CHART_DURING_ITERATION:
                 plot_script = project_root / "plot_day.py"
                 if plot_script.exists():
                     print(f"[INFO] Generating chart for {date_str}...")
                     plot_result = subprocess.run(
-                        [sys.executable, str(plot_script)],
+                        [sys.executable, str(plot_script), '--no-browser'],
                         capture_output=True,
                         text=True,
+                        encoding='utf-8',
                         cwd=str(project_root)
                     )
                     if plot_result.returncode == 0:
                         print(f"[OK] Chart generated for {date_str}")
                     else:
                         print(f"[WARN] Chart generation failed for {date_str}")
+                        if plot_result.stderr:
+                             print(f"[ERROR Plot] {plot_result.stderr}")
                 else:
                     print(f"[WARN] plot_day.py not found, skipping chart generation")
 
@@ -525,6 +646,98 @@ try:
     equity_chart_div = pio.to_html(fig_equity, include_plotlyjs=True, full_html=False)
 except Exception as e:
     equity_chart_div = f"<div class='alert alert-warning'>Failed to generate equity curve: {e}</div>"
+
+# 2. HOURLY ANALYSIS (Chart & Table)
+hourly_chart_div = ""
+hourly_table_html = ""
+try:
+    if 'entry_time' in df_all.columns:
+        # Clone and prep
+        df_h = df_all.copy()
+        if not pd.api.types.is_datetime64_any_dtype(df_h['entry_time']):
+             df_h['entry_time'] = pd.to_datetime(df_h['entry_time'])
+        
+        df_h['hour'] = df_h['entry_time'].dt.hour
+        
+        # Group stats
+        all_hours = pd.DataFrame({'hour': range(24)})
+        grouped = df_h.groupby('hour').agg(
+            trades=('entry_time', 'count'),
+            pnl=('pnl_usd', 'sum'),
+            # win rate
+            win_rate=('pnl_usd', lambda x: (x > 0).mean() * 100 if len(x) > 0 else 0)
+        ).reset_index()
+        
+        final_df = all_hours.merge(grouped, on='hour', how='left').fillna(0)
+        final_df['label'] = final_df['hour'].apply(lambda h: f"{int(h):02d}:00")
+        
+        # Chart
+        fig_hourly = go.Figure()
+        
+        # Trades Bar
+        fig_hourly.add_trace(go.Bar(
+            x=final_df['label'], y=final_df['trades'],
+            name='Total Trades', marker_color='#3498db', opacity=0.7, yaxis='y'
+        ))
+        
+        # P&L Line
+        fig_hourly.add_trace(go.Scatter(
+            x=final_df['label'], y=final_df['pnl'],
+            name='Total P&L ($)', mode='lines+markers', 
+            line=dict(color='#27ae60', width=3), marker=dict(size=8), yaxis='y2'
+        ))
+        
+        fig_hourly.update_layout(
+            title='Hourly Performance Analysis',
+            xaxis_title='Hour of Day',
+            yaxis=dict(title='Number of Trades', side='left', showgrid=False),
+            yaxis2=dict(title='Total P&L (USD)', side='right', overlaying='y', showgrid=True),
+            legend=dict(orientation="h", yanchor="bottom", y=1.02, xanchor="right", x=1),
+            margin=dict(l=50, r=50, t=80, b=50),
+            height=450,
+            template='plotly_white'
+        )
+        
+        hourly_chart_div = pio.to_html(fig_hourly, include_plotlyjs=False, full_html=False)
+        
+        # Table
+        hourly_table_html = """
+        <div style="max-height: 400px; overflow-y: auto; margin-top: 20px; border: 1px solid #eee;">
+        <table style="width:100%; border-collapse: collapse; text-align: left;">
+            <thead style="background-color: #f8f9fa; position: sticky; top: 0;">
+                <tr style="border-bottom: 2px solid #dee2e6;">
+                    <th style="padding: 12px;">Hour</th>
+                    <th style="padding: 12px;">Trades</th>
+                    <th style="padding: 12px;">P&L ($)</th>
+                    <th style="padding: 12px;">Win Rate</th>
+                </tr>
+            </thead>
+            <tbody>
+        """
+        for _, row in final_df.iterrows():
+            # Style for P&L color
+            if row['pnl'] > 0: 
+                pnl_style = "color: #27ae60; font-weight: bold;"
+                bg_style = "background-color: rgba(39, 174, 96, 0.05);"
+            elif row['pnl'] < 0: 
+                pnl_style = "color: #dc3545; font-weight: bold;"
+                bg_style = "background-color: rgba(220, 53, 69, 0.05);"
+            else:
+                pnl_style = ""
+                bg_style = ""
+
+            hourly_table_html += f"""
+                <tr style="border-bottom: 1px solid #eee; {bg_style}">
+                    <td style="padding: 8px 12px;">{row['label']}</td>
+                    <td style="padding: 8px 12px;">{int(row['trades'])}</td>
+                    <td style="padding: 8px 12px; {pnl_style}">${row['pnl']:,.2f}</td>
+                    <td style="padding: 8px 12px;">{row['win_rate']:.1f}%</td>
+                </tr>
+            """
+        hourly_table_html += "</tbody></table></div>"
+
+except Exception as e:
+    hourly_chart_div = f"<div class='alert alert-warning'>Failed to generate hourly analysis: {e}</div>"
 
 # 2. DAILY PROFIT HISTOGRAM
 daily_histogram_div = ""
@@ -904,9 +1117,25 @@ html_content = f"""<!DOCTYPE html>
             <p>Break-Even Trailing (Cash): <span class="value">{'ENABLED ✓' if USE_TRAIL_CASH else 'DISABLED ✗'}</span></p>
             <p>ATR Trailing Stop: <span class="value">{'ENABLED ✓' if USE_ATR_TRAILING_STOP else 'DISABLED ✗'}</span></p>
 
-            <p style="margin-top: 15px;"><strong>Strategy:</strong></p>
-            <p>Simple Green/Red Dot entries with Fixed TP/SL</p>
-            <p>TP: <span class="value">{VWAP_MOMENTUM_TP_POINTS} pts</span> | SL: <span class="value">{VWAP_MOMENTUM_SL_POINTS} pts</span></p>
+            <p style="margin-top: 20px; font-size: 1.1em; border-bottom: 2px solid #eee;"><strong>Active Strategies Configuration:</strong></p>
+
+            <!-- Momentum -->
+            <div style="margin-top: 10px; padding: 10px; background-color: #f8f9fa; border-left: 4px solid #3498db; border-radius: 4px;">
+                <p style="margin: 0;"><strong>VWAP Momentum:</strong> <span class="value">{'ENABLED ✓' if ENABLE_VWAP_MOMENTUM_STRATEGY else 'DISABLED ✗'}</span></p>
+                {f'<div style="margin-top: 5px; font-size: 0.9em; color: #555;">Hours: {VWAP_MOMENTUM_STRAT_START_HOUR}-{VWAP_MOMENTUM_STRAT_END_HOUR}<br>TP: {VWAP_MOMENTUM_TP_POINTS:.0f} pts | SL: {VWAP_MOMENTUM_SL_POINTS:.0f} pts</div>' if ENABLE_VWAP_MOMENTUM_STRATEGY else ''}
+            </div>
+
+            <!-- Time -->
+            <div style="margin-top: 10px; padding: 10px; background-color: #f8f9fa; border-left: 4px solid #9b59b6; border-radius: 4px;">
+                <p style="margin: 0;"><strong>VWAP Time:</strong> <span class="value">{'ENABLED ✓' if ENABLE_VWAP_TIME_STRATEGY else 'DISABLED ✗'}</span></p>
+                {f'<div style="margin-top: 5px; font-size: 0.9em; color: #555;">Entry: {VWAP_TIME_ENTRY} | Exit: {VWAP_TIME_EXIT}<br>TP: {VWAP_TIME_TP_POINTS:.0f} pts | SL: {VWAP_TIME_SL_POINTS:.0f} pts</div>' if ENABLE_VWAP_TIME_STRATEGY else ''}
+            </div>
+
+            <!-- Wyckoff -->
+            <div style="margin-top: 10px; padding: 10px; background-color: #f8f9fa; border-left: 4px solid #e67e22; border-radius: 4px;">
+                <p style="margin: 0;"><strong>VWAP Wyckoff:</strong> <span class="value">{'ENABLED ✓' if ENABLE_VWAP_WYCKOFF_STRATEGY else 'DISABLED ✗'}</span></p>
+                {f'<div style="margin-top: 5px; font-size: 0.9em; color: #555;">Hours: {START_ORANGE_DOT_WYCKOFF_TIME}-{END_ORANGE_DOT_WYCKOFF_TIME}<br>TP: {TP_ORANGE_DOT_WYCKOFF:.0f} pts | SL: {SL_ORANGE_DOT_WYCKOFF:.0f} pts<br>Trailing: {"ATR (Dynamic)" if USE_WYCKOFF_ATR_TRAILING_STOP else "Fixed"}</div>' if ENABLE_VWAP_WYCKOFF_STRATEGY else ''}
+            </div>
         </div>
 
         <h2>Equity Curve</h2>
@@ -942,6 +1171,17 @@ html_content = f"""<!DOCTYPE html>
                 {daily_summary_html}
             </tbody>
         </table>
+
+        <h2>Hourly Performance Analysis</h2>
+        <div style="display: flex; gap: 20px; flex-wrap: wrap; margin: 20px 0;">
+            <div style="flex: 1; min-width: 400px; background-color: white; padding: 15px; border-radius: 8px; box-shadow: 0 2px 4px rgba(0,0,0,0.1);">
+                {hourly_chart_div}
+            </div>
+            <div style="flex: 1; min-width: 400px; background-color: white; padding: 15px; border-radius: 8px; box-shadow: 0 2px 4px rgba(0,0,0,0.1);">
+                <h3 style="margin-top: 0; color: #34495e;">Hourly Statistics</h3>
+                {hourly_table_html}
+            </div>
+        </div>
 
         <h2>All Trades Detail</h2>
         <table>

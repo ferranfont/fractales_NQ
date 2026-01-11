@@ -7,7 +7,7 @@ from pathlib import Path
 # CONFIGURACIÓN DE FECHAS (single day analysis)
 # ============================================================================
 # Opción 1: Fecha única (descomentar para usar una sola fecha)
-DATE = "20251211"  # Fecha en formato YYYYMMDD
+DATE = "20251016"  # Fecha en formato YYYYMMDD
 START_DATE = DATE
 END_DATE = DATE
 
@@ -183,6 +183,15 @@ USE_WYCKOFF_ATR_TRAILING_STOP = True          # True = use ATR based trailing st
 WYCKOFF_ATR_PERIOD = 21                        # Period for ATR calculation
 WYCKOFF_ATR_MULTIPLIER = 10                    # Multiplier for ATR to determine stop distance
 
+# ============================================================================
+# TRADING PARAMETERS VWAP BAND REVERSAL STRATEGY (Blue Dot Entry)
+# ============================================================================
+ENABLE_VWAP_BAND_REVERSAL_STRATEGY = False    # True = ejecutar estrategia, False = NO ejecutar
+VWAP_BAND_REVERSAL_START_TIME = "17:00:00"   # Hora de inicio para buscar señales (después de Entry Time)
+VWAP_BAND_REVERSAL_EXIT_TIME = "22:00:00"    # Hora de cierre forzoso
+VWAP_BAND_REVERSAL_TP_POINTS = 400.0          # Take profit in points
+VWAP_BAND_REVERSAL_SL_POINTS = 400.0          # Stop loss in points
+
 # OPENING RANGE CHANNEL
 ENABLE_OPENING_RANGE_PLOT = False
 OPENING_RANGE_START = "14:00:00"
@@ -216,7 +225,7 @@ PROJECT_ROOT = Path(__file__).parent
 DATA_DIR = PROJECT_ROOT / "data"
 OUTPUTS_DIR = PROJECT_ROOT / "outputs"
 FRACTALS_DIR = OUTPUTS_DIR / "fractals"
-CHARTS_DIR = OUTPUTS_DIR / "charts"
+CHARTS_DIR = OUTPUTS_DIR / "bands_entry"
 MODELS_DIR = OUTPUTS_DIR / "modelos_json"
 
 # ============================================================================

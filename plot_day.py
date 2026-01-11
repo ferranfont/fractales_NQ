@@ -2,6 +2,12 @@ import pandas as pd
 import plotly.graph_objects as go
 from plotly.subplots import make_subplots
 import os
+import sys
+# Force UTF-8 for Windows console (to allow printing emojis/special chars)
+if sys.platform == "win32":
+    sys.stdout.reconfigure(encoding='utf-8')
+    sys.stderr.reconfigure(encoding='utf-8')
+
 from pathlib import Path
 from datetime import datetime
 from config import (
@@ -1624,9 +1630,13 @@ def plot_range_chart(df, df_fractals_minor, df_fractals_major, start_date, end_d
     print(f"Gráfico guardado exitosamente")
 
     # Mostrar en navegador
-    import webbrowser
-    webbrowser.open(f'file://{os.path.abspath(output_html)}')
-    print(f"Abriendo en navegador...")
+    # Mostrar en navegador (SOLO SI NO ESTA EN MODO ITERACION)
+    if '--no-browser' not in sys.argv:
+        import webbrowser
+        webbrowser.open(f'file://{os.path.abspath(output_html)}')
+        print(f"Abriendo en navegador...")
+    else:
+        print(f"[INFO] Skipping browser open (--no-browser flag detected)")
 
     return {
         'start_date': start_date,
