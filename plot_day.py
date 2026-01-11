@@ -43,6 +43,8 @@ from config import (
     # VWAP Wyckoff Strategy
     ENABLE_VWAP_WYCKOFF_STRATEGY, USE_WYCKOFF_ATR_TRAILING_STOP,
     START_ORANGE_DOT_WYCKOFF_TIME,
+    # VWAP Band Reversal Strategy
+    ENABLE_VWAP_BAND_REVERSAL_STRATEGY, VWAP_BAND_REVERSAL_START_TIME,
     ENABLE_OPENING_RANGE_PLOT, OPENING_RANGE_START, OPENING_RANGE_END
 )
 from calculate_vwap import calculate_vwap
@@ -152,6 +154,16 @@ def get_strategy_info_compact():
         
         return f"VWAP Wyckoff (Orange Dot) | {time_info} | {tp_sl_info}"
 
+    elif ENABLE_VWAP_BAND_REVERSAL_STRATEGY:
+        # VWAP BAND REVERSAL STRATEGY
+        from config import (VWAP_BAND_REVERSAL_START_TIME, VWAP_BAND_REVERSAL_EXIT_TIME,
+                           VWAP_BAND_REVERSAL_TP_POINTS, VWAP_BAND_REVERSAL_SL_POINTS)
+        
+        time_info = f"Window Start: {VWAP_BAND_REVERSAL_START_TIME} | Exit: {VWAP_BAND_REVERSAL_EXIT_TIME}"
+        tp_sl_info = f"TP/SL ({VWAP_BAND_REVERSAL_TP_POINTS}/{VWAP_BAND_REVERSAL_SL_POINTS}pts)"
+        
+        return f"VWAP Band Reversal (Blue Dot) | {time_info} | {tp_sl_info}"
+
     else:
         return "NO STRATEGY ENABLED"
 
@@ -215,6 +227,12 @@ def plot_range_chart(df, df_fractals_minor, df_fractals_major, start_date, end_d
     else:
         print(f"Generando gráfico para rango: {start_date} -> {end_date}")
     print(f"Datos cargados: {len(df)} registros")
+    
+    if start_date == end_date:
+        date_range_str_local = start_date
+    else:
+        date_range_str_local = f"{start_date}_{end_date}"
+        
     print("[DEBUG] Step 1: Data reset and timestamp check...")
 
     # Crear índice numérico para evitar huecos de fines de semana
@@ -889,7 +907,7 @@ def plot_range_chart(df, df_fractals_minor, df_fractals_major, start_date, end_d
     # df_trades puede pasarse como parámetro o ser cargado automáticamente desde outputs/trading
     # Load trades ONLY from ENABLED strategies
     if df_trades is None:
-        from config import ENABLE_VWAP_CROSSOVER_STRATEGY, ENABLE_VWAP_PULLBACK_STRATEGY
+
         # ENABLE_VWAP_MOMENTUM_STRATEGY and ENABLE_VWAP_SQUARE_STRATEGY already imported at module level
 
         date_range_str_local = start_date if start_date == end_date else f"{start_date}_{end_date}"
@@ -956,7 +974,7 @@ def plot_range_chart(df, df_fractals_minor, df_fractals_major, start_date, end_d
                     print(f"[WARN] Could not load square trades: {e}")
 
         # Try to load VWAP Time strategy trades (only if enabled)
-        from config import ENABLE_VWAP_TIME_STRATEGY
+
         if ENABLE_VWAP_TIME_STRATEGY:
             time_path = OUTPUTS_DIR / "trading" / f"tracking_record_vwap_time_{date_range_str_local}.csv"
             if time_path.exists():
@@ -1432,6 +1450,30 @@ def plot_range_chart(df, df_fractals_minor, df_fractals_major, start_date, end_d
             print(f"[INFO] Wake up Time line added at {START_ORANGE_DOT_WYCKOFF_TIME}")
 
     # ========================================================================
+    # BAND REVERSAL START TIME (VWAP_BAND_REVERSAL_START_TIME)
+    # ========================================================================
+    if ENABLE_VWAP_BAND_REVERSAL_STRATEGY:
+        # Encontrar el índice más cercano a la hora de Band Reversal Start Time
+        if start_date == end_date:
+            target_band_reversal_time = pd.to_datetime(f"{start_date} {VWAP_BAND_REVERSAL_START_TIME}")
+        else:
+            target_band_reversal_time = pd.to_datetime(f"{start_date} {VWAP_BAND_REVERSAL_START_TIME}")
+
+        # Buscar el registro más cercano a Band Reversal Start Time
+        df_band_reversal_time = df[df['timestamp'].dt.time == pd.to_datetime(VWAP_BAND_REVERSAL_START_TIME).time()]
+
+        if not df_band_reversal_time.empty:
+            band_reversal_time_index = df_band_reversal_time.iloc[0]['index']
+
+            # Añadir línea vertical VERDE
+            fig.add_vline(x=band_reversal_time_index, line_width=2, line_dash="dash",
+                         line_color="green", row=price_row, col=1,
+                         annotation_text="Band Reversal Start",
+                         annotation_position="top right",
+                         annotation_font_color="green")
+            print(f"[INFO] Band Reversal Start Time line added at {VWAP_BAND_REVERSAL_START_TIME}")
+
+    # ========================================================================
     # VWAP BANDS (Standard Deviation)
     # ========================================================================
     if PLOT_VWAP_BANDS and 'vwap_fast' in df.columns:
@@ -1700,13 +1742,44 @@ if __name__ == "__main__":
         df_fractals_major = pd.read_csv(fractal_major_path)
 
     # Try to load trades file for this date range and pass it to the plotting function
-    df_trades = None
-    trades_path = OUTPUTS_DIR / "trading" / f"trading_vwap_momentum_{date_range_str}.csv"
-    if trades_path.exists():
-        try:
-            df_trades = pd.read_csv(trades_path, sep=';', decimal=',', parse_dates=['entry_time', 'exit_time'])
-            print(f"[INFO] Trades loaded from {trades_path} ({len(df_trades)} rows)")
-        except Exception as e:
-            print(f"[WARN] Could not load trades file {trades_path}: {e}")
+    # Load trades from all enabled strategies
+    if START_DATE == END_DATE:
+        trade_date_str = START_DATE
+    else:
+        trade_date_str = f"{START_DATE}_{END_DATE}"
+        
+    all_trades_list = []
+    
+    from config import (
+        ENABLE_VWAP_MOMENTUM_STRATEGY, ENABLE_VWAP_WYCKOFF_STRATEGY, 
+        ENABLE_VWAP_TIME_STRATEGY, ENABLE_VWAP_BAND_REVERSAL_STRATEGY,
+        ENABLE_VWAP_PULLBACK_STRATEGY, ENABLE_VWAP_SQUARE_STRATEGY,
+        ENABLE_VWAP_CROSSOVER_STRATEGY
+    )
+
+    strategy_map = [
+        (ENABLE_VWAP_MOMENTUM_STRATEGY, f"tracking_record_vwap_momentum_{trade_date_str}.csv"),
+        (ENABLE_VWAP_WYCKOFF_STRATEGY, f"tracking_record_vwap_wyckoff_{trade_date_str}.csv"),
+        (ENABLE_VWAP_TIME_STRATEGY, f"tracking_record_vwap_time_{trade_date_str}.csv"),
+        (ENABLE_VWAP_BAND_REVERSAL_STRATEGY, f"tracking_record_vwap_band_reversal_{trade_date_str}.csv"),
+        (ENABLE_VWAP_PULLBACK_STRATEGY, f"tracking_record_vwap_pullback_{trade_date_str}.csv"),
+        (ENABLE_VWAP_SQUARE_STRATEGY, f"tracking_record_vwap_square_{trade_date_str}.csv"),
+        (ENABLE_VWAP_CROSSOVER_STRATEGY, f"tracking_record_vwap_crossover_{trade_date_str}.csv")
+    ]
+    trading_dir = OUTPUTS_DIR / "trading"
+
+    for is_enabled, t_file in strategy_map:
+        if is_enabled:
+            t_path = trading_dir / t_file
+            if t_path.exists():
+                try:
+                    tdf = pd.read_csv(t_path, sep=';', decimal=',', parse_dates=['entry_time', 'exit_time'])
+                    if len(tdf) > 0:
+                        all_trades_list.append(tdf)
+                        print(f"[INFO] Trades loaded from {t_file} (Strategy Enabled)")
+                except Exception as e:
+                    print(f"[WARN] Could not load trades file {t_path}: {e}")
+                
+    df_trades = pd.concat(all_trades_list, ignore_index=True) if all_trades_list else None
 
     plot_range_chart(df, df_fractals_minor, df_fractals_major, START_DATE, END_DATE, symbol=symbol, df_trades=df_trades)
