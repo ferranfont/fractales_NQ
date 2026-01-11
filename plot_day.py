@@ -29,7 +29,12 @@ from config import (
     USE_SQUARE_ATR_TRAILING_STOP, SQUARE_ATR_PERIOD, SQUARE_ATR_MULTIPLIER,
     USE_OPOSITE_SIDE_OF_SQUARE_AS_STOP,
     USE_VWAP_SQUARE_SHAKE_OUT, VWAP_SQUARE_SHAKE_OUT_RETRACEMENT_PCT,
-    USE_SQUARE_VWAP_SLOW_TREND_FILTER
+    USE_SQUARE_VWAP_SLOW_TREND_FILTER,
+    # VWAP Time Strategy
+    ENABLE_VWAP_TIME_STRATEGY,
+    # VWAP Wyckoff Strategy
+    ENABLE_VWAP_WYCKOFF_STRATEGY, USE_WYCKOFF_ATR_TRAILING_STOP,
+    ENABLE_OPENING_RANGE_PLOT, OPENING_RANGE_START, OPENING_RANGE_END
 )
 from calculate_vwap import calculate_vwap
 import numpy as np
@@ -118,6 +123,26 @@ def get_strategy_info_compact():
 
         return f"VWAP Momentum | {exit_mode} {tp_info} {sl_info} {direction_info} {trend_info}"
 
+    elif ENABLE_VWAP_TIME_STRATEGY:
+        # VWAP TIME STRATEGY
+        from config import VWAP_TIME_ENTRY, VWAP_TIME_EXIT, VWAP_TIME_TP_POINTS, VWAP_TIME_SL_POINTS
+
+        # Calculate duration if possible roughly
+        time_info = f"Entry:{VWAP_TIME_ENTRY} | Exit:{VWAP_TIME_EXIT}"
+        tp_sl_info = f"TP/SL ({VWAP_TIME_TP_POINTS}/{VWAP_TIME_SL_POINTS}pts)"
+
+        return f"VWAP Time | {time_info} | {tp_sl_info}"
+
+    elif ENABLE_VWAP_WYCKOFF_STRATEGY:
+        # VWAP WYCKOFF STRATEGY
+        from config import (START_ORANGE_DOT_WYCKOFF_TIME, END_ORANGE_DOT_WYCKOFF_TIME, 
+                           TP_ORANGE_DOT_WYCKOFF, SL_ORANGE_DOT_WYCKOFF)
+        
+        time_info = f"Window:{START_ORANGE_DOT_WYCKOFF_TIME}-{END_ORANGE_DOT_WYCKOFF_TIME}"
+        tp_sl_info = f"TP/SL ({TP_ORANGE_DOT_WYCKOFF}/{SL_ORANGE_DOT_WYCKOFF}pts)"
+        
+        return f"VWAP Wyckoff (Orange Dot) | {time_info} | {tp_sl_info}"
+
     else:
         return "NO STRATEGY ENABLED"
 
@@ -181,13 +206,17 @@ def plot_range_chart(df, df_fractals_minor, df_fractals_major, start_date, end_d
     else:
         print(f"Generando gráfico para rango: {start_date} -> {end_date}")
     print(f"Datos cargados: {len(df)} registros")
+    print("[DEBUG] Step 1: Data reset and timestamp check...")
 
     # Crear índice numérico para evitar huecos de fines de semana
     df = df.reset_index(drop=True)
     df['index'] = df.index
     # Asegurar que 'timestamp' sea tipo datetime (necesario para mapear fractales y trades)
     if not pd.api.types.is_datetime64_any_dtype(df['timestamp']):
+        print("[DEBUG] Converting timestamp column to datetime...")
         df['timestamp'] = pd.to_datetime(df['timestamp'])
+    
+    print("[DEBUG] Step 2: Configuring subplots...")
 
     # Configurar subplots según los indicadores habilitados
     has_metrics = df_metrics is not None and not df_metrics.empty
@@ -236,6 +265,8 @@ def plot_range_chart(df, df_fractals_minor, df_fractals_major, start_date, end_d
         price_row = 1
         slope_row = None
         metrics_row = None
+        
+    print("[DEBUG] Step 3: Adding price trace...")
 
     # Añadir línea de precio original
     trace_price = go.Scatter(
@@ -248,9 +279,12 @@ def plot_range_chart(df, df_fractals_minor, df_fractals_major, start_date, end_d
         hoverinfo='skip'
     )
     fig.add_trace(trace_price, row=price_row, col=1)
+    
+    print("[DEBUG] Step 4: Adding VWAP indicators...")
 
     # Añadir indicador VWAP
     if PLOT_VWAP:
+        print(f"[DEBUG] Calculating VWAP Fast ({VWAP_FAST})...")
         # VWAP Rápido (Fast - Magenta)
         df['vwap_fast'] = calculate_vwap(df, period=VWAP_FAST)
         df_vwap_fast = df[df['vwap_fast'].notna()].copy()
@@ -713,7 +747,74 @@ def plot_range_chart(df, df_fractals_minor, df_fractals_major, start_date, end_d
             )
             fig.add_trace(trace_clone, row=price_row, col=1)
 
-    # Añadir PUNTOS NARANJAS en el gráfico de precio cuando hay trigger de consolidación
+            fig.add_trace(trace_clone, row=price_row, col=1)
+
+    # -------------------------------------------------------------------------
+    # OPENING RANGE CHANNEL (User Request)
+    # -------------------------------------------------------------------------
+    if ENABLE_OPENING_RANGE_PLOT:
+        try:
+            # Parse times
+            or_start_time = datetime.strptime(OPENING_RANGE_START, "%H:%M:%S").time()
+            or_end_time = datetime.strptime(OPENING_RANGE_END, "%H:%M:%S").time()
+
+            # Filter data within the opening range
+            # Note: df['timestamp'] is datetime64
+            df_or = df.set_index('timestamp').between_time(or_start_time, or_end_time).reset_index()
+
+            if not df_or.empty:
+                # Find Max High and Min Low in this range
+                or_high = df_or['high'].max()
+                or_low = df_or['low'].min()
+
+                # We want to plot this channel from or_start_time (or earlier?) to end of data
+                # Typically plot starts at 'end' of range, but user said "create a channel... from x0"
+                # Let's plot from start of opening range to end of chart.
+                
+                # We need x-coordinates.
+                # If we use df['index'], we need to find the index corresponding to start time and end of df.
+                
+                # Get index of start time of opening range
+                # We want to LIMIT the plot to the range [or_start_time, or_end_time] only, not extend it.
+                
+                mask_range = (df['timestamp'].dt.time >= or_start_time) & (df['timestamp'].dt.time <= or_end_time)
+                df_range_filtered = df.loc[mask_range]
+                
+                if not df_range_filtered.empty:
+                    start_idx = df_range_filtered['index'].iloc[0]
+                    end_idx = df_range_filtered['index'].iloc[-1]
+                    
+                    # Trace 1: Upper Line
+                    trace_or_high = go.Scatter(
+                        x=[start_idx, end_idx],
+                        y=[or_high, or_high],
+                        mode='lines',
+                        name='Opening Range High',
+                        line=dict(color='lightblue', width=1),
+                        showlegend=False
+                    )
+                    
+                    # Trace 2: Lower Line (fill to upper)
+                    trace_or_low = go.Scatter(
+                        x=[start_idx, end_idx],
+                        y=[or_low, or_low],
+                        mode='lines',
+                        name='Opening Range Channel', # Show this one in legend
+                        line=dict(color='lightblue', width=1),
+                        fill='tonexty', # Fill to the previous trace (trace_or_high)
+                        fillcolor='rgba(173, 216, 230, 0.3)' # Light Blue with 0.3 alpha (more visible)
+                    )
+                    
+                    # Add trace_or_high FIRST, then trace_or_low (order matters for 'tonexty')
+                    fig.add_trace(trace_or_high, row=price_row, col=1)
+                    fig.add_trace(trace_or_low, row=price_row, col=1)
+                    
+                    print(f"[INFO] Opening Range Channel ({OPENING_RANGE_START}-{OPENING_RANGE_END}) added: High={or_high}, Low={or_low}")
+            else:
+                print(f"[WARN] No data found in Opening Range {OPENING_RANGE_START}-{OPENING_RANGE_END}")
+
+        except Exception as e:
+            print(f"[ERROR] Failed to plot Opening Range: {e}")
     # MANTENER los puntos naranjas incluso si el subplot está oculto
     if has_metrics and df_metrics is not None and PLOT_MINOR_FRACTALS and df_fractals_minor is not None:
         # Filtrar fractales donde choppiness_trigger == 1
@@ -750,6 +851,30 @@ def plot_range_chart(df, df_fractals_minor, df_fractals_major, start_date, end_d
                     fig.add_trace(trace_triggers)
 
                 print(f"[DEBUG] Puntos de consolidación añadidos al gráfico: {len(df_triggers)}")
+
+    # --- Trend Divergence Indicator (Orange Dots) ---
+    # Plot an orange dot at the first Green Dot (Price Ejection) after a Price/VWAP crossover
+    if PLOT_VWAP and 'vwap_fast' in df.columns:
+        from find_trend_divergence import find_trend_divergence_dots
+        
+        df_divergence_dots = find_trend_divergence_dots(df)
+        
+        if not df_divergence_dots.empty:
+            trace_divergence = go.Scatter(
+                x=df_divergence_dots['index'],
+                y=df_divergence_dots['close'],
+                mode='markers',
+                name='Trend Divergence (First Green Dot)',
+                marker=dict(
+                    color='orange',
+                    size=8,              # Larger size to distinguish from other dots
+                    symbol='circle-open', # Distinct symbol (open circle) or just circle
+                    line=dict(color='orange', width=2)
+                ),
+                hovertemplate='<b>Trend Divergence</b><br>Price: %{y:.2f}<extra></extra>'
+            )
+            fig.add_trace(trace_divergence, row=price_row, col=1)
+            print(f"[INFO] Trend Divergence points (Blue/Orange logic) added: {len(df_divergence_dots)}")
 
     # --- Trades plotting: Entradas / Salidas / Líneas conectando ---
     # df_trades puede pasarse como parámetro o ser cargado automáticamente desde outputs/trading
@@ -797,6 +922,18 @@ def plot_range_chart(df, df_fractals_minor, df_fractals_major, start_date, end_d
                 except Exception as e:
                     print(f"[WARN] Could not load pullback trades: {e}")
 
+        # Try to load VWAP Wyckoff strategy trades (only if enabled)
+        if ENABLE_VWAP_WYCKOFF_STRATEGY:
+            wyckoff_path = OUTPUTS_DIR / "trading" / f"tracking_record_vwap_wyckoff_{date_range_str_local}.csv"
+            if wyckoff_path.exists():
+                try:
+                    df_wyckoff = pd.read_csv(wyckoff_path, sep=';', decimal=',', parse_dates=['entry_time', 'exit_time'])
+                    df_wyckoff['strategy'] = 'Wyckoff'  # Add strategy tag
+                    trades_list.append(df_wyckoff)
+                    print(f"[INFO] Wyckoff trades loaded: {len(df_wyckoff)} rows")
+                except Exception as e:
+                    print(f"[WARN] Could not load wyckoff trades: {e}")
+
         # Try to load VWAP Square strategy trades (only if enabled)
         if ENABLE_VWAP_SQUARE_STRATEGY:
             square_path = OUTPUTS_DIR / "trading" / f"tracking_record_vwap_square_{date_range_str_local}.csv"
@@ -808,6 +945,19 @@ def plot_range_chart(df, df_fractals_minor, df_fractals_major, start_date, end_d
                     print(f"[INFO] Square trades loaded: {len(df_square)} rows")
                 except Exception as e:
                     print(f"[WARN] Could not load square trades: {e}")
+
+        # Try to load VWAP Time strategy trades (only if enabled)
+        from config import ENABLE_VWAP_TIME_STRATEGY
+        if ENABLE_VWAP_TIME_STRATEGY:
+            time_path = OUTPUTS_DIR / "trading" / f"tracking_record_vwap_time_{date_range_str_local}.csv"
+            if time_path.exists():
+                try:
+                    df_time = pd.read_csv(time_path, sep=';', decimal=',', parse_dates=['entry_time', 'exit_time'])
+                    df_time['strategy'] = 'Time'  # Add strategy tag
+                    trades_list.append(df_time)
+                    print(f"[INFO] Time trades loaded: {len(df_time)} rows")
+                except Exception as e:
+                    print(f"[WARN] Could not load time trades: {e}")
 
         # Combine all trades if any were loaded
         if trades_list:
@@ -896,73 +1046,126 @@ def plot_range_chart(df, df_fractals_minor, df_fractals_major, start_date, end_d
     # Load SL history from CSV if available (only for Square strategy - shown as violet line)
     # Only display trailing stop during active positions (from entry to exit)
 
-    # Square strategy SL history (violet solid line, only during active positions)
-    sl_history_path_square = OUTPUTS_DIR / "trading" / f"sl_history_vwap_square_{date_range_str_local}.csv"
-    trades_path_square = OUTPUTS_DIR / "trading" / f"tracking_record_vwap_square_{date_range_str_local}.csv"
+    # Square strategy SL history (violet dashed line, only during active positions)
+    # Only plot if Square strategy is enabled
+    if ENABLE_VWAP_SQUARE_STRATEGY:
+        sl_history_path_square = OUTPUTS_DIR / "trading" / f"sl_history_vwap_square_{date_range_str_local}.csv"
+        trades_path_square = OUTPUTS_DIR / "trading" / f"tracking_record_vwap_square_{date_range_str_local}.csv"
 
-    if sl_history_path_square.exists() and trades_path_square.exists():
-        try:
-            print(f"[INFO] Loading Square SL history from {sl_history_path_square.name}")
-            df_sl_history_sq = pd.read_csv(sl_history_path_square, sep=';', decimal=',', parse_dates=['timestamp'])
-            df_trades_sq = pd.read_csv(trades_path_square, sep=';', decimal=',', parse_dates=['entry_time', 'exit_time'])
+        if sl_history_path_square.exists() and trades_path_square.exists():
+            try:
+                print(f"[INFO] Loading Square SL history from {sl_history_path_square.name}")
+                df_sl_history_sq = pd.read_csv(sl_history_path_square, sep=';', decimal=',', parse_dates=['timestamp'])
+                df_trades_sq = pd.read_csv(trades_path_square, sep=';', decimal=',', parse_dates=['entry_time', 'exit_time'])
 
-            # Map timestamps to index
-            if not pd.api.types.is_datetime64_any_dtype(df_sl_history_sq['timestamp']):
-                df_sl_history_sq['timestamp'] = pd.to_datetime(df_sl_history_sq['timestamp'])
+                # Map timestamps to index
+                if not pd.api.types.is_datetime64_any_dtype(df_sl_history_sq['timestamp']):
+                    df_sl_history_sq['timestamp'] = pd.to_datetime(df_sl_history_sq['timestamp'])
 
-            # Use same mapping function as for trades
-            if 'df' in locals() or 'df' in globals():
-                df_sl_history_sq['index'] = df_sl_history_sq['timestamp'].apply(_map_ts_to_index)
-                df_sl_valid_sq = df_sl_history_sq.dropna(subset=['index']).copy()
+                # Use same mapping function as for trades
+                if 'df' in locals() or 'df' in globals():
+                    df_sl_history_sq['index'] = df_sl_history_sq['timestamp'].apply(_map_ts_to_index)
+                    df_sl_valid_sq = df_sl_history_sq.dropna(subset=['index']).copy()
 
-                if not df_sl_valid_sq.empty:
-                    # Filter SL history to only show during active positions
-                    # For each trade, only show SL points between entry_time and exit_time
-                    active_sl_segments = []
+                    if not df_sl_valid_sq.empty:
+                        # Filter SL history to only show during active positions
+                        # For each trade, only show SL points between entry_time and exit_time
+                        active_sl_segments = []
 
-                    for _, trade in df_trades_sq.iterrows():
-                        entry_time = trade['entry_time']
-                        exit_time = trade['exit_time']
+                        for _, trade in df_trades_sq.iterrows():
+                            entry_time = trade['entry_time']
+                            exit_time = trade['exit_time']
 
-                        # Filter SL history for this trade's active period
-                        trade_sl = df_sl_valid_sq[
-                            (df_sl_valid_sq['timestamp'] >= entry_time) &
-                            (df_sl_valid_sq['timestamp'] <= exit_time)
-                        ].copy()
+                            # Filter SL history for this trade's active period
+                            trade_sl = df_sl_valid_sq[
+                                (df_sl_valid_sq['timestamp'] >= entry_time) &
+                                (df_sl_valid_sq['timestamp'] <= exit_time)
+                            ].copy()
 
-                        if not trade_sl.empty:
-                            active_sl_segments.append(trade_sl)
+                            if not trade_sl.empty:
+                                active_sl_segments.append(trade_sl)
 
-                    # Draw each segment separately (one per trade)
-                    total_points = 0
-                    for segment in active_sl_segments:
-                        segment = segment.sort_values('index')
+                        # Draw each segment separately (one per trade)
+                        total_points = 0
+                        for segment in active_sl_segments:
+                            segment = segment.sort_values('index')
 
-                        trace_sl_line_sq = go.Scatter(
-                            x=segment['index'],
-                            y=segment['sl_price'],
-                            mode='lines',
-                            name='Trailing Stop (Square)',
-                            line=dict(
-                                color='violet',  # Violet dashed line for trailing stop
-                                width=1,
-                                dash='dash'  # Dashed line style
-                            ),
-                            showlegend=(total_points == 0),  # Only show legend for first segment
-                            hovertemplate='SL (Square): %{y:.2f}<br>%{x}<extra></extra>'
-                        )
-                        fig.add_trace(trace_sl_line_sq, row=price_row, col=1)
-                        total_points += len(segment)
+                            trace_sl_line_sq = go.Scatter(
+                                x=segment['index'],
+                                y=segment['sl_price'],
+                                mode='lines',
+                                name='Trailing Stop (Square)',
+                                line=dict(
+                                    color='violet',  # Violet dashed line for trailing stop
+                                    width=1,
+                                    dash='dash'  # Dashed line style
+                                ),
+                                showlegend=(total_points == 0),  # Only show legend for first segment
+                                hovertemplate='SL (Square): %{y:.2f}<br>%{x}<extra></extra>'
+                            )
+                            fig.add_trace(trace_sl_line_sq, row=price_row, col=1)
+                            total_points += len(segment)
 
-                    print(f"[INFO] Square Trailing Stop line added: {total_points} points across {len(active_sl_segments)} trades")
-        except Exception as e:
-            print(f"[WARN] Failed to load/plot Square SL history: {e}")
+                        print(f"[INFO] Square Trailing Stop line added: {total_points} points across {len(active_sl_segments)} trades")
+            except Exception as e:
+                print(f"[WARN] Failed to load/plot Square SL history: {e}")
+
+    # Wyckoff strategy SL history (red dashed line, only during active positions)
+    if ENABLE_VWAP_WYCKOFF_STRATEGY and USE_WYCKOFF_ATR_TRAILING_STOP:
+        sl_history_path_wyckoff = OUTPUTS_DIR / "trading" / f"sl_history_vwap_wyckoff_{date_range_str_local}.csv"
+        trades_path_wyckoff = OUTPUTS_DIR / "trading" / f"tracking_record_vwap_wyckoff_{date_range_str_local}.csv"
+
+        if sl_history_path_wyckoff.exists() and trades_path_wyckoff.exists():
+            try:
+                print(f"[INFO] Loading Wyckoff SL history from {sl_history_path_wyckoff.name}")
+                df_sl_history_wy = pd.read_csv(sl_history_path_wyckoff, sep=';', decimal=',', parse_dates=['timestamp'])
+                df_trades_wy = pd.read_csv(trades_path_wyckoff, sep=';', decimal=',', parse_dates=['entry_time', 'exit_time'])
+
+                # Map timestamps to index
+                if not pd.api.types.is_datetime64_any_dtype(df_sl_history_wy['timestamp']):
+                    df_sl_history_wy['timestamp'] = pd.to_datetime(df_sl_history_wy['timestamp'])
+
+                if 'df' in locals():
+                    df_sl_history_wy['index'] = df_sl_history_wy['timestamp'].apply(_map_ts_to_index)
+                    df_sl_valid_wy = df_sl_history_wy.dropna(subset=['index']).copy()
+
+                    if not df_sl_valid_wy.empty:
+                        # Filter active segments
+                        active_sl_segments_wy = []
+                        for _, trade in df_trades_wy.iterrows():
+                            entry_time = trade['entry_time']
+                            exit_time = trade['exit_time']
+                            seg = df_sl_valid_wy[
+                                (df_sl_valid_wy['timestamp'] >= entry_time) & 
+                                (df_sl_valid_wy['timestamp'] <= exit_time)
+                            ].copy()
+                            if not seg.empty:
+                                active_sl_segments_wy.append(seg)
+                        
+                        total_points_wy = 0
+                        for segment in active_sl_segments_wy:
+                            segment = segment.sort_values('index')
+                            trace_sl_wy = go.Scatter(
+                                x=segment['index'],
+                                y=segment['sl_price'],
+                                mode='lines',
+                                name='Trailing Stop (Wyckoff)',
+                                line=dict(color='red', width=1, dash='dash'),
+                                showlegend=(total_points_wy == 0),
+                                hovertemplate='SL (Wyckoff): %{y:.2f}<br>%{x}<extra></extra>'
+                            )
+                            fig.add_trace(trace_sl_wy, row=price_row, col=1)
+                            total_points_wy += len(segment)
+                        print(f"[INFO] Wyckoff Trailing Stop line added: {total_points_wy} points")
+
+            except Exception as e:
+                print(f"[WARN] Failed to load/plot Wyckoff SL history: {e}")
 
     # Momentum strategy SL history (violet solid line, only during active positions)
     sl_history_path_momentum = OUTPUTS_DIR / "trading" / f"sl_history_vwap_momentum_{date_range_str_local}.csv"
     trades_path_momentum = OUTPUTS_DIR / "trading" / f"tracking_record_vwap_momentum_{date_range_str_local}.csv"
 
-    if sl_history_path_momentum.exists() and trades_path_momentum.exists():
+    if ENABLE_VWAP_MOMENTUM_STRATEGY and sl_history_path_momentum.exists() and trades_path_momentum.exists():
         try:
             print(f"[INFO] Loading Momentum SL history from {sl_history_path_momentum.name}")
             df_sl_history_mom = pd.read_csv(sl_history_path_momentum, sep=';', decimal=',', parse_dates=['timestamp'])
@@ -1127,6 +1330,29 @@ def plot_range_chart(df, df_fractals_minor, df_fractals_major, start_date, end_d
                 fig.add_vline(x=time_index, line_width=1, line_dash="solid",
                              line_color="rgba(128, 128, 128, 0.3)")
 
+    # Añadir línea vertical AZUL para la entrada de VWAP TIME STRATEGY si está habilitada
+    from config import ENABLE_VWAP_TIME_STRATEGY, VWAP_TIME_ENTRY
+    if ENABLE_VWAP_TIME_STRATEGY:
+        # Encontrar el índice más cercano a la hora de entrada
+        if start_date == end_date:
+            target_entry_time = pd.to_datetime(f"{start_date} {VWAP_TIME_ENTRY}")
+        else:
+            target_entry_time = pd.to_datetime(f"{start_date} {VWAP_TIME_ENTRY}")
+
+        # Buscar el registro más cercano a la hora de entrada de la estrategia
+        df_entry_time = df[df['timestamp'].dt.time == pd.to_datetime(VWAP_TIME_ENTRY).time()]
+
+        if not df_entry_time.empty:
+            entry_time_index = df_entry_time.iloc[0]['index']
+            
+            # Añadir línea vertical AZUL
+            fig.add_vline(x=entry_time_index, line_width=1, line_dash="dot",
+                         line_color="blue", row=price_row, col=1,
+                         annotation_text="Entry Time",
+                         annotation_position="top right",
+                         annotation_font_color="blue")
+            print(f"[INFO] Entry Time line added at {VWAP_TIME_ENTRY}")
+
     # Configurar layout
     # Título: mostrar solo una fecha si start_date == end_date
     strategy_info = get_strategy_info_compact()
@@ -1174,7 +1400,7 @@ def plot_range_chart(df, df_fractals_minor, df_fractals_major, start_date, end_d
     # Configurar ejes Y individuales
     # Eje Y para precio (row 1) - con grid horizontal gris
     fig.update_yaxes(
-        title='Price',
+        # title='Price',
         showgrid=True, gridcolor='#e0e0e0', gridwidth=0.5,
         showline=True, linewidth=1, linecolor='#d3d3d3',
         tickcolor='gray', tickfont=dict(color='gray'),
