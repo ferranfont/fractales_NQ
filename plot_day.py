@@ -1461,6 +1461,71 @@ def plot_range_chart(df, df_fractals_minor, df_fractals_major, start_date, end_d
 
             print(f"[INFO] VWAP bands (2σ and 3σ) added from {VWAP_BANDS_START_TIME}")
 
+            # ========================================================================
+            # DETECT BLUE DOTS: Price touches 2σ band and crosses back through 1σ band
+            # ========================================================================
+            if VWAP_TIME_ENTRY:
+                entry_time = pd.to_datetime(VWAP_TIME_ENTRY).time()
+
+                # Calcular bandas 1 sigma para detección
+                upper_band_1sigma = df_bands['vwap_fast'] + std_dev
+                lower_band_1sigma = df_bands['vwap_fast'] - std_dev
+
+                # Filtrar datos DESPUÉS del Entry Time
+                df_after_entry = df_bands[df_bands['timestamp'].dt.time > entry_time].copy()
+
+                if not df_after_entry.empty:
+                    blue_dot_indices = []
+                    blue_dot_prices = []
+
+                    # Añadir las bandas 1sigma al dataframe para facilitar la detección
+                    df_after_entry['upper_1sigma'] = upper_band_1sigma[df_after_entry.index]
+                    df_after_entry['lower_1sigma'] = lower_band_1sigma[df_after_entry.index]
+                    df_after_entry['upper_2sigma'] = upper_band_2sigma[df_after_entry.index]
+                    df_after_entry['lower_2sigma'] = lower_band_2sigma[df_after_entry.index]
+
+                    # Estado de seguimiento
+                    touched_upper_2sigma = False
+                    touched_lower_2sigma = False
+
+                    for i, row in df_after_entry.iterrows():
+                        high_price = row['high']
+                        low_price = row['low']
+                        close_price = row['close']
+
+                        # LONG reversal: Touch upper 2σ, then cross down through upper 1σ
+                        if high_price >= row['upper_2sigma']:
+                            touched_upper_2sigma = True
+
+                        if touched_upper_2sigma and close_price < row['upper_1sigma']:
+                            blue_dot_indices.append(row['index'])
+                            blue_dot_prices.append(close_price)
+                            print(f"[BLUE DOT] {row['timestamp'].time()} - Touched upper 2σ and crossed down through upper 1σ at {close_price:.2f}")
+                            touched_upper_2sigma = False  # Reset para siguiente señal
+
+                        # SHORT reversal: Touch lower 2σ, then cross up through lower 1σ
+                        if low_price <= row['lower_2sigma']:
+                            touched_lower_2sigma = True
+
+                        if touched_lower_2sigma and close_price > row['lower_1sigma']:
+                            blue_dot_indices.append(row['index'])
+                            blue_dot_prices.append(close_price)
+                            print(f"[BLUE DOT] {row['timestamp'].time()} - Touched lower 2σ and crossed up through lower 1σ at {close_price:.2f}")
+                            touched_lower_2sigma = False  # Reset para siguiente señal
+
+                    # Dibujar blue dots en el chart
+                    if blue_dot_indices:
+                        fig.add_trace(go.Scatter(
+                            x=blue_dot_indices,
+                            y=blue_dot_prices,
+                            mode='markers',
+                            name='Band Reversal',
+                            marker=dict(color='blue', size=8, symbol='circle'),
+                            showlegend=True,
+                            hovertemplate='Band Reversal<br>Price: %{y:.2f}<extra></extra>'
+                        ), row=price_row, col=1)
+                        print(f"[INFO] Added {len(blue_dot_indices)} blue dots for band reversals")
+
     # Configurar layout
     # Título: mostrar solo una fecha si start_date == end_date
     strategy_info = get_strategy_info_compact()
