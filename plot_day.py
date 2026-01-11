@@ -1487,6 +1487,8 @@ def plot_range_chart(df, df_fractals_minor, df_fractals_major, start_date, end_d
                     # Estado de seguimiento
                     touched_upper_2sigma = False
                     touched_lower_2sigma = False
+                    plotted_upper_dot = False  # Flag to prevent multiple dots after single 2σ touch
+                    plotted_lower_dot = False  # Flag to prevent multiple dots after single 2σ touch
 
                     for i, row in df_after_entry.iterrows():
                         high_price = row['high']
@@ -1494,24 +1496,30 @@ def plot_range_chart(df, df_fractals_minor, df_fractals_major, start_date, end_d
                         close_price = row['close']
 
                         # LONG reversal: Touch upper 2σ, then cross down through upper 1σ
+                        # Reset flags when 2σ is touched (allows new signal)
                         if high_price >= row['upper_2sigma']:
                             touched_upper_2sigma = True
+                            plotted_upper_dot = False  # Reset: can plot new dot after this 2σ touch
 
-                        if touched_upper_2sigma and close_price < row['upper_1sigma']:
+                        # Only plot if: 1) touched 2σ, 2) crossed 1σ, 3) haven't plotted yet for this 2σ touch
+                        if touched_upper_2sigma and not plotted_upper_dot and close_price < row['upper_1sigma']:
                             blue_dot_indices.append(row['index'])
                             blue_dot_prices.append(close_price)
                             print(f"[BLUE DOT] {row['timestamp'].time()} - Touched upper 2σ and crossed down through upper 1σ at {close_price:.2f}")
-                            touched_upper_2sigma = False  # Reset para siguiente señal
+                            plotted_upper_dot = True  # Mark as plotted, won't plot again until 2σ is touched
 
                         # SHORT reversal: Touch lower 2σ, then cross up through lower 1σ
+                        # Reset flags when 2σ is touched (allows new signal)
                         if low_price <= row['lower_2sigma']:
                             touched_lower_2sigma = True
+                            plotted_lower_dot = False  # Reset: can plot new dot after this 2σ touch
 
-                        if touched_lower_2sigma and close_price > row['lower_1sigma']:
+                        # Only plot if: 1) touched 2σ, 2) crossed 1σ, 3) haven't plotted yet for this 2σ touch
+                        if touched_lower_2sigma and not plotted_lower_dot and close_price > row['lower_1sigma']:
                             blue_dot_indices.append(row['index'])
                             blue_dot_prices.append(close_price)
                             print(f"[BLUE DOT] {row['timestamp'].time()} - Touched lower 2σ and crossed up through lower 1σ at {close_price:.2f}")
-                            touched_lower_2sigma = False  # Reset para siguiente señal
+                            plotted_lower_dot = True  # Mark as plotted, won't plot again until 2σ is touched
 
                     # Dibujar blue dots en el chart
                     if blue_dot_indices:
