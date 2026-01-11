@@ -33,7 +33,7 @@ from config import (
     # VWAP Time Strategy
     ENABLE_VWAP_TIME_STRATEGY, VWAP_TIME_ENTRY,
     # VWAP Bands
-    DRAW_VWAP_BANDS, VWAP_BANDS_START_TIME,
+    PLOT_VWAP_BANDS, VWAP_BANDS_START_TIME,
     # VWAP Wyckoff Strategy
     ENABLE_VWAP_WYCKOFF_STRATEGY, USE_WYCKOFF_ATR_TRAILING_STOP,
     ENABLE_OPENING_RANGE_PLOT, OPENING_RANGE_START, OPENING_RANGE_END
@@ -1348,7 +1348,7 @@ def plot_range_chart(df, df_fractals_minor, df_fractals_major, start_date, end_d
         if not df_entry_time.empty:
             entry_time_index = df_entry_time.iloc[0]['index']
 
-            # Calcular máximo y mínimo desde 15:30 hasta VWAP_TIME_ENTRY
+            # Calcular máximo y mínimo desde 15:30 (apertura) hasta VWAP_TIME_ENTRY
             bands_start_time = pd.to_datetime(VWAP_BANDS_START_TIME).time()
             entry_time = pd.to_datetime(VWAP_TIME_ENTRY).time()
 
@@ -1356,24 +1356,26 @@ def plot_range_chart(df, df_fractals_minor, df_fractals_major, start_date, end_d
                          (df['timestamp'].dt.time <= entry_time)]
 
             if not df_range.empty:
-                day_high = df_range['high'].max()
-                day_low = df_range['low'].min()
-                day_range = day_high - day_low
+                # Obtener precio de apertura (15:30)
+                df_open = df[df['timestamp'].dt.time == bands_start_time]
+                if not df_open.empty:
+                    open_price = df_open.iloc[0]['close']
 
-                # Obtener precio en el momento de entrada
-                entry_price = df_entry_time.iloc[0]['close']
-                vwap_fast_at_entry = df_entry_time.iloc[0]['vwap_fast']
+                    # Obtener máximo y mínimo del período
+                    day_high = df_range['high'].max()
+                    day_low = df_range['low'].min()
 
-                # Calcular porcentajes en relación al rango del día
-                if day_range > 0:
-                    pct_from_low = ((entry_price - day_low) / day_range) * 100
-                    pct_from_high = ((day_high - entry_price) / day_range) * 100
-                    annotation_text = f"Entry Time {pct_from_high:.1f}%/{pct_from_low:.1f}%"
+                    # Calcular porcentajes de movimiento desde apertura
+                    pct_up = ((day_high - open_price) / open_price) * 100 if open_price > 0 else 0
+                    pct_down = ((open_price - day_low) / open_price) * 100 if open_price > 0 else 0
+
+                    annotation_text = f"Entry Time {pct_up:.1f}%/{pct_down:.1f}%"
+
+                    print(f"[INFO] Period: {bands_start_time} to {entry_time}")
+                    print(f"[INFO] Open: {open_price:.2f}, High: {day_high:.2f}, Low: {day_low:.2f}")
+                    print(f"[INFO] Movement from open: Up {pct_up:.1f}%, Down {pct_down:.1f}%")
                 else:
                     annotation_text = "Entry Time"
-
-                print(f"[INFO] Day range ({bands_start_time}-{entry_time}): High={day_high:.2f}, Low={day_low:.2f}, Range={day_range:.2f}")
-                print(f"[INFO] Entry price: {entry_price:.2f}, Distance from high: {pct_from_high:.1f}%, Distance from low: {pct_from_low:.1f}%")
             else:
                 annotation_text = "Entry Time"
 
@@ -1388,7 +1390,7 @@ def plot_range_chart(df, df_fractals_minor, df_fractals_major, start_date, end_d
     # ========================================================================
     # VWAP BANDS (Standard Deviation)
     # ========================================================================
-    if DRAW_VWAP_BANDS and 'vwap_fast' in df.columns:
+    if PLOT_VWAP_BANDS and 'vwap_fast' in df.columns:
         # Filtrar datos desde VWAP_BANDS_START_TIME
         bands_start_time = pd.to_datetime(VWAP_BANDS_START_TIME).time()
         df_bands = df[df['timestamp'].dt.time >= bands_start_time].copy()
@@ -1406,13 +1408,13 @@ def plot_range_chart(df, df_fractals_minor, df_fractals_major, start_date, end_d
             upper_band_3sigma = df_bands['vwap_fast'] + 3 * std_dev
             lower_band_3sigma = df_bands['vwap_fast'] - 3 * std_dev
 
-            # Dibujar bandas 2 sigma
+            # Dibujar bandas 2 sigma (líneas sólidas naranja)
             fig.add_trace(go.Scatter(
                 x=df_bands['index'],
                 y=upper_band_2sigma,
                 mode='lines',
                 name='VWAP +2σ',
-                line=dict(color='rgba(255, 165, 0, 0.4)', width=1, dash='dash'),
+                line=dict(color='rgba(255, 165, 0, 0.4)', width=1, dash='solid'),
                 showlegend=True
             ), row=price_row, col=1)
 
@@ -1421,17 +1423,17 @@ def plot_range_chart(df, df_fractals_minor, df_fractals_major, start_date, end_d
                 y=lower_band_2sigma,
                 mode='lines',
                 name='VWAP -2σ',
-                line=dict(color='rgba(255, 165, 0, 0.4)', width=1, dash='dash'),
+                line=dict(color='rgba(255, 165, 0, 0.4)', width=1, dash='solid'),
                 showlegend=True
             ), row=price_row, col=1)
 
-            # Dibujar bandas 3 sigma
+            # Dibujar bandas 3 sigma (líneas sólidas rojas)
             fig.add_trace(go.Scatter(
                 x=df_bands['index'],
                 y=upper_band_3sigma,
                 mode='lines',
                 name='VWAP +3σ',
-                line=dict(color='rgba(255, 0, 0, 0.3)', width=1, dash='dot'),
+                line=dict(color='rgba(255, 0, 0, 0.3)', width=1, dash='solid'),
                 showlegend=True
             ), row=price_row, col=1)
 
@@ -1440,7 +1442,7 @@ def plot_range_chart(df, df_fractals_minor, df_fractals_major, start_date, end_d
                 y=lower_band_3sigma,
                 mode='lines',
                 name='VWAP -3σ',
-                line=dict(color='rgba(255, 0, 0, 0.3)', width=1, dash='dot'),
+                line=dict(color='rgba(255, 0, 0, 0.3)', width=1, dash='solid'),
                 showlegend=True
             ), row=price_row, col=1)
 

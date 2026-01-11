@@ -163,7 +163,7 @@ VWAP_TIME_TP_POINTS = 400.0                   # Take profit in points (Optional,
 VWAP_TIME_SL_POINTS = 400.0                   # Stop loss in points (Optional)
 
 # VWAP Bands Configuration
-DRAW_VWAP_BANDS = True                        # True = dibujar bandas de desviación estándar
+PLOT_VWAP_BANDS = True                        # True = dibujar bandas de desviación estándar
 VWAP_BANDS_START_TIME = "15:30:00"           # Hora de inicio para calcular bandas (apertura mercado)
 
 # ============================================================================
