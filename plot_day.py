@@ -1478,48 +1478,48 @@ def plot_range_chart(df, df_fractals_minor, df_fractals_major, start_date, end_d
                     blue_dot_indices = []
                     blue_dot_prices = []
 
-                    # Añadir las bandas 1sigma al dataframe para facilitar la detección
+                    # Añadir las bandas 1sigma y 3sigma al dataframe para facilitar la detección
                     df_after_entry['upper_1sigma'] = upper_band_1sigma[df_after_entry.index]
                     df_after_entry['lower_1sigma'] = lower_band_1sigma[df_after_entry.index]
-                    df_after_entry['upper_2sigma'] = upper_band_2sigma[df_after_entry.index]
-                    df_after_entry['lower_2sigma'] = lower_band_2sigma[df_after_entry.index]
+                    df_after_entry['upper_3sigma'] = upper_band_3sigma[df_after_entry.index]
+                    df_after_entry['lower_3sigma'] = lower_band_3sigma[df_after_entry.index]
 
                     # Estado de seguimiento
-                    touched_upper_2sigma = False
-                    touched_lower_2sigma = False
-                    plotted_upper_dot = False  # Flag to prevent multiple dots after single 2σ touch
-                    plotted_lower_dot = False  # Flag to prevent multiple dots after single 2σ touch
+                    touched_upper_3sigma = False
+                    touched_lower_3sigma = False
+                    plotted_upper_dot = False  # Flag to prevent multiple dots after single 3σ touch
+                    plotted_lower_dot = False  # Flag to prevent multiple dots after single 3σ touch
 
                     for i, row in df_after_entry.iterrows():
                         close_price = row['close']
 
                         # BEARISH reversal signal (for potential SHORT entry):
-                        # Close ABOVE upper 2σ, then cross down through upper 1σ
-                        # Reset flags when close penetrates 2σ (allows new signal)
-                        if close_price > row['upper_2sigma']:
-                            touched_upper_2sigma = True
-                            plotted_upper_dot = False  # Reset: can plot new dot after this 2σ penetration
+                        # Close ABOVE upper 3σ, then cross down through upper 1σ
+                        # Reset flags when close penetrates 3σ (allows new signal)
+                        if close_price > row['upper_3sigma']:
+                            touched_upper_3sigma = True
+                            plotted_upper_dot = False  # Reset: can plot new dot after this 3σ penetration
 
-                        # Only plot if: 1) closed above 2σ, 2) now crossed below 1σ, 3) haven't plotted yet
-                        if touched_upper_2sigma and not plotted_upper_dot and close_price < row['upper_1sigma']:
+                        # Only plot if: 1) closed above 3σ, 2) now crossed below 1σ, 3) haven't plotted yet
+                        if touched_upper_3sigma and not plotted_upper_dot and close_price < row['upper_1sigma']:
                             blue_dot_indices.append(row['index'])
                             blue_dot_prices.append(close_price)
-                            print(f"[BLUE DOT] {row['timestamp'].time()} - Close above upper 2σ, crossed down through upper 1σ at {close_price:.2f}")
-                            plotted_upper_dot = True  # Mark as plotted, won't plot again until 2σ is penetrated
+                            print(f"[BLUE DOT] {row['timestamp'].time()} - Close above upper 3σ, crossed down through upper 1σ at {close_price:.2f}")
+                            plotted_upper_dot = True  # Mark as plotted, won't plot again until 3σ is penetrated
 
                         # BULLISH reversal signal (for potential LONG entry):
-                        # Close BELOW lower 2σ, then cross up through lower 1σ
-                        # Reset flags when close penetrates 2σ (allows new signal)
-                        if close_price < row['lower_2sigma']:
-                            touched_lower_2sigma = True
-                            plotted_lower_dot = False  # Reset: can plot new dot after this 2σ penetration
+                        # Close BELOW lower 3σ, then cross up through lower 1σ
+                        # Reset flags when close penetrates 3σ (allows new signal)
+                        if close_price < row['lower_3sigma']:
+                            touched_lower_3sigma = True
+                            plotted_lower_dot = False  # Reset: can plot new dot after this 3σ penetration
 
-                        # Only plot if: 1) closed below 2σ, 2) now crossed above 1σ, 3) haven't plotted yet
-                        if touched_lower_2sigma and not plotted_lower_dot and close_price > row['lower_1sigma']:
+                        # Only plot if: 1) closed below 3σ, 2) now crossed above 1σ, 3) haven't plotted yet
+                        if touched_lower_3sigma and not plotted_lower_dot and close_price > row['lower_1sigma']:
                             blue_dot_indices.append(row['index'])
                             blue_dot_prices.append(close_price)
-                            print(f"[BLUE DOT] {row['timestamp'].time()} - Close below lower 2σ, crossed up through lower 1σ at {close_price:.2f}")
-                            plotted_lower_dot = True  # Mark as plotted, won't plot again until 2σ is penetrated
+                            print(f"[BLUE DOT] {row['timestamp'].time()} - Close below lower 3σ, crossed up through lower 1σ at {close_price:.2f}")
+                            plotted_lower_dot = True  # Mark as plotted, won't plot again until 3σ is penetrated
 
                     # Dibujar blue dots en el chart
                     if blue_dot_indices:
