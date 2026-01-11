@@ -76,8 +76,18 @@ for i, date_str in enumerate(available_dates, 1):
             print(f"  [WARN] No data for {date_str}")
             continue
 
+        # Ensure timestamp column exists
+        if 'timestamp' not in df.columns:
+            print(f"  [ERROR] No timestamp column in data for {date_str}")
+            continue
+
         # Calculate VWAP
         df = calculate_vwap(df, period=VWAP_FAST)
+
+        # Re-check timestamp after VWAP calculation
+        if 'timestamp' not in df.columns:
+            print(f"  [ERROR] timestamp column lost after VWAP calculation for {date_str}")
+            continue
 
         # Calculate VWAP bands
         bands_start_time = pd.to_datetime(VWAP_BANDS_START_TIME).time()
