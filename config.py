@@ -156,18 +156,22 @@ USE_SQUARE_VWAP_SLOW_TREND_FILTER = True     # True = solo opera a favor de la t
 # ============================================================================
 # TRADING PARAMETERS VWAP TIME STRATEGY (Specific Time Entry)
 # ============================================================================
-ENABLE_VWAP_TIME_STRATEGY = False              # True = ejecutar estrategia, False = NO ejecutar
+ENABLE_VWAP_TIME_STRATEGY = True              # True = ejecutar estrategia, False = NO ejecutar
 VWAP_TIME_ENTRY = "17:00:00"                  # Hora exacta de entrada
 VWAP_TIME_EXIT = "22:00:00"                   # Hora exacta de salida (Time-based exit)
 VWAP_TIME_TP_POINTS = 400.0                   # Take profit in points (Optional, mainly time-based)
 VWAP_TIME_SL_POINTS = 400.0                   # Stop loss in points (Optional)
 
+# VWAP Bands Configuration
+DRAW_VWAP_BANDS = True                        # True = dibujar bandas de desviación estándar
+VWAP_BANDS_START_TIME = "15:30:00"           # Hora de inicio para calcular bandas (apertura mercado)
+
 # ============================================================================
 # TRADING PARAMETERS VWAP WYCKOFF STRATEGY (Orange Dot Entry)
 # ============================================================================
-ENABLE_VWAP_WYCKOFF_STRATEGY = True           # True = ejecutar estrategia, False = NO ejecutar
-START_ORANGE_DOT_WYCKOFF_TIME = "09:00:00"    # Hora de inicio para buscar Orange Dots
-END_ORANGE_DOT_WYCKOFF_TIME = "15:15:00"      # Hora de fin para buscar Orange Dots
+ENABLE_VWAP_WYCKOFF_STRATEGY = False           # True = ejecutar estrategia, False = NO ejecutar
+START_ORANGE_DOT_WYCKOFF_TIME = "06:00:00"    # Hora de inicio para buscar Orange Dots
+END_ORANGE_DOT_WYCKOFF_TIME = "10:50:00"      # Hora de fin para buscar Orange Dots
 VWAP_WYCKOFF_EXIT_TIME = "15:29:00"           # Hora de cierre forzoso
 TP_ORANGE_DOT_WYCKOFF = 325.0                 # Take profit
 SL_ORANGE_DOT_WYCKOFF = 175.0                  # Stop loss
