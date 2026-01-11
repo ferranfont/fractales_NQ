@@ -1,15 +1,15 @@
 """
 VWAP Wyckoff Strategy
-Strategy that enters at the first "Orange Dot" (Trend Divergence) within a specific time window.
+Strategy that enters at the first "Orange Dot" (Trend Divergence) with VWAP alignment confirmation.
 
 Logic:
 - Entry Window: START_ORANGE_DOT_WYCKOFF_TIME to END_ORANGE_DOT_WYCKOFF_TIME
 - Entry Trigger: Orange Dot occurs (First detected in window)
-- Entry Direction:
-    - If Close > VWAP Slow -> LONG
-    - If Close < VWAP Slow -> SHORT
+- Entry Direction (with VWAP alignment):
+    - LONG: Close > VWAP Fast AND VWAP Fast > VWAP Slow (uptrend confirmation)
+    - SHORT: Close < VWAP Fast AND VWAP Fast < VWAP Slow (downtrend confirmation)
 - Reversal Mode (REVERSE_AT_EACH_ORANGE_DOT):
-    - True: Reverse position at each Orange Dot crossing VWAP Slow
+    - True: Reverse position at each Orange Dot with VWAP alignment confirmation
     - False: Hold position until exit (no reversals)
 - Exit: TP, SL, or Time (VWAP_WYCKOFF_EXIT_TIME)
 """
@@ -223,11 +223,11 @@ for idx, bar in df.iterrows():
             is_chart_dot = bar['is_chart_dot']
             close_price = bar['close']
 
-            # INITIAL ENTRY: Filtered by Slow VWAP
-            # LONG ENTRY: Orange Dot + Close > VWAP Slow
-            if is_chart_dot and close_price > vwap_slow_val:
+            # INITIAL ENTRY: Orange Dot with VWAP alignment confirmation
+            # LONG ENTRY: Orange Dot + Close > VWAP Fast + VWAP Fast > VWAP Slow
+            if is_chart_dot and close_price > vwap_fast_val and vwap_fast_val > vwap_slow_val:
                  direction = 'BUY'
-                 print(f"[ENTRY] {current_time} Initial Long: Orange Dot + Close({close_price:.2f}) > Slow VWAP({vwap_slow_val:.2f})")
+                 print(f"[ENTRY] {current_time} Initial Long: Orange Dot + Close({close_price:.2f}) > Fast({vwap_fast_val:.2f}) > Slow({vwap_slow_val:.2f})")
 
                  entry_price = close_price
                  sl_price = entry_price - SL_ORANGE_DOT_WYCKOFF
@@ -243,10 +243,10 @@ for idx, bar in df.iterrows():
                     'vwap_slope_entry': 0
                  }
 
-            # SHORT ENTRY: Orange Dot + Close < VWAP Slow
-            elif is_chart_dot and close_price < vwap_slow_val:
+            # SHORT ENTRY: Orange Dot + Close < VWAP Fast + VWAP Fast < VWAP Slow
+            elif is_chart_dot and close_price < vwap_fast_val and vwap_fast_val < vwap_slow_val:
                  direction = 'SELL'
-                 print(f"[ENTRY] {current_time} Initial Short: Orange Dot + Close({close_price:.2f}) < Slow VWAP({vwap_slow_val:.2f})")
+                 print(f"[ENTRY] {current_time} Initial Short: Orange Dot + Close({close_price:.2f}) < Fast({vwap_fast_val:.2f}) < Slow({vwap_slow_val:.2f})")
 
                  entry_price = close_price
                  sl_price = entry_price + SL_ORANGE_DOT_WYCKOFF
@@ -271,16 +271,16 @@ for idx, bar in df.iterrows():
                  # Outside trading hours => Do not reverse, just let position run/manage exits
                  continue
 
-            if pd.isna(vwap_slow_val):
+            if pd.isna(vwap_slow_val) or pd.isna(vwap_fast_val):
                 continue
 
             is_chart_dot = bar['is_chart_dot']
             close_price = bar['close']
 
-            # REVERSAL LOGIC: Orange Dot on opposite side of VWAP Slow
-            # Long -> Short: Orange Dot + Close < VWAP Slow
-            if open_position['direction'] == 'BUY' and is_chart_dot and close_price < vwap_slow_val:
-                print(f"[REVERSAL] {current_time} Long -> Short: Orange Dot + Close({close_price:.2f}) < Slow VWAP({vwap_slow_val:.2f})")
+            # REVERSAL LOGIC: Orange Dot with VWAP alignment confirmation
+            # Long -> Short: Orange Dot + Close < VWAP Fast + VWAP Fast < VWAP Slow
+            if open_position['direction'] == 'BUY' and is_chart_dot and close_price < vwap_fast_val and vwap_fast_val < vwap_slow_val:
+                print(f"[REVERSAL] {current_time} Long -> Short: Orange Dot + Close({close_price:.2f}) < Fast({vwap_fast_val:.2f}) < Slow({vwap_slow_val:.2f})")
 
                 # Close Long
                 exit_price = close_price
@@ -321,9 +321,9 @@ for idx, bar in df.iterrows():
                     'vwap_slope_entry': 0
                 }
 
-            # Short -> Long: Orange Dot + Close > VWAP Slow
-            elif open_position['direction'] == 'SELL' and is_chart_dot and close_price > vwap_slow_val:
-                print(f"[REVERSAL] {current_time} Short -> Long: Orange Dot + Close({close_price:.2f}) > Slow VWAP({vwap_slow_val:.2f})")
+            # Short -> Long: Orange Dot + Close > VWAP Fast + VWAP Fast > VWAP Slow
+            elif open_position['direction'] == 'SELL' and is_chart_dot and close_price > vwap_fast_val and vwap_fast_val > vwap_slow_val:
+                print(f"[REVERSAL] {current_time} Short -> Long: Orange Dot + Close({close_price:.2f}) > Fast({vwap_fast_val:.2f}) > Slow({vwap_slow_val:.2f})")
 
                 # Close Short
                 exit_price = close_price
