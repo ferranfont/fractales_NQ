@@ -1491,35 +1491,35 @@ def plot_range_chart(df, df_fractals_minor, df_fractals_major, start_date, end_d
                     plotted_lower_dot = False  # Flag to prevent multiple dots after single 2σ touch
 
                     for i, row in df_after_entry.iterrows():
-                        high_price = row['high']
-                        low_price = row['low']
                         close_price = row['close']
 
-                        # LONG reversal: Touch upper 2σ, then cross down through upper 1σ
-                        # Reset flags when 2σ is touched (allows new signal)
-                        if high_price >= row['upper_2sigma']:
+                        # BEARISH reversal signal (for potential SHORT entry):
+                        # Close ABOVE upper 2σ, then cross down through upper 1σ
+                        # Reset flags when close penetrates 2σ (allows new signal)
+                        if close_price > row['upper_2sigma']:
                             touched_upper_2sigma = True
-                            plotted_upper_dot = False  # Reset: can plot new dot after this 2σ touch
+                            plotted_upper_dot = False  # Reset: can plot new dot after this 2σ penetration
 
-                        # Only plot if: 1) touched 2σ, 2) crossed 1σ, 3) haven't plotted yet for this 2σ touch
+                        # Only plot if: 1) closed above 2σ, 2) now crossed below 1σ, 3) haven't plotted yet
                         if touched_upper_2sigma and not plotted_upper_dot and close_price < row['upper_1sigma']:
                             blue_dot_indices.append(row['index'])
                             blue_dot_prices.append(close_price)
-                            print(f"[BLUE DOT] {row['timestamp'].time()} - Touched upper 2σ and crossed down through upper 1σ at {close_price:.2f}")
-                            plotted_upper_dot = True  # Mark as plotted, won't plot again until 2σ is touched
+                            print(f"[BLUE DOT] {row['timestamp'].time()} - Close above upper 2σ, crossed down through upper 1σ at {close_price:.2f}")
+                            plotted_upper_dot = True  # Mark as plotted, won't plot again until 2σ is penetrated
 
-                        # SHORT reversal: Touch lower 2σ, then cross up through lower 1σ
-                        # Reset flags when 2σ is touched (allows new signal)
-                        if low_price <= row['lower_2sigma']:
+                        # BULLISH reversal signal (for potential LONG entry):
+                        # Close BELOW lower 2σ, then cross up through lower 1σ
+                        # Reset flags when close penetrates 2σ (allows new signal)
+                        if close_price < row['lower_2sigma']:
                             touched_lower_2sigma = True
-                            plotted_lower_dot = False  # Reset: can plot new dot after this 2σ touch
+                            plotted_lower_dot = False  # Reset: can plot new dot after this 2σ penetration
 
-                        # Only plot if: 1) touched 2σ, 2) crossed 1σ, 3) haven't plotted yet for this 2σ touch
+                        # Only plot if: 1) closed below 2σ, 2) now crossed above 1σ, 3) haven't plotted yet
                         if touched_lower_2sigma and not plotted_lower_dot and close_price > row['lower_1sigma']:
                             blue_dot_indices.append(row['index'])
                             blue_dot_prices.append(close_price)
-                            print(f"[BLUE DOT] {row['timestamp'].time()} - Touched lower 2σ and crossed up through lower 1σ at {close_price:.2f}")
-                            plotted_lower_dot = True  # Mark as plotted, won't plot again until 2σ is touched
+                            print(f"[BLUE DOT] {row['timestamp'].time()} - Close below lower 2σ, crossed up through lower 1σ at {close_price:.2f}")
+                            plotted_lower_dot = True  # Mark as plotted, won't plot again until 2σ is penetrated
 
                     # Dibujar blue dots en el chart
                     if blue_dot_indices:
