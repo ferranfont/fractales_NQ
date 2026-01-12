@@ -50,10 +50,10 @@ VWAP_SCORE_ATR_MULTIPLIER = 3.0
 ENABLE_STRAT_VWAP_SCORE_REVERSAL = False
 VWAP_SCORE_REVERSAL_TP_POINTS = 200
 VWAP_SCORE_REVERSAL_SL_POINTS = 75
-VWAP_SCORE_REVERSAL_DO_NOT_TRADE_BEFORE = "19:00:00"  # No trade before this time
+VWAP_SCORE_REVERSAL_DO_NOT_TRADE_BEFORE = "00:00:00"  # No trade before this time (00:00:00 = no restriction)
 
 # VWAP SCORE REVERSAL ANTICIPATE STRATEGY (Immediate Entry at Extremes)
-ENABLE_STRAT_VWAP_SCORE_REVERSAL_ANTICIPATE = False  # True = ejecutar estrategia, False = NO ejecutar
+ENABLE_STRAT_VWAP_SCORE_REVERSAL_ANTICIPATE = True  # True = ejecutar estrategia, False = NO ejecutar
 # Note: Uses same TP/SL/Time settings as VWAP_SCORE_REVERSAL above
 
 
