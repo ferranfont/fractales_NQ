@@ -86,12 +86,16 @@ def run_strategy():
     trades = []
     sl_history = []
     active_position = None # {'direction': 'BUY'/'SELL', 'entry_price': float, 'entry_time': datetime, 'sl': float, 'tp': float}
-    
+
+    # Two-step signal system: Activation + Confirmation
+    signal_armed_long = False   # Becomes True when score crosses DOWN through -20
+    signal_armed_short = False  # Becomes True when score crosses UP through +20
+
     # Parse EOD Time
     exit_time_obj = datetime.strptime(VWAP_SCORE_EXIT_TIME, "%H:%M:%S").time()
-    
-    print(f"[INFO] Processing Reversal Score signals...")
-    
+
+    print(f"[INFO] Processing Reversal Score signals (2-step: Arm + Trigger)...")
+
     for i in range(1, len(df)):
         current_bar = df.iloc[i]
         prev_bar = df.iloc[i-1]
@@ -210,13 +214,26 @@ def run_strategy():
             if len(trades) >= MAX_NUM_TRADES_PER_DAY:
                 continue
 
-            # REVERSAL LOGIC (Fading Extremes)
+            # TWO-STEP REVERSAL LOGIC (Arm + Trigger)
 
             if pd.notna(prev_score) and pd.notna(score):
-                # SHORT ENTRY (Reversal): Score crosses UP through +Threshold
-                # Fading extreme bullish momentum - Price is overbought
+                # STEP 1: ARM SIGNALS
+                # Arm SHORT signal: Score crosses UP through +Threshold (overbought)
                 if prev_score < CLENOW_THRESHOLD and score >= CLENOW_THRESHOLD:
-                    # Enter SELL (expecting reversal down)
+                    signal_armed_short = True
+                    signal_armed_long = False  # Reset opposite
+                    print(f"[ARMED SHORT] {current_time} Score: {prev_score:.2f} -> {score:.2f} (crossed above +{CLENOW_THRESHOLD})")
+
+                # Arm LONG signal: Score crosses DOWN through -Threshold (oversold)
+                elif prev_score > -CLENOW_THRESHOLD and score <= -CLENOW_THRESHOLD:
+                    signal_armed_long = True
+                    signal_armed_short = False  # Reset opposite
+                    print(f"[ARMED LONG] {current_time} Score: {prev_score:.2f} -> {score:.2f} (crossed below -{CLENOW_THRESHOLD})")
+
+                # STEP 2: TRIGGER ENTRIES (when armed signal crosses back)
+                # Trigger SHORT: Armed + Score crosses back DOWN below +Threshold
+                if signal_armed_short and prev_score >= CLENOW_THRESHOLD and score < CLENOW_THRESHOLD:
+                    # Execute SHORT entry (fading the overbought extreme)
                     entry_price = close_price
                     sl_price = entry_price + VWAP_SCORE_REVERSAL_SL_POINTS
                     tp_price = entry_price - VWAP_SCORE_REVERSAL_TP_POINTS
@@ -224,12 +241,12 @@ def run_strategy():
                         'direction': 'SELL', 'entry_price': entry_price, 'entry_time': timestamp,
                         'sl': sl_price, 'tp': tp_price
                     }
-                    print(f"[ENTRY SHORT] {current_time} @ {entry_price:.2f} (Score Cross UP: {prev_score:.2f} -> {score:.2f} >= +{CLENOW_THRESHOLD}) | TP: {tp_price:.2f} | SL: {sl_price:.2f}")
+                    print(f"[ENTRY SHORT] {current_time} @ {entry_price:.2f} (Armed+Trigger: {prev_score:.2f} -> {score:.2f} < +{CLENOW_THRESHOLD}) | TP: {tp_price:.2f} | SL: {sl_price:.2f}")
+                    signal_armed_short = False  # Reset after entry
 
-                # LONG ENTRY (Reversal): Score crosses DOWN through -Threshold
-                # Fading extreme bearish momentum - Price is oversold
-                elif prev_score > -CLENOW_THRESHOLD and score <= -CLENOW_THRESHOLD:
-                    # Enter BUY (expecting reversal up)
+                # Trigger LONG: Armed + Score crosses back UP above -Threshold
+                elif signal_armed_long and prev_score <= -CLENOW_THRESHOLD and score > -CLENOW_THRESHOLD:
+                    # Execute LONG entry (fading the oversold extreme)
                     entry_price = close_price
                     sl_price = entry_price - VWAP_SCORE_REVERSAL_SL_POINTS
                     tp_price = entry_price + VWAP_SCORE_REVERSAL_TP_POINTS
@@ -237,7 +254,8 @@ def run_strategy():
                         'direction': 'BUY', 'entry_price': entry_price, 'entry_time': timestamp,
                         'sl': sl_price, 'tp': tp_price
                     }
-                    print(f"[ENTRY LONG] {current_time} @ {entry_price:.2f} (Score Cross DOWN: {prev_score:.2f} -> {score:.2f} <= -{CLENOW_THRESHOLD}) | TP: {tp_price:.2f} | SL: {sl_price:.2f}")
+                    print(f"[ENTRY LONG] {current_time} @ {entry_price:.2f} (Armed+Trigger: {prev_score:.2f} -> {score:.2f} > -{CLENOW_THRESHOLD}) | TP: {tp_price:.2f} | SL: {sl_price:.2f}")
+                    signal_armed_long = False  # Reset after entry
 
     # 5. Save Trades
     tradings_dir = Path(OUTPUTS_DIR) / "trading"
