@@ -27,12 +27,14 @@ def run_strategy():
         return
 
     print(f"Configuration:")
-    print(f"  - Signal (Reversal):")
-    print(f"    - SHORT: Cross DOWN +{CLENOW_THRESHOLD} (Fading Strength)")
-    print(f"    - LONG: Cross UP -{CLENOW_THRESHOLD} (Fading Weakness)")
+    print(f"  - Signal (Reversal - Fading Extremes):")
+    print(f"    - SHORT: Score crosses UP through +{CLENOW_THRESHOLD} (Fade Overbought)")
+    print(f"    - LONG: Score crosses DOWN through -{CLENOW_THRESHOLD} (Fade Oversold)")
     print(f"  - Window: {CLENOW_WINDOW} | Projection: {CLENOW_PROJECTION}")
     print(f"  - Exit Time: {VWAP_SCORE_EXIT_TIME}")
+    print(f"  - Threshold: +/-{CLENOW_THRESHOLD}")
     print(f"  - TP/SL: {VWAP_SCORE_REVERSAL_TP_POINTS}/{VWAP_SCORE_REVERSAL_SL_POINTS} points")
+    print(f"  - Max Trades Per Day: {MAX_NUM_TRADES_PER_DAY}")
 
     # 2. Load Data
     print(f"\n[INFO] Loading data for {current_date}...")
@@ -204,33 +206,38 @@ def run_strategy():
         
         # Look for Entries (if no position)
         if not active_position:
-            # REVERSAL LOGIC
-            
-            # SHORT ENTRY (Reversal): Value crosses DOWN through Threshold (+15)
-            # Fading Strength: Was > 15, Now < 15
-            if prev_score >= CLENOW_THRESHOLD and score < CLENOW_THRESHOLD:
-                # Enter SELL
-                entry_price = close_price
-                sl_price = entry_price + VWAP_SCORE_REVERSAL_SL_POINTS
-                tp_price = entry_price - VWAP_SCORE_REVERSAL_TP_POINTS
-                active_position = {
-                    'direction': 'SELL', 'entry_price': entry_price, 'entry_time': timestamp,
-                    'sl': sl_price, 'tp': tp_price
-                }
-                print(f"[ENTRY SHORT] {current_time} @ {entry_price:.2f} (Score: {prev_score:.1f} -> {score:.1f}) | TP: {tp_price:.2f} | SL: {sl_price:.2f}")
+            # Check max trades per day
+            if len(trades) >= MAX_NUM_TRADES_PER_DAY:
+                continue
 
-            # LONG ENTRY (Reversal): Value crosses UP through -Threshold (-15)
-            # Fading Weakness: Was < -15, Now > -15
-            elif prev_score <= -CLENOW_THRESHOLD and score > -CLENOW_THRESHOLD:
-                # Enter BUY
-                entry_price = close_price
-                sl_price = entry_price - VWAP_SCORE_REVERSAL_SL_POINTS
-                tp_price = entry_price + VWAP_SCORE_REVERSAL_TP_POINTS
-                active_position = {
-                    'direction': 'BUY', 'entry_price': entry_price, 'entry_time': timestamp,
-                    'sl': sl_price, 'tp': tp_price
-                }
-                print(f"[ENTRY LONG] {current_time} @ {entry_price:.2f} (Score: {prev_score:.1f} -> {score:.1f}) | TP: {tp_price:.2f} | SL: {sl_price:.2f}")
+            # REVERSAL LOGIC (Fading Extremes)
+
+            if pd.notna(prev_score) and pd.notna(score):
+                # SHORT ENTRY (Reversal): Score crosses UP through +Threshold
+                # Fading extreme bullish momentum - Price is overbought
+                if prev_score < CLENOW_THRESHOLD and score >= CLENOW_THRESHOLD:
+                    # Enter SELL (expecting reversal down)
+                    entry_price = close_price
+                    sl_price = entry_price + VWAP_SCORE_REVERSAL_SL_POINTS
+                    tp_price = entry_price - VWAP_SCORE_REVERSAL_TP_POINTS
+                    active_position = {
+                        'direction': 'SELL', 'entry_price': entry_price, 'entry_time': timestamp,
+                        'sl': sl_price, 'tp': tp_price
+                    }
+                    print(f"[ENTRY SHORT] {current_time} @ {entry_price:.2f} (Score Cross UP: {prev_score:.2f} -> {score:.2f} >= +{CLENOW_THRESHOLD}) | TP: {tp_price:.2f} | SL: {sl_price:.2f}")
+
+                # LONG ENTRY (Reversal): Score crosses DOWN through -Threshold
+                # Fading extreme bearish momentum - Price is oversold
+                elif prev_score > -CLENOW_THRESHOLD and score <= -CLENOW_THRESHOLD:
+                    # Enter BUY (expecting reversal up)
+                    entry_price = close_price
+                    sl_price = entry_price - VWAP_SCORE_REVERSAL_SL_POINTS
+                    tp_price = entry_price + VWAP_SCORE_REVERSAL_TP_POINTS
+                    active_position = {
+                        'direction': 'BUY', 'entry_price': entry_price, 'entry_time': timestamp,
+                        'sl': sl_price, 'tp': tp_price
+                    }
+                    print(f"[ENTRY LONG] {current_time} @ {entry_price:.2f} (Score Cross DOWN: {prev_score:.2f} -> {score:.2f} <= -{CLENOW_THRESHOLD}) | TP: {tp_price:.2f} | SL: {sl_price:.2f}")
 
     # 5. Save Trades
     tradings_dir = Path(OUTPUTS_DIR) / "trading"
@@ -246,6 +253,16 @@ def run_strategy():
         print(f"[RESULT] Total PnL: ${total_pnl:.2f}")
     else:
         print("\n[INFO] No trades executed.")
+        # Clean up stale file if it exists
+        output_file = tradings_dir / f"tracking_record_vwap_score_reversal_{current_date}.csv"
+        if output_file.exists():
+            output_file.unlink()
+            print(f"[INFO] Removed stale trade file: {output_file.name}")
+            
+        # Clean up stale SL history
+        sl_file = tradings_dir / f"sl_history_vwap_score_reversal_{current_date}.csv"
+        if sl_file.exists():
+            sl_file.unlink()
 
     # Save SL History
     if sl_history:
