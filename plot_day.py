@@ -49,7 +49,7 @@ from config import (
     # VWAP Band Reversal Strategy
     ENABLE_VWAP_BAND_REVERSAL_STRATEGY, VWAP_BAND_REVERSAL_START_TIME,
     # VWAP Score Reversal Strategy
-    ENABLE_STRAT_VWAP_SCORE_REVERSAL, VWAP_SCORE_REVERSAL_DO_NOT_TRADE_BEFORE,
+    ENABLE_STRAT_VWAP_SCORE_REVERSAL, VWAP_SCORE_REVERSAL_DO_NOT_TRADE_BEFORE, VWAP_SCORE_REVERSAL_DO_NOT_TRADE_AFTER,
     # VWAP Score Reversal Anticipate Strategy
     ENABLE_STRAT_VWAP_SCORE_REVERSAL_ANTICIPATE,
     ENABLE_OPENING_RANGE_PLOT, OPENING_RANGE_START, OPENING_RANGE_END,
@@ -1664,7 +1664,7 @@ def plot_range_chart(df, df_fractals_minor, df_fractals_major, start_date, end_d
     # ========================================================================
     # VWAP SCORE REVERSAL DO NOT TRADE BEFORE TIME
     # ========================================================================
-    if ENABLE_STRAT_VWAP_SCORE_REVERSAL:
+    if ENABLE_STRAT_VWAP_SCORE or ENABLE_STRAT_VWAP_SCORE_REVERSAL or ENABLE_STRAT_VWAP_SCORE_REVERSAL_ANTICIPATE:
         # Encontrar el índice más cercano a la hora de Do Not Trade Before
         if start_date == end_date:
             target_score_reversal_time = pd.to_datetime(f"{start_date} {VWAP_SCORE_REVERSAL_DO_NOT_TRADE_BEFORE}")
@@ -1684,6 +1684,20 @@ def plot_range_chart(df, df_fractals_minor, df_fractals_major, start_date, end_d
                          annotation_position="top left",
                          annotation_font_color="blue")
             print(f"[INFO] Score Reversal 'Not Before' line added at {VWAP_SCORE_REVERSAL_DO_NOT_TRADE_BEFORE}")
+
+        # Buscar el registro más cercano a Do Not Trade After Time
+        df_score_reversal_time_after = df[df['timestamp'].dt.time == pd.to_datetime(VWAP_SCORE_REVERSAL_DO_NOT_TRADE_AFTER).time()]
+
+        if not df_score_reversal_time_after.empty:
+            score_reversal_time_index_after = df_score_reversal_time_after.iloc[0]['index']
+
+            # Añadir línea vertical AZUL con width=1
+            fig.add_vline(x=score_reversal_time_index_after, line_width=1, line_dash="solid",
+                         line_color="blue", row=price_row, col=1,
+                         annotation_text="Not After",
+                         annotation_position="top right",
+                         annotation_font_color="blue")
+            print(f"[INFO] Score Reversal 'Not After' line added at {VWAP_SCORE_REVERSAL_DO_NOT_TRADE_AFTER}")
 
     # ========================================================================
     # VWAP BANDS (Standard Deviation)

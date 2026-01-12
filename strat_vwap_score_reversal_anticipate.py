@@ -8,11 +8,12 @@ from config import (
     DATE, START_DATE, END_DATE,
     ENABLE_STRAT_VWAP_SCORE_REVERSAL_ANTICIPATE,
     VWAP_SCORE_REVERSAL_TP_POINTS, VWAP_SCORE_REVERSAL_SL_POINTS,
-    VWAP_SCORE_REVERSAL_DO_NOT_TRADE_BEFORE,
+    VWAP_SCORE_REVERSAL_DO_NOT_TRADE_BEFORE, VWAP_SCORE_REVERSAL_DO_NOT_TRADE_AFTER,
     VWAP_SCORE_EXIT_TIME, CLENOW_WINDOW, CLENOW_PROJECTION, CLENOW_THRESHOLD,
     USE_VWAP_SCORE_ATR_TRAILING_STOP, VWAP_SCORE_ATR_PERIOD, VWAP_SCORE_ATR_MULTIPLIER,
     DATA_DIR, OUTPUTS_DIR, MAX_NUM_TRADES_PER_DAY,
-    ENABLE_REVERSAL_ANTICIPATE_GRID, REVERSAL_ANTICIPATE_GRID_STEP, REVERSAL_ANTICIPATE_GRID_NUMBER_OF_STEPS
+    ENABLE_REVERSAL_ANTICIPATE_GRID, REVERSAL_ANTICIPATE_GRID_STEP, REVERSAL_ANTICIPATE_GRID_NUMBER_OF_STEPS,
+    VWAP_SCORE_REVERSAL_ANTICIPATE_MAX_TRADES_DAY
 )
 
 # Check if strategy is enabled
@@ -41,10 +42,11 @@ def run_strategy():
     print(f"    - LONG: Score crosses DOWN through -{CLENOW_THRESHOLD} (Red Dot - Immediate)")
     print(f"  - Window: {CLENOW_WINDOW} | Projection: {CLENOW_PROJECTION}")
     print(f"  - Do Not Trade Before: {VWAP_SCORE_REVERSAL_DO_NOT_TRADE_BEFORE}")
+    print(f"  - Do Not Trade After: {VWAP_SCORE_REVERSAL_DO_NOT_TRADE_AFTER}")
     print(f"  - Exit Time: {VWAP_SCORE_EXIT_TIME}")
     print(f"  - Threshold: +/-{CLENOW_THRESHOLD}")
     print(f"  - TP/SL: {VWAP_SCORE_REVERSAL_TP_POINTS}/{VWAP_SCORE_REVERSAL_SL_POINTS} points")
-    print(f"  - Max Trades Per Day: {MAX_NUM_TRADES_PER_DAY}")
+    print(f"  - Max Trades Per Day: {VWAP_SCORE_REVERSAL_ANTICIPATE_MAX_TRADES_DAY} (Cycles)")
     if ENABLE_REVERSAL_ANTICIPATE_GRID:
         print(f"  - Grid Enabled: Step={REVERSAL_ANTICIPATE_GRID_STEP} pts | Max Steps={REVERSAL_ANTICIPATE_GRID_NUMBER_OF_STEPS}")
 
@@ -104,10 +106,14 @@ def run_strategy():
     current_sl = None
     current_tp = None
     last_grid_entry_price = None  # Track last entry price for grid spacing
+    
+    # Track completed trade cycles (entry -> exit = 1 cycle, regardless of grid additions)
+    completed_trade_cycles = 0
 
-    # Parse EOD Time and Do Not Trade Before Time
+    # Parse EOD Time and Do Not Trade Before/After Time
     exit_time_obj = datetime.strptime(VWAP_SCORE_EXIT_TIME, "%H:%M:%S").time()
     do_not_trade_before_obj = datetime.strptime(VWAP_SCORE_REVERSAL_DO_NOT_TRADE_BEFORE, "%H:%M:%S").time()
+    do_not_trade_after_obj = datetime.strptime(VWAP_SCORE_REVERSAL_DO_NOT_TRADE_AFTER, "%H:%M:%S").time()
 
     print(f"[INFO] Processing Anticipate Score signals (1-step: Immediate Entry)...")
 
@@ -120,6 +126,16 @@ def run_strategy():
         close_price = current_bar['close']
         score = current_bar['clenow_score']
         prev_score = prev_bar['clenow_score']
+
+        # Look for Initial Entries (if no position)
+        if not active_positions:
+            # Check max trades per day (limit by COMPLETED CYCLES)
+            if completed_trade_cycles >= VWAP_SCORE_REVERSAL_ANTICIPATE_MAX_TRADES_DAY:
+                continue
+
+            # Check if current time is within allowed trading window
+            if current_time < do_not_trade_before_obj or current_time > do_not_trade_after_obj:
+                continue
 
         # Check EOD Exit
         if active_positions and current_time >= exit_time_obj:
@@ -147,6 +163,7 @@ def run_strategy():
                 })
 
             print(f"[EXIT EOD] {current_time} {current_direction} x{len(active_positions)} @ {close_price:.2f} | Avg Entry: {avg_entry:.2f} | Total PnL: {total_pnl:.2f}")
+            completed_trade_cycles += 1
             active_positions = []
             current_direction = None
             current_sl = None
@@ -241,6 +258,7 @@ def run_strategy():
 
                     total_pnl = (current_sl - avg_entry) * len(active_positions)
                     print(f"[EXIT SL] {current_time} BUY x{len(active_positions)} @ {current_sl:.2f} (Low: {current_bar['low']:.2f}) | Avg Entry: {avg_entry:.2f} | Total PnL: {total_pnl:.2f}")
+                    completed_trade_cycles += 1
                     active_positions = []
                     current_direction = None
                     current_sl = None
@@ -267,6 +285,7 @@ def run_strategy():
 
                     total_pnl = (current_tp - avg_entry) * len(active_positions)
                     print(f"[EXIT TP] {current_time} BUY x{len(active_positions)} @ {current_tp:.2f} (High: {current_bar['high']:.2f}) | Avg Entry: {avg_entry:.2f} | Total PnL: {total_pnl:.2f}")
+                    completed_trade_cycles += 1
                     active_positions = []
                     current_direction = None
                     current_sl = None
@@ -294,6 +313,7 @@ def run_strategy():
 
                     total_pnl = (avg_entry - current_sl) * len(active_positions)
                     print(f"[EXIT SL] {current_time} SELL x{len(active_positions)} @ {current_sl:.2f} (High: {current_bar['high']:.2f}) | Avg Entry: {avg_entry:.2f} | Total PnL: {total_pnl:.2f}")
+                    completed_trade_cycles += 1
                     active_positions = []
                     current_direction = None
                     current_sl = None
@@ -320,6 +340,7 @@ def run_strategy():
 
                     total_pnl = (avg_entry - current_tp) * len(active_positions)
                     print(f"[EXIT TP] {current_time} SELL x{len(active_positions)} @ {current_tp:.2f} (Low: {current_bar['low']:.2f}) | Avg Entry: {avg_entry:.2f} | Total PnL: {total_pnl:.2f}")
+                    completed_trade_cycles += 1
                     active_positions = []
                     current_direction = None
                     current_sl = None
@@ -333,8 +354,8 @@ def run_strategy():
             if completed_signals >= MAX_NUM_TRADES_PER_DAY:
                 continue
 
-            # Check if current time is before allowed trading time
-            if current_time < do_not_trade_before_obj:
+            # Check if current time is within allowed trading window
+            if current_time < do_not_trade_before_obj or current_time > do_not_trade_after_obj:
                 continue
 
             # ONE-STEP ANTICIPATE LOGIC (Immediate Entry at Threshold Cross)

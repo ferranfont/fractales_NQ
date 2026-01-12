@@ -1296,15 +1296,14 @@ html_content = f"""<!DOCTYPE html>
             </tbody>
         </table>
 
-        <h2>Hourly Performance Analysis</h2>
-        <div style="display: flex; gap: 20px; flex-wrap: wrap; margin: 20px 0;">
-            <div style="flex: 1; min-width: 400px; background-color: white; padding: 15px; border-radius: 8px; box-shadow: 0 2px 4px rgba(0,0,0,0.1);">
-                {hourly_chart_div}
-            </div>
-            <div style="flex: 1; min-width: 400px; background-color: white; padding: 15px; border-radius: 8px; box-shadow: 0 2px 4px rgba(0,0,0,0.1);">
-                <h3 style="margin-top: 0; color: #34495e;">Hourly Statistics</h3>
-                {hourly_table_html}
-            </div>
+        <h2>Hourly Performance Chart</h2>
+        <div style="background-color: white; padding: 20px; border-radius: 8px; box-shadow: 0 2px 4px rgba(0,0,0,0.1); margin-bottom: 30px;">
+            {hourly_chart_div}
+        </div>
+
+        <h2>Hourly Performance Statistics</h2>
+        <div style="background-color: white; padding: 20px; border-radius: 8px; box-shadow: 0 2px 4px rgba(0,0,0,0.1); margin-bottom: 30px;">
+            {hourly_table_html}
         </div>
 
         <h2>All Trades Detail</h2>

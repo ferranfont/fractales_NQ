@@ -29,35 +29,37 @@ VWAP_MOMENTUM_MAX_POSITIONS = 1             # Maximum number of positions open s
 # ============================================================================
 # CLENOW SYSTEMATIC MOMENTUM INDICATOR (Trend Strength)
 # ============================================================================
-ENABLE_CLENOW_MOMENTUM = False           # Calculate and plot Clenow Momentum
-CLENOW_WINDOW = 60                      # Rolling window size (minutes) - High sensitivity
+ENABLE_CLENOW_MOMENTUM = True           # Calculate and plot Clenow Momentum
+CLENOW_WINDOW = 20                      # Rolling window size (minutes) - High sensitivity
 CLENOW_PROJECTION = 2880                # Projection factor (minutes in a day)
-CLENOW_THRESHOLD = 15                   # Go/No-Go Threshold - High sensitivity
+CLENOW_THRESHOLD = 50                   # Go/No-Go Threshold - High sensitivity
 
 # ============================================================================
 # VWAP SCORE STRATEGY (Clenow Signals)
 # ============================================================================
-ENABLE_STRAT_VWAP_SCORE = False
+ENABLE_STRAT_VWAP_SCORE = True
 VWAP_SCORE_TP_POINTS = 200              # Take Profit (Points)
 VWAP_SCORE_SL_POINTS = 75               # Stop Loss (Points)
 VWAP_SCORE_EXIT_TIME = "22:00:00"       # EOD Exit Time
 # ATR Trailing Stop
-USE_VWAP_SCORE_ATR_TRAILING_STOP = True
+USE_VWAP_SCORE_ATR_TRAILING_STOP = False
 VWAP_SCORE_ATR_PERIOD = 21
-VWAP_SCORE_ATR_MULTIPLIER = 3.0
+VWAP_SCORE_ATR_MULTIPLIER = 10.0
 
 # VWAP SCORE REVERSAL STRATEGY
 ENABLE_STRAT_VWAP_SCORE_REVERSAL = False
-VWAP_SCORE_REVERSAL_TP_POINTS = 175
-VWAP_SCORE_REVERSAL_SL_POINTS = 175
-VWAP_SCORE_REVERSAL_DO_NOT_TRADE_BEFORE = "00:00:00"  # No trade before this time (00:00:00 = no restriction)
+VWAP_SCORE_REVERSAL_TP_POINTS = 400
+VWAP_SCORE_REVERSAL_SL_POINTS = 150
+VWAP_SCORE_REVERSAL_DO_NOT_TRADE_BEFORE = "15:25:00"  # No trade before this time (00:00:00 = no restriction)
+VWAP_SCORE_REVERSAL_DO_NOT_TRADE_AFTER = "16:00:00"   # No trade after this time
 
 # VWAP SCORE REVERSAL ANTICIPATE STRATEGY (Immediate Entry at Extremes)
-ENABLE_STRAT_VWAP_SCORE_REVERSAL_ANTICIPATE = True  # True = ejecutar estrategia, False = NO ejecutar
+ENABLE_STRAT_VWAP_SCORE_REVERSAL_ANTICIPATE = False  # True = ejecutar estrategia, False = NO ejecutar
+VWAP_SCORE_REVERSAL_ANTICIPATE_MAX_TRADES_DAY = 99   # Max completed trade cycles per day
 # Note: Uses same TP/SL/Time settings as VWAP_SCORE_REVERSAL above
-ENABLE_REVERSAL_ANTICIPATE_GRID = True
-REVERSAL_ANTICIPATE_GRID_STEP = 25
-REVERSAL_ANTICIPATE_GRID_NUMBER_OF_STEPS = 1    
+ENABLE_REVERSAL_ANTICIPATE_GRID = False
+REVERSAL_ANTICIPATE_GRID_STEP = 100
+REVERSAL_ANTICIPATE_GRID_NUMBER_OF_STEPS = 2    
 
 # ============================================================================
 # CONFIGURACIÓN DE HORARIO DE TRADING 

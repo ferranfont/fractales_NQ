@@ -9,7 +9,8 @@ from config import (
     ENABLE_STRAT_VWAP_SCORE, VWAP_SCORE_TP_POINTS, VWAP_SCORE_SL_POINTS,
     VWAP_SCORE_EXIT_TIME, CLENOW_WINDOW, CLENOW_PROJECTION, CLENOW_THRESHOLD,
     USE_VWAP_SCORE_ATR_TRAILING_STOP, VWAP_SCORE_ATR_PERIOD, VWAP_SCORE_ATR_MULTIPLIER,
-    DATA_DIR, OUTPUTS_DIR, MAX_NUM_TRADES_PER_DAY
+    DATA_DIR, OUTPUTS_DIR, MAX_NUM_TRADES_PER_DAY,
+    VWAP_SCORE_REVERSAL_DO_NOT_TRADE_BEFORE, VWAP_SCORE_REVERSAL_DO_NOT_TRADE_AFTER
 )
 
 def run_strategy():
@@ -82,8 +83,10 @@ def run_strategy():
     sl_history = []
     active_position = None # {'direction': 'BUY'/'SELL', 'entry_price': float, 'entry_time': datetime, 'sl': float, 'tp': float}
     
-    # Parse EOD Time
+    # Parse EOD Time and Trading Window
     exit_time_obj = datetime.strptime(VWAP_SCORE_EXIT_TIME, "%H:%M:%S").time()
+    do_not_trade_before_obj = datetime.strptime(VWAP_SCORE_REVERSAL_DO_NOT_TRADE_BEFORE, "%H:%M:%S").time()
+    do_not_trade_after_obj = datetime.strptime(VWAP_SCORE_REVERSAL_DO_NOT_TRADE_AFTER, "%H:%M:%S").time()
     
     # Iterate
     # Need previous score for crossover
@@ -208,6 +211,10 @@ def run_strategy():
         
         # Look for Entries (if no position)
         if not active_position:
+            # Check trading window
+            if current_time < do_not_trade_before_obj or current_time > do_not_trade_after_obj:
+                continue
+
             # LONG ENTRY: Cross > 20
             # Condition: Prev <= Threshold AND Curr > Threshold
             if prev_score <= CLENOW_THRESHOLD and score > CLENOW_THRESHOLD:
@@ -248,6 +255,11 @@ def run_strategy():
         print(f"[RESULT] Total PnL: ${total_pnl:.2f}")
     else:
         print("\n[INFO] No trades executed.")
+        # Remove existing file if it exists to prevent phantom trades
+        output_file = tradings_dir / f"tracking_record_vwap_score_{current_date}.csv"
+        if output_file.exists():
+            print(f"[INFO] Removing stale trade file: {output_file}")
+            output_file.unlink()
 
     # Save SL History
     if sl_history:
