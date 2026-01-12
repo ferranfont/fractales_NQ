@@ -1615,12 +1615,12 @@ def plot_range_chart(df, df_fractals_minor, df_fractals_major, start_date, end_d
         if not df_score_reversal_time.empty:
             score_reversal_time_index = df_score_reversal_time.iloc[0]['index']
 
-            # Añadir línea vertical NARANJA con width=1
+            # Añadir línea vertical AZUL con width=1
             fig.add_vline(x=score_reversal_time_index, line_width=1, line_dash="solid",
-                         line_color="orange", row=price_row, col=1,
+                         line_color="blue", row=price_row, col=1,
                          annotation_text="Not Before",
                          annotation_position="top left",
-                         annotation_font_color="orange")
+                         annotation_font_color="blue")
             print(f"[INFO] Score Reversal 'Not Before' line added at {VWAP_SCORE_REVERSAL_DO_NOT_TRADE_BEFORE}")
 
     # ========================================================================
