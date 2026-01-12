@@ -141,7 +141,8 @@ for i, date_str in enumerate(available_dates, 1):
         if not (ENABLE_VWAP_MOMENTUM_STRATEGY or ENABLE_VWAP_SQUARE_STRATEGY or
                 ENABLE_VWAP_CROSSOVER_STRATEGY or ENABLE_VWAP_PULLBACK_STRATEGY or
                 ENABLE_VWAP_TIME_STRATEGY or ENABLE_VWAP_WYCKOFF_STRATEGY or
-                ENABLE_VWAP_BAND_REVERSAL_STRATEGY or ENABLE_STRAT_VWAP_SCORE):
+                ENABLE_VWAP_BAND_REVERSAL_STRATEGY or ENABLE_STRAT_VWAP_SCORE or
+                ENABLE_STRAT_VWAP_SCORE_REVERSAL):
             print(f"[INFO] All strategies disabled, no trades to collect")
             continue
 
@@ -458,6 +459,40 @@ for i, date_str in enumerate(available_dates, 1):
                 else:
                     print(f"[ERROR] Band Reversal strategy file not found: {band_reversal_script}")
 
+            # Execute VWAP Score Reversal Strategy if enabled
+            if ENABLE_STRAT_VWAP_SCORE_REVERSAL:
+                score_rev_script = project_root / "strat_vwap_score_reversal.py"
+                if score_rev_script.exists():
+                    print(f"[INFO] Executing VWAP Score Reversal strategy...")
+                    result = subprocess.run(
+                        [sys.executable, str(score_rev_script)],
+                        capture_output=True,
+                        text=True,
+                        cwd=str(project_root)
+                    )
+
+                    if result.returncode == 0:
+                        print(f"[OK] VWAP Score Reversal executed for {date_str}")
+                        csv_file = trading_dir / f"tracking_record_vwap_score_reversal_{date_str}.csv"
+                        if csv_file.exists():
+                            df_day = pd.read_csv(csv_file, sep=';', decimal=',')
+                            if len(df_day) > 0:
+                                df_day['strategy'] = 'ScoreReversal'
+                                if 'pnl_points' in df_day.columns and 'pnl' not in df_day.columns:
+                                    df_day.rename(columns={'pnl_points': 'pnl'}, inplace=True)
+                                print(f"[OK] Collected {len(df_day)} Score Reversal trades from {date_str}")
+                                all_trades.append(df_day)
+                            else:
+                                print(f"[INFO] No Score Reversal trades generated for {date_str}")
+                        else:
+                            print(f"[INFO] No Score Reversal tracking record found for {date_str}")
+                    else:
+                        print(f"[WARN] VWAP Score Reversal returned code {result.returncode} for {date_str}")
+                        if result.stderr:
+                            print(f"[ERROR] {result.stderr[:200]}")
+                else:
+                    print(f"[ERROR] Score Reversal strategy file not found: {score_rev_script}")
+
             # Generate chart if enabled (after all strategies)
             if SHOW_CHART_DURING_ITERATION:
                 plot_script = project_root / "plot_day.py"
@@ -485,40 +520,6 @@ for i, date_str in enumerate(available_dates, 1):
                         print(f"[ERROR] Failed to run plot_day.py: {e}")
                 else:
                     print(f"[WARN] plot_day.py not found, skipping chart generation")
-
-            # Execute VWAP Score Reversal Strategy if enabled
-            if ENABLE_STRAT_VWAP_SCORE_REVERSAL:
-                score_rev_script = project_root / "strat_vwap_score_reversal.py"
-                if score_rev_script.exists():
-                    print(f"[INFO] Executing VWAP Score Reversal strategy...")
-                    result = subprocess.run(
-                        [sys.executable, str(score_rev_script)],
-                        capture_output=True,
-                        text=True,
-                        cwd=str(project_root)
-                    )
-
-                    if result.returncode == 0:
-                        print(f"[OK] VWAP Score Reversal executed for {date_str}")
-                        csv_file = trading_dir / f"tracking_record_vwap_score_reversal_{date_str}.csv"
-                        if csv_file.exists():
-                            df_day = pd.read_csv(csv_file, sep=';', decimal=',')
-                            if len(df_day) > 0:
-                                df_day['strategy'] = 'ScoreReversal' 
-                                if 'pnl_points' in df_day.columns and 'pnl' not in df_day.columns:
-                                    df_day.rename(columns={'pnl_points': 'pnl'}, inplace=True)
-                                print(f"[OK] Collected {len(df_day)} Score Reversal trades from {date_str}")
-                                all_trades.append(df_day)
-                            else:
-                                print(f"[INFO] No Score Reversal trades generated for {date_str}")
-                        else:
-                            print(f"[INFO] No Score Reversal tracking record found for {date_str}")
-                    else:
-                        print(f"[WARN] VWAP Score Reversal returned code {result.returncode} for {date_str}")
-                        if result.stderr:
-                            print(f"[ERROR] {result.stderr[:200]}")
-                else:
-                    print(f"[ERROR] Score Reversal strategy file not found: {score_rev_script}")
 
         finally:
             # Restore original config
