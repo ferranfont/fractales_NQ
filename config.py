@@ -30,9 +30,9 @@ VWAP_MOMENTUM_MAX_POSITIONS = 1             # Maximum number of positions open s
 # CLENOW SYSTEMATIC MOMENTUM INDICATOR (Trend Strength)
 # ============================================================================
 ENABLE_CLENOW_MOMENTUM = False           # Calculate and plot Clenow Momentum
-CLENOW_WINDOW = 20                      # Rolling window size (minutes) - High sensitivity
-CLENOW_PROJECTION = 1440                # Projection factor (minutes in a day)
-CLENOW_THRESHOLD = 20                   # Go/No-Go Threshold - High sensitivity
+CLENOW_WINDOW = 60                      # Rolling window size (minutes) - High sensitivity
+CLENOW_PROJECTION = 2880                # Projection factor (minutes in a day)
+CLENOW_THRESHOLD = 15                   # Go/No-Go Threshold - High sensitivity
 
 # ============================================================================
 # VWAP SCORE STRATEGY (Clenow Signals)
@@ -47,10 +47,14 @@ VWAP_SCORE_ATR_PERIOD = 21
 VWAP_SCORE_ATR_MULTIPLIER = 3.0
 
 # VWAP SCORE REVERSAL STRATEGY
-ENABLE_STRAT_VWAP_SCORE_REVERSAL = True
+ENABLE_STRAT_VWAP_SCORE_REVERSAL = False
 VWAP_SCORE_REVERSAL_TP_POINTS = 200
 VWAP_SCORE_REVERSAL_SL_POINTS = 75
-VWAP_SCORE_REVERSAL_DO_NOT_TRADE_BEFORE = "17:00:00"  # No trade before this time
+VWAP_SCORE_REVERSAL_DO_NOT_TRADE_BEFORE = "19:00:00"  # No trade before this time
+
+# VWAP SCORE REVERSAL ANTICIPATE STRATEGY (Immediate Entry at Extremes)
+ENABLE_STRAT_VWAP_SCORE_REVERSAL_ANTICIPATE = False  # True = ejecutar estrategia, False = NO ejecutar
+# Note: Uses same TP/SL/Time settings as VWAP_SCORE_REVERSAL above
 
 
 # ============================================================================

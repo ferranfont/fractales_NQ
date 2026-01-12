@@ -25,6 +25,7 @@ from config import (
     ENABLE_VWAP_BAND_REVERSAL_STRATEGY,
     ENABLE_STRAT_VWAP_SCORE,
     ENABLE_STRAT_VWAP_SCORE_REVERSAL,
+    ENABLE_STRAT_VWAP_SCORE_REVERSAL_ANTICIPATE,
     USE_ALL_DAYS_AVAILABLE, ALL_DAYS_SEGMENT_START, ALL_DAYS_SEGMENT_END,
     SHOW_CHART_DURING_ITERATION,
     VWAP_MOMENTUM_STRAT_START_HOUR, VWAP_MOMENTUM_STRAT_END_HOUR,
@@ -142,7 +143,7 @@ for i, date_str in enumerate(available_dates, 1):
                 ENABLE_VWAP_CROSSOVER_STRATEGY or ENABLE_VWAP_PULLBACK_STRATEGY or
                 ENABLE_VWAP_TIME_STRATEGY or ENABLE_VWAP_WYCKOFF_STRATEGY or
                 ENABLE_VWAP_BAND_REVERSAL_STRATEGY or ENABLE_STRAT_VWAP_SCORE or
-                ENABLE_STRAT_VWAP_SCORE_REVERSAL):
+                ENABLE_STRAT_VWAP_SCORE_REVERSAL or ENABLE_STRAT_VWAP_SCORE_REVERSAL_ANTICIPATE):
             print(f"[INFO] All strategies disabled, no trades to collect")
             continue
 
@@ -492,6 +493,40 @@ for i, date_str in enumerate(available_dates, 1):
                             print(f"[ERROR] {result.stderr[:200]}")
                 else:
                     print(f"[ERROR] Score Reversal strategy file not found: {score_rev_script}")
+
+            # Execute VWAP Score Reversal Anticipate Strategy if enabled
+            if ENABLE_STRAT_VWAP_SCORE_REVERSAL_ANTICIPATE:
+                score_ant_script = project_root / "strat_vwap_score_reversal_anticipate.py"
+                if score_ant_script.exists():
+                    print(f"[INFO] Executing VWAP Score Reversal Anticipate strategy...")
+                    result = subprocess.run(
+                        [sys.executable, str(score_ant_script)],
+                        capture_output=True,
+                        text=True,
+                        cwd=str(project_root)
+                    )
+
+                    if result.returncode == 0:
+                        print(f"[OK] VWAP Score Reversal Anticipate executed for {date_str}")
+                        csv_file = trading_dir / f"tracking_record_vwap_score_reversal_anticipate_{date_str}.csv"
+                        if csv_file.exists():
+                            df_day = pd.read_csv(csv_file, sep=';', decimal=',')
+                            if len(df_day) > 0:
+                                df_day['strategy'] = 'ScoreAnticipate'
+                                if 'pnl_points' in df_day.columns and 'pnl' not in df_day.columns:
+                                    df_day.rename(columns={'pnl_points': 'pnl'}, inplace=True)
+                                print(f"[OK] Collected {len(df_day)} Score Anticipate trades from {date_str}")
+                                all_trades.append(df_day)
+                            else:
+                                print(f"[INFO] No Score Anticipate trades generated for {date_str}")
+                        else:
+                            print(f"[INFO] No Score Anticipate tracking record found for {date_str}")
+                    else:
+                        print(f"[WARN] VWAP Score Reversal Anticipate returned code {result.returncode} for {date_str}")
+                        if result.stderr:
+                            print(f"[ERROR] {result.stderr[:200]}")
+                else:
+                    print(f"[ERROR] Score Anticipate strategy file not found: {score_ant_script}")
 
             # Generate chart if enabled (after all strategies)
             if SHOW_CHART_DURING_ITERATION:

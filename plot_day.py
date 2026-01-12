@@ -50,6 +50,8 @@ from config import (
     ENABLE_VWAP_BAND_REVERSAL_STRATEGY, VWAP_BAND_REVERSAL_START_TIME,
     # VWAP Score Reversal Strategy
     ENABLE_STRAT_VWAP_SCORE_REVERSAL, VWAP_SCORE_REVERSAL_DO_NOT_TRADE_BEFORE,
+    # VWAP Score Reversal Anticipate Strategy
+    ENABLE_STRAT_VWAP_SCORE_REVERSAL_ANTICIPATE,
     ENABLE_OPENING_RANGE_PLOT, OPENING_RANGE_START, OPENING_RANGE_END,
     # Clenow Momentum
     ENABLE_CLENOW_MOMENTUM, CLENOW_WINDOW, CLENOW_PROJECTION, CLENOW_THRESHOLD
@@ -184,11 +186,20 @@ def get_strategy_info_compact():
     elif ENABLE_STRAT_VWAP_SCORE_REVERSAL:
         # VWAP SCORE REVERSAL STRATEGY
         from config import VWAP_SCORE_REVERSAL_TP_POINTS, VWAP_SCORE_REVERSAL_SL_POINTS
-        
+
         tp_sl_info = f"TP/SL ({VWAP_SCORE_REVERSAL_TP_POINTS}/{VWAP_SCORE_REVERSAL_SL_POINTS}pts)"
         win_info = f"W:{CLENOW_WINDOW}|T:{CLENOW_THRESHOLD} (REV)"
-        
+
         return f"VWAP Score Reversal | {win_info} | {tp_sl_info}"
+
+    elif ENABLE_STRAT_VWAP_SCORE_REVERSAL_ANTICIPATE:
+        # VWAP SCORE REVERSAL ANTICIPATE STRATEGY
+        from config import VWAP_SCORE_REVERSAL_TP_POINTS, VWAP_SCORE_REVERSAL_SL_POINTS
+
+        tp_sl_info = f"TP/SL ({VWAP_SCORE_REVERSAL_TP_POINTS}/{VWAP_SCORE_REVERSAL_SL_POINTS}pts)"
+        win_info = f"W:{CLENOW_WINDOW}|T:{CLENOW_THRESHOLD} (ANT)"
+
+        return f"VWAP Score Anticipate | {win_info} | {tp_sl_info}"
 
     else:
         return "NO STRATEGY ENABLED"
@@ -275,7 +286,7 @@ def plot_range_chart(df, df_fractals_minor, df_fractals_major, start_date, end_d
     has_metrics = df_metrics is not None and not df_metrics.empty
     show_frequency_subplot = has_metrics and SHOW_FREQUENCY_INDICATOR
     show_slope_subplot = SHOW_SUBPLOT_VWAP_SLOPE_INDICATOR
-    show_clenow_subplot = ENABLE_CLENOW_MOMENTUM or ENABLE_STRAT_VWAP_SCORE or ENABLE_STRAT_VWAP_SCORE_REVERSAL
+    show_clenow_subplot = ENABLE_CLENOW_MOMENTUM or ENABLE_STRAT_VWAP_SCORE or ENABLE_STRAT_VWAP_SCORE_REVERSAL or ENABLE_STRAT_VWAP_SCORE_REVERSAL_ANTICIPATE
     
     # Dynamic Subplot Allocation
     # List of (ID, Weight)
@@ -1314,6 +1325,57 @@ def plot_range_chart(df, df_fractals_minor, df_fractals_major, start_date, end_d
         except Exception as e:
             print(f"[WARN] Failed to load/plot Score Reversal SL history: {e}")
 
+    # VWAP Score Reversal Anticipate strategy SL history (violet dashed line)
+    sl_history_path_score_ant = OUTPUTS_DIR / "trading" / f"sl_history_vwap_score_reversal_anticipate_{date_range_str_local}.csv"
+    trades_path_score_ant = OUTPUTS_DIR / "trading" / f"tracking_record_vwap_score_reversal_anticipate_{date_range_str_local}.csv"
+
+    if ENABLE_STRAT_VWAP_SCORE_REVERSAL_ANTICIPATE and sl_history_path_score_ant.exists() and trades_path_score_ant.exists():
+        try:
+            print(f"[INFO] Loading Score Anticipate SL history from {sl_history_path_score_ant.name}")
+            df_sl_history_score_ant = pd.read_csv(sl_history_path_score_ant, sep=';', decimal=',', parse_dates=['timestamp'])
+            df_trades_score_ant = pd.read_csv(trades_path_score_ant, sep=';', decimal=',', parse_dates=['entry_time', 'exit_time'])
+
+            # Map timestamps to index
+            if not pd.api.types.is_datetime64_any_dtype(df_sl_history_score_ant['timestamp']):
+                df_sl_history_score_ant['timestamp'] = pd.to_datetime(df_sl_history_score_ant['timestamp'])
+
+            if 'df' in locals() or 'df' in globals():
+                df_sl_history_score_ant['index'] = df_sl_history_score_ant['timestamp'].apply(_map_ts_to_index)
+                df_sl_valid_score_ant = df_sl_history_score_ant.dropna(subset=['index']).copy()
+
+                if not df_sl_valid_score_ant.empty:
+                    active_sl_segments_score_ant = []
+                    for _, trade in df_trades_score_ant.iterrows():
+                        entry_time = trade['entry_time']
+                        exit_time = trade['exit_time']
+
+                        trade_sl = df_sl_valid_score_ant[
+                            (df_sl_valid_score_ant['timestamp'] >= entry_time) &
+                            (df_sl_valid_score_ant['timestamp'] <= exit_time)
+                        ].copy()
+
+                        if not trade_sl.empty:
+                            active_sl_segments_score_ant.append(trade_sl)
+
+                    total_points_score_ant = 0
+                    for segment in active_sl_segments_score_ant:
+                        segment = segment.sort_values('index')
+                        trace_sl_line_score_ant = go.Scatter(
+                            x=segment['index'],
+                            y=segment['sl_price'],
+                            mode='lines',
+                            name='Trailing Stop (Score Ant)',
+                            line=dict(color='violet', width=1, dash='dash'),
+                            showlegend=(total_points_score_ant == 0),
+                            hovertemplate='SL (Score Ant): %{y:.2f}<br>%{x}<extra></extra>'
+                        )
+                        fig.add_trace(trace_sl_line_score_ant, row=price_row, col=1)
+                        total_points_score_ant += len(segment)
+
+                    print(f"[INFO] Score Anticipate Trailing Stop line added: {total_points_score_ant} points")
+        except Exception as e:
+            print(f"[WARN] Failed to load/plot Score Anticipate SL history: {e}")
+
     # Momentum strategy SL history (violet solid line, only during active positions)
     sl_history_path_momentum = OUTPUTS_DIR / "trading" / f"sl_history_vwap_momentum_{date_range_str_local}.csv"
     trades_path_momentum = OUTPUTS_DIR / "trading" / f"tracking_record_vwap_momentum_{date_range_str_local}.csv"
@@ -1985,11 +2047,11 @@ if __name__ == "__main__":
     all_trades_list = []
     
     from config import (
-        ENABLE_VWAP_MOMENTUM_STRATEGY, ENABLE_VWAP_WYCKOFF_STRATEGY, 
+        ENABLE_VWAP_MOMENTUM_STRATEGY, ENABLE_VWAP_WYCKOFF_STRATEGY,
         ENABLE_VWAP_TIME_STRATEGY, ENABLE_VWAP_BAND_REVERSAL_STRATEGY,
         ENABLE_VWAP_PULLBACK_STRATEGY, ENABLE_VWAP_SQUARE_STRATEGY,
         ENABLE_VWAP_CROSSOVER_STRATEGY, ENABLE_STRAT_VWAP_SCORE,
-        ENABLE_STRAT_VWAP_SCORE_REVERSAL
+        ENABLE_STRAT_VWAP_SCORE_REVERSAL, ENABLE_STRAT_VWAP_SCORE_REVERSAL_ANTICIPATE
     )
 
     strategy_map = [
@@ -2001,7 +2063,8 @@ if __name__ == "__main__":
         (ENABLE_VWAP_SQUARE_STRATEGY, f"tracking_record_vwap_square_{trade_date_str}.csv"),
         (ENABLE_VWAP_CROSSOVER_STRATEGY, f"tracking_record_vwap_crossover_{trade_date_str}.csv"),
         (ENABLE_STRAT_VWAP_SCORE, f"tracking_record_vwap_score_{trade_date_str}.csv"),
-        (ENABLE_STRAT_VWAP_SCORE_REVERSAL, f"tracking_record_vwap_score_reversal_{trade_date_str}.csv")
+        (ENABLE_STRAT_VWAP_SCORE_REVERSAL, f"tracking_record_vwap_score_reversal_{trade_date_str}.csv"),
+        (ENABLE_STRAT_VWAP_SCORE_REVERSAL_ANTICIPATE, f"tracking_record_vwap_score_reversal_anticipate_{trade_date_str}.csv")
     ]
     trading_dir = OUTPUTS_DIR / "trading"
 
