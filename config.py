@@ -7,14 +7,14 @@ from pathlib import Path
 # CONFIGURACIÓN DE FECHAS (single day analysis)
 # ============================================================================
 # Opción 1: Fecha única (descomentar para usar una sola fecha)
-DATE = "20251008"  # Fecha en formato YYYYMMDD
+DATE = "20251002"  # Fecha en formato YYYYMMDD
 START_DATE = DATE
 END_DATE = DATE
 
 # ============================================================================
 # CONFIGURACIÓN DE ITERACIÓN (iterate_all_days.py)
 # ============================================================================
-USE_ALL_DAYS_AVAILABLE = False              # True = procesar todos los días en data/, False = usar rango específico
+USE_ALL_DAYS_AVAILABLE = True              # True = procesar todos los días en data/, False = usar rango específico
 ALL_DAYS_SEGMENT_START = "20251001"         # Fecha inicial del segmento (solo si USE_ALL_DAYS_AVAILABLE=False)
 ALL_DAYS_SEGMENT_END = "20251219"           # Fecha final del segmento (solo si USE_ALL_DAYS_AVAILABLE=False)
 
@@ -30,9 +30,9 @@ VWAP_MOMENTUM_MAX_POSITIONS = 1             # Maximum number of positions open s
 # CLENOW SYSTEMATIC MOMENTUM INDICATOR (Trend Strength)
 # ============================================================================
 ENABLE_CLENOW_MOMENTUM = False           # Calculate and plot Clenow Momentum
-CLENOW_WINDOW = 40                      # Rolling window size (minutes) - High sensitivity
-CLENOW_PROJECTION = 2880                # Projection factor (minutes in a day)
-CLENOW_THRESHOLD = 15                   # Go/No-Go Threshold - High sensitivity
+CLENOW_WINDOW = 20                      # Rolling window size (minutes) - High sensitivity
+CLENOW_PROJECTION = 1440                # Projection factor (minutes in a day)
+CLENOW_THRESHOLD = 20                   # Go/No-Go Threshold - High sensitivity
 
 # ============================================================================
 # VWAP SCORE STRATEGY (Clenow Signals)
@@ -42,7 +42,7 @@ VWAP_SCORE_TP_POINTS = 200              # Take Profit (Points)
 VWAP_SCORE_SL_POINTS = 75               # Stop Loss (Points)
 VWAP_SCORE_EXIT_TIME = "22:00:00"       # EOD Exit Time
 # ATR Trailing Stop
-USE_VWAP_SCORE_ATR_TRAILING_STOP = False
+USE_VWAP_SCORE_ATR_TRAILING_STOP = True
 VWAP_SCORE_ATR_PERIOD = 21
 VWAP_SCORE_ATR_MULTIPLIER = 3.0
 
@@ -50,6 +50,8 @@ VWAP_SCORE_ATR_MULTIPLIER = 3.0
 ENABLE_STRAT_VWAP_SCORE_REVERSAL = True
 VWAP_SCORE_REVERSAL_TP_POINTS = 200
 VWAP_SCORE_REVERSAL_SL_POINTS = 75
+VWAP_SCORE_REVERSAL_DO_NOT_TRADE_BEFORE = "17:00:00"  # No trade before this time
+
 
 # ============================================================================
 # CONFIGURACIÓN DE HORARIO DE TRADING 

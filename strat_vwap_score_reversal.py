@@ -6,8 +6,9 @@ from calculate_clenow_momentum import calculate_clenow_momentum
 
 from config import (
     DATE, START_DATE, END_DATE,
-    ENABLE_STRAT_VWAP_SCORE_REVERSAL, 
+    ENABLE_STRAT_VWAP_SCORE_REVERSAL,
     VWAP_SCORE_REVERSAL_TP_POINTS, VWAP_SCORE_REVERSAL_SL_POINTS,
+    VWAP_SCORE_REVERSAL_DO_NOT_TRADE_BEFORE,
     VWAP_SCORE_EXIT_TIME, CLENOW_WINDOW, CLENOW_PROJECTION, CLENOW_THRESHOLD,
     USE_VWAP_SCORE_ATR_TRAILING_STOP, VWAP_SCORE_ATR_PERIOD, VWAP_SCORE_ATR_MULTIPLIER,
     DATA_DIR, OUTPUTS_DIR, MAX_NUM_TRADES_PER_DAY
@@ -31,6 +32,7 @@ def run_strategy():
     print(f"    - SHORT: Score crosses UP through +{CLENOW_THRESHOLD} (Fade Overbought)")
     print(f"    - LONG: Score crosses DOWN through -{CLENOW_THRESHOLD} (Fade Oversold)")
     print(f"  - Window: {CLENOW_WINDOW} | Projection: {CLENOW_PROJECTION}")
+    print(f"  - Do Not Trade Before: {VWAP_SCORE_REVERSAL_DO_NOT_TRADE_BEFORE}")
     print(f"  - Exit Time: {VWAP_SCORE_EXIT_TIME}")
     print(f"  - Threshold: +/-{CLENOW_THRESHOLD}")
     print(f"  - TP/SL: {VWAP_SCORE_REVERSAL_TP_POINTS}/{VWAP_SCORE_REVERSAL_SL_POINTS} points")
@@ -91,8 +93,9 @@ def run_strategy():
     signal_armed_long = False   # Becomes True when score crosses DOWN through -20
     signal_armed_short = False  # Becomes True when score crosses UP through +20
 
-    # Parse EOD Time
+    # Parse EOD Time and Do Not Trade Before Time
     exit_time_obj = datetime.strptime(VWAP_SCORE_EXIT_TIME, "%H:%M:%S").time()
+    do_not_trade_before_obj = datetime.strptime(VWAP_SCORE_REVERSAL_DO_NOT_TRADE_BEFORE, "%H:%M:%S").time()
 
     print(f"[INFO] Processing Reversal Score signals (2-step: Arm + Trigger)...")
 
@@ -212,6 +215,10 @@ def run_strategy():
         if not active_position:
             # Check max trades per day
             if len(trades) >= MAX_NUM_TRADES_PER_DAY:
+                continue
+
+            # Check if current time is before allowed trading time
+            if current_time < do_not_trade_before_obj:
                 continue
 
             # TWO-STEP REVERSAL LOGIC (Arm + Trigger)
