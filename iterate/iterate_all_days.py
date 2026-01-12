@@ -23,6 +23,8 @@ from config import (
     ENABLE_VWAP_TIME_STRATEGY,
     ENABLE_VWAP_WYCKOFF_STRATEGY,
     ENABLE_VWAP_BAND_REVERSAL_STRATEGY,
+    ENABLE_STRAT_VWAP_SCORE,
+    ENABLE_STRAT_VWAP_SCORE_REVERSAL,
     USE_ALL_DAYS_AVAILABLE, ALL_DAYS_SEGMENT_START, ALL_DAYS_SEGMENT_END,
     SHOW_CHART_DURING_ITERATION,
     VWAP_MOMENTUM_STRAT_START_HOUR, VWAP_MOMENTUM_STRAT_END_HOUR,
@@ -139,12 +141,14 @@ for i, date_str in enumerate(available_dates, 1):
         if not (ENABLE_VWAP_MOMENTUM_STRATEGY or ENABLE_VWAP_SQUARE_STRATEGY or
                 ENABLE_VWAP_CROSSOVER_STRATEGY or ENABLE_VWAP_PULLBACK_STRATEGY or
                 ENABLE_VWAP_TIME_STRATEGY or ENABLE_VWAP_WYCKOFF_STRATEGY or
-                ENABLE_VWAP_BAND_REVERSAL_STRATEGY):
+                ENABLE_VWAP_BAND_REVERSAL_STRATEGY or ENABLE_STRAT_VWAP_SCORE):
             print(f"[INFO] All strategies disabled, no trades to collect")
             continue
 
         # Prepare the script paths
         project_root = Path(__file__).parent.parent
+        if ENABLE_STRAT_VWAP_SCORE:
+            score_script = project_root / "strat_vwap_score.py"
         momentum_script = project_root / "strat_vwap_momentum.py"
         square_script = project_root / "strat_vwap_square.py"
         crossover_script = project_root / "strat_vwap_crossover.py"
@@ -219,6 +223,40 @@ for i, date_str in enumerate(available_dates, 1):
                             print(f"[ERROR] {result.stderr[:200]}")
                 else:
                     print(f"[ERROR] Momentum strategy file not found: {momentum_script}")
+
+            # Execute VWAP Score Strategy if enabled
+            if ENABLE_STRAT_VWAP_SCORE:
+                if score_script.exists():
+                    print(f"[INFO] Executing VWAP Score strategy...")
+                    result = subprocess.run(
+                        [sys.executable, str(score_script)],
+                        capture_output=True,
+                        text=True,
+                        cwd=str(project_root)
+                    )
+
+                    if result.returncode == 0:
+                        print(f"[OK] VWAP Score executed for {date_str}")
+                        
+                        # Load the tracking record CSV for this date
+                        csv_file = trading_dir / f"tracking_record_vwap_score_{date_str}.csv"
+                        
+                        if csv_file.exists():
+                            df_day = pd.read_csv(csv_file, sep=';', decimal=',')
+                            if len(df_day) > 0:
+                                print(f"[OK] Collected {len(df_day)} Score trades from {date_str}")
+                                # Normalize 'direction' column to match others if needed, but plotting handles it now
+                                all_trades.append(df_day)
+                            else:
+                                print(f"[INFO] No Score trades generated for {date_str}")
+                        else:
+                            print(f"[INFO] No Score tracking record found for {date_str}")
+                    else:
+                        print(f"[WARN] VWAP Score returned code {result.returncode} for {date_str}")
+                        if result.stderr:
+                             print(f"[ERROR] {result.stderr[:200]}")
+                else:
+                    print(f"[ERROR] Score strategy file not found: {score_script}")
 
             # Execute VWAP Square Strategy if enabled
             if ENABLE_VWAP_SQUARE_STRATEGY:
@@ -448,6 +486,40 @@ for i, date_str in enumerate(available_dates, 1):
                 else:
                     print(f"[WARN] plot_day.py not found, skipping chart generation")
 
+            # Execute VWAP Score Reversal Strategy if enabled
+            if ENABLE_STRAT_VWAP_SCORE_REVERSAL:
+                score_rev_script = project_root / "strat_vwap_score_reversal.py"
+                if score_rev_script.exists():
+                    print(f"[INFO] Executing VWAP Score Reversal strategy...")
+                    result = subprocess.run(
+                        [sys.executable, str(score_rev_script)],
+                        capture_output=True,
+                        text=True,
+                        cwd=str(project_root)
+                    )
+
+                    if result.returncode == 0:
+                        print(f"[OK] VWAP Score Reversal executed for {date_str}")
+                        csv_file = trading_dir / f"tracking_record_vwap_score_reversal_{date_str}.csv"
+                        if csv_file.exists():
+                            df_day = pd.read_csv(csv_file, sep=';', decimal=',')
+                            if len(df_day) > 0:
+                                df_day['strategy'] = 'ScoreReversal' 
+                                if 'pnl_points' in df_day.columns and 'pnl' not in df_day.columns:
+                                    df_day.rename(columns={'pnl_points': 'pnl'}, inplace=True)
+                                print(f"[OK] Collected {len(df_day)} Score Reversal trades from {date_str}")
+                                all_trades.append(df_day)
+                            else:
+                                print(f"[INFO] No Score Reversal trades generated for {date_str}")
+                        else:
+                            print(f"[INFO] No Score Reversal tracking record found for {date_str}")
+                    else:
+                        print(f"[WARN] VWAP Score Reversal returned code {result.returncode} for {date_str}")
+                        if result.stderr:
+                            print(f"[ERROR] {result.stderr[:200]}")
+                else:
+                    print(f"[ERROR] Score Reversal strategy file not found: {score_rev_script}")
+
         finally:
             # Restore original config
             with open(config_file, 'w', encoding='utf-8') as f:
@@ -498,6 +570,15 @@ total_trades = len(df_all)
 winning_trades = df_all[df_all['pnl_usd'] > 0]
 losing_trades = df_all[df_all['pnl_usd'] < 0]
 breakeven_trades = df_all[df_all['pnl_usd'] == 0]
+
+# Normalize columns if needed (strat_vwap_score uses pnl_points)
+if 'pnl' not in df_all.columns:
+    df_all['pnl'] = np.nan
+
+if 'pnl_points' in df_all.columns:
+    df_all['pnl'] = df_all['pnl'].fillna(df_all['pnl_points'])
+
+df_all['pnl'] = df_all['pnl'].fillna(0)
 
 total_pnl = df_all['pnl'].sum()
 total_pnl_usd = df_all['pnl_usd'].sum()

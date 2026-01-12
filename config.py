@@ -7,7 +7,7 @@ from pathlib import Path
 # CONFIGURACIÓN DE FECHAS (single day analysis)
 # ============================================================================
 # Opción 1: Fecha única (descomentar para usar una sola fecha)
-DATE = "20251011"  # Fecha en formato YYYYMMDD
+DATE = "20251008"  # Fecha en formato YYYYMMDD
 START_DATE = DATE
 END_DATE = DATE
 
@@ -29,22 +29,27 @@ VWAP_MOMENTUM_MAX_POSITIONS = 1             # Maximum number of positions open s
 # ============================================================================
 # CLENOW SYSTEMATIC MOMENTUM INDICATOR (Trend Strength)
 # ============================================================================
-ENABLE_CLENOW_MOMENTUM = True           # Calculate and plot Clenow Momentum
-CLENOW_WINDOW = 125                     # Rolling window size (minutes)
-CLENOW_PROJECTION = 1440                # Projection factor (minutes in a day)
-ENABLE_CLENOW_MOMENTUM = True           # Calculate and plot Clenow Momentum
-CLENOW_WINDOW = 125                     # Rolling window size (minutes)
-CLENOW_PROJECTION = 1440                # Projection factor (minutes in a day)
-CLENOW_THRESHOLD = 20                   # Go/No-Go Threshold
+ENABLE_CLENOW_MOMENTUM = False           # Calculate and plot Clenow Momentum
+CLENOW_WINDOW = 40                      # Rolling window size (minutes) - High sensitivity
+CLENOW_PROJECTION = 2880                # Projection factor (minutes in a day)
+CLENOW_THRESHOLD = 15                   # Go/No-Go Threshold - High sensitivity
 
 # ============================================================================
 # VWAP SCORE STRATEGY (Clenow Signals)
 # ============================================================================
-ENABLE_STRAT_VWAP_SCORE = True
-VWAP_SCORE_TP_POINTS = 400              # Take Profit (Points)
-VWAP_SCORE_SL_POINTS = 300               # Stop Loss (Points)
+ENABLE_STRAT_VWAP_SCORE = False
+VWAP_SCORE_TP_POINTS = 200              # Take Profit (Points)
+VWAP_SCORE_SL_POINTS = 75               # Stop Loss (Points)
 VWAP_SCORE_EXIT_TIME = "22:00:00"       # EOD Exit Time
+# ATR Trailing Stop
+USE_VWAP_SCORE_ATR_TRAILING_STOP = False
+VWAP_SCORE_ATR_PERIOD = 21
+VWAP_SCORE_ATR_MULTIPLIER = 3.0
 
+# VWAP SCORE REVERSAL STRATEGY
+ENABLE_STRAT_VWAP_SCORE_REVERSAL = True
+VWAP_SCORE_REVERSAL_TP_POINTS = 200
+VWAP_SCORE_REVERSAL_SL_POINTS = 75
 
 # ============================================================================
 # CONFIGURACIÓN DE HORARIO DE TRADING 
@@ -179,8 +184,8 @@ USE_SQUARE_VWAP_SLOW_TREND_FILTER = True     # True = solo opera a favor de la t
 ENABLE_VWAP_TIME_STRATEGY = False              # True = ejecutar estrategia, False = NO ejecutar
 VWAP_TIME_ENTRY = "17:00:00"                  # Hora exacta de entrada
 VWAP_TIME_EXIT = "22:00:00"                   # Hora exacta de salida (Time-based exit)
-VWAP_TIME_TP_POINTS = 400.0                   # Take profit in points (Optional, mainly time-based)
-VWAP_TIME_SL_POINTS = 400.0                   # Stop loss in points (Optional)
+VWAP_TIME_TP_POINTS = 150.0                   # Take profit in points (Optional, mainly time-based)
+VWAP_TIME_SL_POINTS = 75.0                   # Stop loss in points (Optional)
 
 # VWAP Bands Configuration
 PLOT_VWAP_BANDS = True                        # True = dibujar bandas de desviación estándar

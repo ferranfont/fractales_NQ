@@ -6,7 +6,8 @@ from calculate_clenow_momentum import calculate_clenow_momentum
 
 from config import (
     DATE, START_DATE, END_DATE,
-    ENABLE_STRAT_VWAP_SCORE, VWAP_SCORE_TP_POINTS, VWAP_SCORE_SL_POINTS,
+    ENABLE_STRAT_VWAP_SCORE_REVERSAL, 
+    VWAP_SCORE_REVERSAL_TP_POINTS, VWAP_SCORE_REVERSAL_SL_POINTS,
     VWAP_SCORE_EXIT_TIME, CLENOW_WINDOW, CLENOW_PROJECTION, CLENOW_THRESHOLD,
     USE_VWAP_SCORE_ATR_TRAILING_STOP, VWAP_SCORE_ATR_PERIOD, VWAP_SCORE_ATR_MULTIPLIER,
     DATA_DIR, OUTPUTS_DIR, MAX_NUM_TRADES_PER_DAY
@@ -14,7 +15,7 @@ from config import (
 
 def run_strategy():
     print("="*80)
-    print("VWAP SCORE STRATEGY (CLENOW) - ENABLED")
+    print("VWAP SCORE REVERSAL STRATEGY - ENABLED")
     print("="*80)
     
     # 1. Configuration
@@ -26,10 +27,12 @@ def run_strategy():
         return
 
     print(f"Configuration:")
-    print(f"  - Signal: Cross > {CLENOW_THRESHOLD} (Buy) / Cross < -{CLENOW_THRESHOLD} (Sell)")
+    print(f"  - Signal (Reversal):")
+    print(f"    - SHORT: Cross DOWN +{CLENOW_THRESHOLD} (Fading Strength)")
+    print(f"    - LONG: Cross UP -{CLENOW_THRESHOLD} (Fading Weakness)")
     print(f"  - Window: {CLENOW_WINDOW} | Projection: {CLENOW_PROJECTION}")
     print(f"  - Exit Time: {VWAP_SCORE_EXIT_TIME}")
-    print(f"  - TP/SL: {VWAP_SCORE_TP_POINTS}/{VWAP_SCORE_SL_POINTS} points")
+    print(f"  - TP/SL: {VWAP_SCORE_REVERSAL_TP_POINTS}/{VWAP_SCORE_REVERSAL_SL_POINTS} points")
 
     # 2. Load Data
     print(f"\n[INFO] Loading data for {current_date}...")
@@ -85,14 +88,7 @@ def run_strategy():
     # Parse EOD Time
     exit_time_obj = datetime.strptime(VWAP_SCORE_EXIT_TIME, "%H:%M:%S").time()
     
-    # Iterate
-    # Need previous score for crossover
-    # df['prev_score'] = df['clenow_score'].shift(1)
-    
-    # We iterate manually to manage state
-    # Start loop from window size
-    
-    print(f"[INFO] Processing Score signals...")
+    print(f"[INFO] Processing Reversal Score signals...")
     
     for i in range(1, len(df)):
         current_bar = df.iloc[i]
@@ -208,31 +204,33 @@ def run_strategy():
         
         # Look for Entries (if no position)
         if not active_position:
-            # LONG ENTRY: Cross > 20
-            # Condition: Prev <= Threshold AND Curr > Threshold
-            if prev_score <= CLENOW_THRESHOLD and score > CLENOW_THRESHOLD:
-                # Enter BUY
-                entry_price = close_price
-                sl_price = entry_price - VWAP_SCORE_SL_POINTS
-                tp_price = entry_price + VWAP_SCORE_TP_POINTS
-                active_position = {
-                    'direction': 'BUY', 'entry_price': entry_price, 'entry_time': timestamp,
-                    'sl': sl_price, 'tp': tp_price
-                }
-                print(f"[ENTRY LONG] {current_time} @ {entry_price:.2f} (Score: {prev_score:.1f} -> {score:.1f}) | TP: {tp_price:.2f} | SL: {sl_price:.2f}")
-
-            # SHORT ENTRY: Cross < -20
-            # Condition: Prev >= -Threshold AND Curr < -Threshold
-            elif prev_score >= -CLENOW_THRESHOLD and score < -CLENOW_THRESHOLD:
+            # REVERSAL LOGIC
+            
+            # SHORT ENTRY (Reversal): Value crosses DOWN through Threshold (+15)
+            # Fading Strength: Was > 15, Now < 15
+            if prev_score >= CLENOW_THRESHOLD and score < CLENOW_THRESHOLD:
                 # Enter SELL
                 entry_price = close_price
-                sl_price = entry_price + VWAP_SCORE_SL_POINTS
-                tp_price = entry_price - VWAP_SCORE_TP_POINTS
+                sl_price = entry_price + VWAP_SCORE_REVERSAL_SL_POINTS
+                tp_price = entry_price - VWAP_SCORE_REVERSAL_TP_POINTS
                 active_position = {
                     'direction': 'SELL', 'entry_price': entry_price, 'entry_time': timestamp,
                     'sl': sl_price, 'tp': tp_price
                 }
                 print(f"[ENTRY SHORT] {current_time} @ {entry_price:.2f} (Score: {prev_score:.1f} -> {score:.1f}) | TP: {tp_price:.2f} | SL: {sl_price:.2f}")
+
+            # LONG ENTRY (Reversal): Value crosses UP through -Threshold (-15)
+            # Fading Weakness: Was < -15, Now > -15
+            elif prev_score <= -CLENOW_THRESHOLD and score > -CLENOW_THRESHOLD:
+                # Enter BUY
+                entry_price = close_price
+                sl_price = entry_price - VWAP_SCORE_REVERSAL_SL_POINTS
+                tp_price = entry_price + VWAP_SCORE_REVERSAL_TP_POINTS
+                active_position = {
+                    'direction': 'BUY', 'entry_price': entry_price, 'entry_time': timestamp,
+                    'sl': sl_price, 'tp': tp_price
+                }
+                print(f"[ENTRY LONG] {current_time} @ {entry_price:.2f} (Score: {prev_score:.1f} -> {score:.1f}) | TP: {tp_price:.2f} | SL: {sl_price:.2f}")
 
     # 5. Save Trades
     tradings_dir = Path(OUTPUTS_DIR) / "trading"
@@ -240,7 +238,7 @@ def run_strategy():
     
     if trades:
         df_trades = pd.DataFrame(trades)
-        output_file = tradings_dir / f"tracking_record_vwap_score_{current_date}.csv"
+        output_file = tradings_dir / f"tracking_record_vwap_score_reversal_{current_date}.csv"
         df_trades.to_csv(output_file, index=False, sep=';', decimal=',')
         print(f"\n[OK] Saved {len(trades)} trades to {output_file}")
         
@@ -252,7 +250,7 @@ def run_strategy():
     # Save SL History
     if sl_history:
         df_sl = pd.DataFrame(sl_history)
-        sl_file = tradings_dir / f"sl_history_vwap_score_{current_date}.csv"
+        sl_file = tradings_dir / f"sl_history_vwap_score_reversal_{current_date}.csv"
         df_sl.to_csv(sl_file, index=False, sep=';', decimal=',')
         print(f"[OK] Saved {len(df_sl)} SL points to {sl_file}")
 

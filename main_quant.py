@@ -711,6 +711,38 @@ def main_quant_range(start_date: str, end_date: str):
     except Exception as e:
         print(f"[ERROR] Failed to execute strategy: {e}")
 
+    # 2.12 Execute VWAP Score Reversal Strategy if enabled
+    print("\n" + "-"*70)
+    print("PASO 2.12: EJECUCIÓN DE ESTRATEGIA VWAP SCORE REVERSAL")
+    print("-"*70)
+    try:
+        from config import ENABLE_STRAT_VWAP_SCORE_REVERSAL
+
+        if ENABLE_STRAT_VWAP_SCORE_REVERSAL:
+            print("[INFO] Strategy is enabled, executing...")
+            import subprocess
+            import sys
+            
+            # Execute the strategy as a subprocess
+            strategy_script = PROJECT_ROOT / "strat_vwap_score_reversal.py"
+            if strategy_script.exists():
+                result = subprocess.run(
+                    [sys.executable, str(strategy_script)],
+                    capture_output=False,
+                    text=True,
+                    cwd=str(PROJECT_ROOT)
+                )
+                if result.returncode == 0:
+                    print("[OK] Strategy executed successfully")
+                else:
+                    print(f"[WARN] Strategy execution returned code: {result.returncode}")
+            else:
+                print(f"[ERROR] Strategy file not found: {strategy_script}")
+        else:
+            print("[INFO] Strategy is disabled in config (ENABLE_STRAT_VWAP_SCORE_REVERSAL = False)")
+    except Exception as e:
+        print(f"[ERROR] Failed to execute strategy: {e}")
+
     # 3. Generar gráfico (AFTER strategies so CSV files are available)
     print("\n" + "-"*70)
     print("PASO 3: GENERACIÓN DE GRÁFICO")
@@ -722,7 +754,8 @@ def main_quant_range(start_date: str, end_date: str):
         ENABLE_VWAP_MOMENTUM_STRATEGY, ENABLE_VWAP_WYCKOFF_STRATEGY,
         ENABLE_VWAP_TIME_STRATEGY, ENABLE_VWAP_BAND_REVERSAL_STRATEGY,
         ENABLE_VWAP_PULLBACK_STRATEGY, ENABLE_VWAP_SQUARE_STRATEGY,
-        ENABLE_VWAP_CROSSOVER_STRATEGY, ENABLE_STRAT_VWAP_SCORE
+        ENABLE_VWAP_CROSSOVER_STRATEGY, ENABLE_STRAT_VWAP_SCORE,
+        ENABLE_STRAT_VWAP_SCORE_REVERSAL
     )
     
     all_trades_list = []
@@ -739,7 +772,8 @@ def main_quant_range(start_date: str, end_date: str):
         (ENABLE_VWAP_PULLBACK_STRATEGY, f"tracking_record_vwap_pullback_{trade_date_str}.csv"),
         (ENABLE_VWAP_SQUARE_STRATEGY, f"tracking_record_vwap_square_{trade_date_str}.csv"),
         (ENABLE_VWAP_CROSSOVER_STRATEGY, f"tracking_record_vwap_crossover_{trade_date_str}.csv"),
-        (ENABLE_STRAT_VWAP_SCORE, f"tracking_record_vwap_score_{trade_date_str}.csv")
+        (ENABLE_STRAT_VWAP_SCORE, f"tracking_record_vwap_score_{trade_date_str}.csv"),
+        (ENABLE_STRAT_VWAP_SCORE_REVERSAL, f"tracking_record_vwap_score_reversal_{trade_date_str}.csv")
     ]
     trading_dir = OUTPUTS_DIR / "trading"
 
